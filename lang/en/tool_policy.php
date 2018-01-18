@@ -28,3 +28,4 @@ defined('MOODLE_INTERNAL') || die();
 $string['policy:accept'] = 'Accept policies';
 $string['policy:acceptbehalf'] = 'Accept policies on someone else\'s behalf';
 $string['pluginname'] = 'Policies';
+$string['userpolicysettings'] = 'Policies';
