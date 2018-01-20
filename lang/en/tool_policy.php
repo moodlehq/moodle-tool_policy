@@ -25,7 +25,16 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['ageofdigitalconsentmap'] = 'Age of digital consent';
+$string['ageofdigitalconsentmap_desc'] = 'Allows to define the age of digital consent. Users below the age are not allowed to accept the policy documents on their own. In such a case, policies must accepted by the holder of parental responsibility over the user. The age may be different in different countries. If there is no explicit value provided for the user\'s country code, the wildcard character\'s value is used.';
+$string['dataproc'] = 'Personal data processing';
+$string['pluginname'] = 'Policies';
+$string['policiesagreements'] = 'Policies and agreements';
 $string['policy:accept'] = 'Accept policies';
 $string['policy:acceptbehalf'] = 'Accept policies on someone else\'s behalf';
-$string['pluginname'] = 'Policies';
+$string['policy:managedataproc'] = 'Manage data processing services';
+$string['policy:managedocs'] = 'Manage policy documents';
+$string['policy:manageprivacy'] = 'Manage privacy settings';
+$string['policydocs'] = 'Policy documents';
+$string['privacysettings'] = 'Privacy settings';
 $string['userpolicysettings'] = 'Policies';
