@@ -162,7 +162,7 @@ class api {
 
         $now = time();
 
-        $contentfieldoptions = self::policy_content_field_options();
+        $contentfieldoptions = static::policy_content_field_options();
         $data = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context']);
 
         $policy = (object) [
@@ -208,9 +208,9 @@ class api {
         // The policy name may be changed.
         $DB->set_field('tool_policy', 'name', $form->name, ['id' => $policyid]);
 
-        $policy = self::get_policy($policyid);
+        $policy = static::get_policy($policyid);
 
-        $contentfieldoptions = self::policy_content_field_options();
+        $contentfieldoptions = static::policy_content_field_options();
         $data = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context']);
 
         $version = (object) [
@@ -245,12 +245,12 @@ class api {
         global $DB, $USER;
 
         // Check the data consistency.
-        self::get_policy_version($policyid, $versionid);
+        static::get_policy_version($policyid, $versionid);
 
         // The policy name may be changed.
         $DB->set_field('tool_policy', 'name', $form->name, ['id' => $policyid]);
 
-        $contentfieldoptions = self::policy_content_field_options();
+        $contentfieldoptions = static::policy_content_field_options();
         $data = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context'],
             'tool_policy', 'policydocumentcontent', $versionid);
 
@@ -275,7 +275,7 @@ class api {
     public static function make_current($policyid, $versionid) {
         global $DB;
 
-        $policyversion = self::get_policy_version($policyid, $versionid);
+        $policyversion = static::get_policy_version($policyid, $versionid);
         $DB->set_field('tool_policy', 'currentversionid', $versionid, ['id' => $policyid]);
     }
 
@@ -287,7 +287,7 @@ class api {
     public static function inactivate($policyid) {
         global $DB;
 
-        $policy = self::get_policy($policyid);
+        $policy = static::get_policy($policyid);
         $DB->set_field('tool_policy', 'currentversionid', null, ['id' => $policyid]);
     }
 
