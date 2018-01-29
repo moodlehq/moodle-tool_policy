@@ -125,28 +125,61 @@ class api {
      *
      * @param int $policyid ID of the policy document.
      * @param int $versionid ID of the policy document revision.
+     * @param string $template The name of the template to use.
      * @return stdClass
      */
-    public static function form_policydoc_data($policyid = null, $versionid = null) {
-
-        $data = (object) [];
+    public static function form_policydoc_data($policyid = null, $versionid = null, $template = '') {
 
         if ($policyid) {
             if ($versionid) {
-                $data = self::get_policy_version($policyid, $versionid);
-                $contentfieldoptions = self::policy_content_field_options();
+                // Editing an existing policy document version.
+                $data = static::get_policy_version($policyid, $versionid);
+                $contentfieldoptions = static::policy_content_field_options();
                 $data = file_prepare_standard_editor($data, 'content', $contentfieldoptions, $contentfieldoptions['context'],
                     'tool_policy', 'policydocumentcontent', $versionid);
 
             } else {
-                $data = self::get_policy($policyid);
+                // Adding a new version of an existing policy document.
+                $data = static::get_policy($policyid);
+            }
+
+        } else {
+            if ($template) {
+                // Adding a new policy document from a template.
+                $data = static::policy_from_template($template);
+                $contentfieldoptions = static::policy_content_field_options();
+                $data = file_prepare_standard_editor($data, 'content', $contentfieldoptions, $contentfieldoptions['context']);
+
+            } else {
+                // Adding a new policy document without a template.
+                $data = (object) [];
             }
         }
 
-        if (empty($versionid)) {
+        if (!isset($data->revision)) {
             $data->revision = date('Y').'-'.date('m').'-'.date('d').'-'.date('Hi');
+        }
+
+        if (!isset($data->contentformat)) {
             $data->contentformat = editors_get_preferred_format();
         }
+
+        return $data;
+    }
+
+    /**
+     * Returns policy form data from a given template.
+     *
+     * @param string $template one of site|privacy|thirdparties
+     * @return stdClass
+     */
+    protected static function policy_from_template($template) {
+
+        $data = (object) [
+            'name' => get_string('template_'.$template.'_name', 'tool_policy'),
+            'content' => get_string('template_'.$template.'_content', 'tool_policy'),
+            'contentformat' => FORMAT_HTML,
+        ];
 
         return $data;
     }

@@ -31,10 +31,11 @@ $versionid = optional_param('versionid', null, PARAM_INT);
 $makecurrent = optional_param('makecurrent', null, PARAM_INT);
 $inactivate = optional_param('inactivate', null, PARAM_INT);
 $confirm = optional_param('confirm', false, PARAM_BOOL);
+$template = optional_param('template', '', PARAM_ALPHA);
 
 admin_externalpage_setup('tool_policy_managedocs', '', ['policyid' => $policyid, 'versionid' => $versionid],
     new moodle_url('/admin/tool/policy/editpolicydoc.php'));
-require_capability('tool/policy:managedocs', \context_system::instance());
+require_capability('tool/policy:managedocs', context_system::instance());
 
 $output = $PAGE->get_renderer('tool_policy');
 $PAGE->navbar->add(get_string('editingpolicydocument', 'tool_policy'));
@@ -89,10 +90,8 @@ if ($inactivate) {
     die();
 }
 
-$formdata = \tool_policy\api::form_policydoc_data($policyid, $versionid);
+$formdata = \tool_policy\api::form_policydoc_data($policyid, $versionid, $template);
 $form = new \tool_policy\form\policydoc($PAGE->url, ['formdata' => $formdata]);
-
-$contentoptions = ['trusttext' => true, 'subdirs' => false, 'context' => $PAGE->context];
 
 if ($form->is_cancelled()) {
     redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
