@@ -49,3 +49,22 @@ function tool_policy_extend_navigation_user_settings(navigation_node $usersettin
     $userpolicysettings->add('Personal data sharing and processing', '');
     $userpolicysettings->add('Intellectual property policy', '');
 }
+
+/**
+ * Load policy message for guests.
+ *
+ * @return string The HTML code to insert before the head.
+ */
+function tool_policy_before_standard_html_head() {
+    global $PAGE, $USER;
+
+    $message = null;
+    if (empty($USER->policyagreed) and isguestuser()) {
+        $output = $PAGE->get_renderer('tool_policy');
+        $page = new \tool_policy\output\guestconsent();
+
+        $message = $output->render($page);
+    }
+
+    return $message;
+}
