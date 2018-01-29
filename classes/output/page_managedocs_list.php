@@ -43,15 +43,6 @@ use templatable;
  */
 class page_managedocs_list implements renderable, templatable {
 
-    /** @var array */
-    protected $policies = [];
-
-    /**
-     * Constructor.
-     */
-    public function __construct() {
-    }
-
     /**
      * Export the page data for the mustache template.
      *
@@ -61,33 +52,32 @@ class page_managedocs_list implements renderable, templatable {
     public function export_for_template(renderer_base $output) {
 
         $data = (object) [];
-        $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(true);
+        $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(false);
         $data->haspolicies = true;
         $data->canmanage = has_capability('tool/policy:managedocs', \context_system::instance());
         $data->canviewacceptances = has_capability('tool/policy:viewacceptances', \context_system::instance());
+        $data->policies = [];
 
-        // TODO Replace the following mockup data with actual API calls.
-        $data->policies = [
-            (object) [
-                'id' => 7,
-                'name' => 'Terms and conditions',
-                'description' => 'Basic rules, terms and guidelines that users need to follow in order to use and access the site.',
-                'usersaccepted' => 'Inactive',
-            ],
-            (object) [
-                'id' => 9,
-                'name' => 'Privacy policy',
-                'description' => 'Describes the type of personal data we collect, and how we collect, store and delete theme.',
-                'usersaccepted' => '99%',
-            ],
-            (object) [
-                'id' => 10,
-                'name' => 'Sharing personal data with third parties',
-                'description' => 'List of third parties we share data with, together with the purpose of that sharing.',
-                'usersaccepted' => '99%',
-            ],
+        foreach (api::list_policies() as $policy) {
+            $datapolicy = (object) [
+                'id' => $policy->id,
+                'manageurl' => (new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policy->id]))->out(false),
+                'name' => $policy->name,
+                'description' => $policy->description,
+                'usersaccepted' => '???',
+            ];
 
-        ];
+            if ($policy->currentversionid) {
+                $current = $policy->versions[$policy->currentversionid];
+                $datapolicy->currentrevision = $current->revision;
+                $datapolicy->viewcurrenturl = (new moodle_url('/admin/tool/policy/view.php', [
+                    'policyid' => $policy->id,
+                    'versionid' => $policy->currentversionid,
+                ]))->out(false);
+            }
+
+            $data->policies[] = $datapolicy;
+        }
 
         return $data;
     }

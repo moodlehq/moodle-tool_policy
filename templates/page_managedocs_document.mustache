@@ -31,8 +31,7 @@
 <h2>{{name}}</h2>
 {{#canmanage}}
 <div>
-    <a role="button" href="#" class="btn btn-primary">{{#str}} newversion, tool_policy {{/str}}</a>
-    <a role="button" href="#" class="btn btn-secondary">{{#str}} settings {{/str}}</a>
+    <a role="button" href="{{pluginbaseurl}}/editpolicydoc.php?policyid={{policyid}}" class="btn btn-primary">{{#str}} newversion, tool_policy {{/str}}</a>
 </div>
 {{/canmanage}}
 <p style="clear:both"></p>
@@ -54,7 +53,8 @@
         {{#versions}}
         <tr>
             <td>
-                <a href="view.php?id={{id}}">{{revision}}</a>
+                <a href="{{viewurl}}">{{revision}}</a>
+                {{#iscurrent}}{{#pix}} t/check, core {{/pix}}{{/iscurrent}}
             </td>
             <td>
                 {{status}}
@@ -69,17 +69,17 @@
             {{/canviewacceptances}}
             {{#canmanage}}
             <td>
-				<div class="btn-group">
-					<button type="button" class="btn btn-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-						{{#str}} action {{/str}}
-						<span class="caret"></span>
-					</button>
-					<ul class="dropdown-menu">
-						<li><a class="dropdown-item" href="{{pluginbaseurl}}/editpolicydoc.php?template=site">{{#str}} edit {{/str}}</a></li>
-						<li><a class="dropdown-item" href="{{pluginbaseurl}}/editpolicydoc.php?template=site">{{#str}} makecurrent, tool_policy {{/str}}</a></li>
-					</ul>
-				</div>
-
+                <div class="btn-group">
+                    <button type="button" class="btn btn-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        {{#str}} action {{/str}}
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        {{#actions}}
+                        <li><a class="dropdown-item" href="{{url}}">{{{icon}}} {{text}}</a></li>
+                        {{/actions}}
+                    </ul>
+                </div>
             </td>
             {{/canmanage}}
         </tr>

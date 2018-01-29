@@ -41,20 +41,30 @@ class api {
     /**
      * Returns a list of all policy documents and their versions (but with no actual content).
      *
+     * @param int array|int|null Load only the given policies, defaults to all.
      * @return stdClass;
      */
-    public static function list_policies() {
+    public static function list_policies($ids = null) {
         global $DB;
 
         $sql = "SELECT d.id AS policyid, d.name, d.description, d.currentversionid, d.sortorder,
                        v.id AS versionid, v.usermodified, v.timecreated, v.timemodified, v.revision
                   FROM {tool_policy} d
-             LEFT JOIN {tool_policy_versions} v ON v.policyid = d.id
-              ORDER BY d.sortorder ASC, v.timecreated DESC";
+             LEFT JOIN {tool_policy_versions} v ON v.policyid = d.id ";
+
+        $params = [];
+
+        if ($ids) {
+            list($idsql, $idparams) = $DB->get_in_or_equal($ids, SQL_PARAMS_NAMED);
+            $sql .= " WHERE d.id $idsql ";
+            $params = array_merge($params, $idparams);
+        }
+
+        $sql .= " ORDER BY d.sortorder ASC, v.timecreated DESC";
 
         $policies = [];
 
-        $rs = $DB->get_recordset_sql($sql);
+        $rs = $DB->get_recordset_sql($sql, $params);
 
         foreach ($rs as $r) {
             if (!isset($policies[$r->policyid])) {
@@ -69,7 +79,7 @@ class api {
             }
 
             if (!empty($r->versionid)) {
-                $policies[$r->policyid]->versions[] = (object) [
+                $policies[$r->policyid]->versions[$r->versionid] = (object) [
                     'id' => $r->versionid,
                     'timecreated' => $r->timecreated,
                     'timemodified' => $r->timemodified,
@@ -92,7 +102,7 @@ class api {
     public static function get_policy($policyid) {
         global $DB;
 
-        return $DB->get_record('tool_policy', ['id' => $policyid], 'id,name,currentversionid,sortorder', MUST_EXIST);
+        return $DB->get_record('tool_policy', ['id' => $policyid], 'id,name,description,currentversionid,sortorder', MUST_EXIST);
     }
 
 

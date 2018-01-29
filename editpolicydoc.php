@@ -46,7 +46,7 @@ if ($makecurrent) {
     if ($confirm) {
         require_sesskey();
         \tool_policy\api::make_current($policyid, $makecurrent);
-        redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
+        redirect(new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
     }
 
     echo $output->header();
@@ -57,7 +57,7 @@ if ($makecurrent) {
             'revision' => format_string($policy->revision),
         ]),
         new moodle_url($PAGE->url, ['makecurrent' => $makecurrent, 'confirm' => 1]),
-        new moodle_url('/admin/tool/policy/managedocs.php')
+        new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid])
     );
     echo $output->footer();
     die();
@@ -67,13 +67,13 @@ if ($inactivate) {
     $policy = \tool_policy\api::get_policy_version($policyid, $inactivate);
 
     if ($policy->currentversionid != $policy->versionid) {
-        redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
+        redirect(new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
     }
 
     if ($confirm) {
         require_sesskey();
         \tool_policy\api::inactivate($policyid);
-        redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
+        redirect(new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
     }
 
     echo $output->header();
@@ -84,7 +84,7 @@ if ($inactivate) {
             'revision' => format_string($policy->revision),
         ]),
         new moodle_url($PAGE->url, ['inactivate' => $inactivate, 'confirm' => 1]),
-        new moodle_url('/admin/tool/policy/managedocs.php')
+        new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid])
     );
     echo $output->footer();
     die();
@@ -94,7 +94,7 @@ $formdata = \tool_policy\api::form_policydoc_data($policyid, $versionid, $templa
 $form = new \tool_policy\form\policydoc($PAGE->url, ['formdata' => $formdata]);
 
 if ($form->is_cancelled()) {
-    redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
+    redirect(new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
 
 } else if ($data = $form->get_data()) {
     if (empty($policyid)) {
@@ -107,7 +107,7 @@ if ($form->is_cancelled()) {
         \tool_policy\api::form_policydoc_update_overwrite($policyid, $versionid, $data);
     }
 
-    redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
+    redirect(new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
 
 } else {
     $form->set_data($formdata);

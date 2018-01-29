@@ -59,6 +59,7 @@ $string['policydoccontent'] = 'Content';
 $string['policydocdesc'] = 'Description';
 $string['policydocname'] = 'Policy name';
 $string['policydocrevision'] = 'Revision';
+$string['policydocrevisioncurrent'] = 'Current revision';
 $string['policydocs'] = 'Policy documents';
 $string['privacysettings'] = 'Privacy settings';
 $string['saveasnew'] = 'Save as new version';

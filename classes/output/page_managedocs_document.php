@@ -29,6 +29,7 @@ use tool_policy\api;
 
 defined('MOODLE_INTERNAL') || die();
 
+use context_system;
 use moodle_url;
 use renderable;
 use renderer_base;
@@ -43,13 +44,25 @@ use templatable;
  */
 class page_managedocs_document implements renderable, templatable {
 
-    /** @var array */
-    protected $versions = [];
+    /** @var int ID of the policy document to display */
+    protected $policyid;
+
+    /** @var bool Can the user manage the policy documents. */
+    protected $canmanage;
+
+    /** @var bool Can the user view the acceptances. */
+    protected $canviewacceptances;
 
     /**
      * Constructor.
+     *
+     * @param int $policyid ID of the policy document to display
      */
-    public function __construct() {
+    public function __construct($policyid) {
+
+        $this->policyid = $policyid;
+        $this->canmanage = has_capability('tool/policy:managedocs', context_system::instance());
+        $this->canviewacceptances = has_capability('tool/policy:viewacceptances', context_system::instance());
     }
 
     /**
@@ -61,37 +74,82 @@ class page_managedocs_document implements renderable, templatable {
     public function export_for_template(renderer_base $output) {
 
         $data = (object) [];
-        $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(true);
-        $data->canmanage = has_capability('tool/policy:managedocs', \context_system::instance());
-        $data->canviewacceptances = has_capability('tool/policy:viewacceptances', \context_system::instance());
+        $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(false);
+        $data->canmanage = $this->canmanage;
+        $data->canviewacceptances = $this->canviewacceptances;
 
-        // TODO Replace the following mockup data with actual API calls.
-        $data->name = 'Example policy document';
+        $policy = api::list_policies($this->policyid)[$this->policyid];
 
-        $data->versions = [
-            (object) [
-                'id' => 15,
-                'revision' => '2.1',
-                'status' => get_string('statusdraft', 'tool_policy'),
-                'timemodified' => time(),
-                'usersaccepted' => '0 %',
-            ],
-            (object) [
-                'id' => 15,
-                'revision' => '2.0',
-                'status' => get_string('statuscurrent', 'tool_policy'),
-                'timemodified' => time(),
-                'usersaccepted' => '99%',
-            ],
-            (object) [
-                'id' => 15,
-                'revision' => '1.0',
-                'status' => get_string('statusarchive', 'tool_policy'),
-                'timemodified' => time() - 180 * DAYSECS,
-                'usersaccepted' => '99%',
-            ],
+        $data->policyid = $policy->id;
+        $data->name = $policy->name;
 
-        ];
+        $data->versions = [];
+        $statushelper = 'draft';
+
+        foreach ($policy->versions as $version) {
+            $dataversion = (object) [
+                'id' => $version->id,
+                'viewurl' => (new moodle_url('/admin/tool/policy/view.php', [
+                    'policyid' => $policy->id,
+                    'versionid' => $version->id,
+                ]))->out(false),
+                'timemodified' => $version->timemodified,
+                'revision' => $version->revision,
+                'usersaccepted' => '???',
+                'actions' => [],
+            ];
+
+            $editbaseurl = new moodle_url('/admin/tool/policy/editpolicydoc.php', [
+                'policyid' => $policy->id,
+            ]);
+
+            if ($this->canmanage) {
+                $dataversion->actions[] = (object) [
+                    'url' => (new moodle_url($editbaseurl, [
+                        'versionid' => $version->id,
+                    ]))->out(false),
+                    'text' => get_string('edit', 'core'),
+                    'icon' => $output->pix_icon('t/edit', ''),
+                ];
+            }
+
+            if ($version->id === $policy->currentversionid) {
+                $dataversion->iscurrent = true;
+                $dataversion->status = get_string('statuscurrent', 'tool_policy');
+                $statushelper = 'archive';
+                if ($this->canmanage) {
+                    $dataversion->actions[] = (object) [
+                        'url' => (new moodle_url($editbaseurl, ['inactivate' => $version->id]))->out(false),
+                        'text' => get_string('inactivate', 'tool_policy'),
+                        'icon' => $output->pix_icon('t/show', ''),
+                    ];
+                }
+
+            } else if ($statushelper === 'draft') {
+                $dataversion->iscurrent = false;
+                $dataversion->status = get_string('statusdraft', 'tool_policy');
+
+                if ($this->canmanage) {
+                    if ($policy->currentversionid) {
+                        $makecurrenttext = get_string('makecurrent', 'tool_policy');
+                    } else {
+                        $makecurrenttext = get_string('makeactive', 'tool_policy');
+                    }
+
+                    $dataversion->actions[] = (object) [
+                        'url' => (new moodle_url($editbaseurl, ['makecurrent' => $version->id]))->out(false),
+                        'text' => $makecurrenttext,
+                        'icon' => $output->pix_icon('t/hide', ''),
+                    ];
+                }
+
+            } else {
+                $dataversion->iscurrent = false;
+                $dataversion->status = get_string('statusarchive', 'tool_policy');
+            }
+
+            $data->versions[] = $dataversion;
+        }
 
         return $data;
     }
