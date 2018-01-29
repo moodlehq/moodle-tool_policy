@@ -29,10 +29,12 @@
     * versions
 }}
 <h2>{{name}}</h2>
+{{#canmanage}}
 <div>
     <a role="button" href="#" class="btn btn-primary">{{#str}} newversion, tool_policy {{/str}}</a>
     <a role="button" href="#" class="btn btn-secondary">{{#str}} settings {{/str}}</a>
 </div>
+{{/canmanage}}
 <p style="clear:both"></p>
 <table class="generaltable fullwidth listpolicyversions">
     <thead>
@@ -40,8 +42,12 @@
             <th scope="col">{{#str}} policydocrevision, tool_policy {{/str}}</th>
             <th scope="col">{{#str}} status {{/str}}</th>
             <th scope="col">{{#str}} modified {{/str}}</th>
+            {{#canviewacceptances}}
             <th scope="col">{{#str}} usersaccepted, tool_policy {{/str}}</th>
+            {{/canviewacceptances}}
+            {{#canmanage}}
             <th scope="col"></th>
+            {{/canmanage}}
         </tr>
     </thead>
     <tbody>
@@ -56,9 +62,12 @@
             <td>
                 {{#userdate}} {{timemodified}}, {{#str}} strftimedate {{/str}} {{/userdate}}
             </td>
+            {{#canviewacceptances}}
             <td>
-                <a href="#">{{usersaccepted}}</a>
+                <a href="{{pluginbaseurl}}/acceptances.php?versionid={{id}}">{{usersaccepted}}</a>
             </td>
+            {{/canviewacceptances}}
+            {{#canmanage}}
             <td>
 				<div class="btn-group">
 					<button type="button" class="btn btn-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -72,6 +81,7 @@
 				</div>
 
             </td>
+            {{/canmanage}}
         </tr>
         {{/versions}}
     </tbody>

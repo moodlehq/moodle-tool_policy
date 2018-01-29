@@ -59,6 +59,14 @@ $capabilities = [
         ],
     ],
 
+    'tool/policy:viewacceptances' => [
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [
+            'manager' => CAP_ALLOW,
+        ],
+    ],
+
     'tool/policy:managedataproc' => [
         'captype' => 'write',
         'contextlevel' => CONTEXT_SYSTEM,

@@ -29,6 +29,7 @@ $managecaps = [
     'tool/policy:managedocs',
     'tool/policy:manageprivacy',
     'tool/policy:managedataproc',
+    'tool/policy:viewacceptances',
 ];
 
 if ($hassiteconfig || has_any_capability($managecaps, context_system::instance())) {
@@ -78,7 +79,7 @@ if ($hassiteconfig || has_any_capability($managecaps, context_system::instance()
         'tool_policy_managedocs',
         new lang_string('policydocs', 'tool_policy'),
         new moodle_url('/admin/tool/policy/managedocs.php'),
-        ['tool/policy:managedocs']
+        ['tool/policy:managedocs', 'tool/policy:viewacceptances']
     ));
 
     $ADMIN->add('tool_policy_admin_category', new admin_externalpage(

@@ -34,6 +34,7 @@ $confirm = optional_param('confirm', false, PARAM_BOOL);
 
 admin_externalpage_setup('tool_policy_managedocs', '', ['policyid' => $policyid, 'versionid' => $versionid],
     new moodle_url('/admin/tool/policy/editpolicydoc.php'));
+require_capability('tool/policy:managedocs', \context_system::instance());
 
 $output = $PAGE->get_renderer('tool_policy');
 $PAGE->navbar->add(get_string('editingpolicydocument', 'tool_policy'));

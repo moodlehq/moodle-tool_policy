@@ -62,6 +62,8 @@ class page_managedocs_document implements renderable, templatable {
 
         $data = (object) [];
         $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(true);
+        $data->canmanage = has_capability('tool/policy:managedocs', \context_system::instance());
+        $data->canviewacceptances = has_capability('tool/policy:viewacceptances', \context_system::instance());
 
         // TODO Replace the following mockup data with actual API calls.
         $data->name = 'Example policy document';

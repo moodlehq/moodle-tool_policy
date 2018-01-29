@@ -28,6 +28,7 @@
     * policies
 }}
 <h2>{{#str}} policydocs, tool_policy {{/str}}</h2>
+{{#canmanage}}
 <div>
 	<div class="btn-group">
 		<button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -43,15 +44,20 @@
 		</ul>
 	</div>
 </div>
+{{/canmanage}}
 <p style="clear:both"></p>
 {{#haspolicies}}
 <table class="generaltable fullwidth listpolicydocuments">
     <thead>
         <tr>
             <th scope="col">{{#str}} policydocname, tool_policy {{/str}}</th>
+            {{#canviewacceptances}}
             <th scope="col">{{#str}} usersaccepted, tool_policy {{/str}}</th>
+            {{/canviewacceptances}}
             <th scope="col">{{#str}} policydocdesc, tool_policy {{/str}}</th>
+            {{#canmanage}}
             <th scope="col"></th>
+            {{/canmanage}}
         </tr>
     </thead>
     <tbody>
@@ -60,16 +66,20 @@
             <td>
                 <a href="?id={{id}}">{{name}}</a>
             </td>
+            {{#canviewacceptances}}
             <td>
-                <a href="#">{{usersaccepted}}</a>
+                <a href="{{pluginbaseurl}}/acceptances.php?policyid={{id}}">{{usersaccepted}}</a>
             </td>
+            {{/canviewacceptances}}
             <td>
                 <small>{{description}}</small>
             </td>
+            {{#canmanage}}
             <td>
                 {{#pix}} t/up, core {{/pix}}
                 {{#pix}} t/down, core {{/pix}}
             </td>
+            {{/canmanage}}
         </tr>
         {{/policies}}
     </tbody>
