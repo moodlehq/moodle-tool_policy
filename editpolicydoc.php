@@ -98,7 +98,8 @@ if ($form->is_cancelled()) {
 
 } else if ($data = $form->get_data()) {
     if (empty($policyid)) {
-        \tool_policy\api::form_policydoc_add($data);
+        list($policy, $version) = \tool_policy\api::form_policydoc_add($data);
+        $policyid = $policy->id;
 
     } else if (empty($versionid) || !empty($data->saveasnew)) {
         \tool_policy\api::form_policydoc_update_new($policyid, $data);
