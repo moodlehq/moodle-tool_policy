@@ -106,7 +106,7 @@ class api {
     public static function get_policy_version($policyid, $versionid) {
         global $DB;
 
-        $sql = "SELECT d.id AS policyid, d.name, d.currentversionid, d.sortorder,
+        $sql = "SELECT d.id AS policyid, d.name, d.description, d.currentversionid, d.sortorder,
                        v.id AS versionid, v.usermodified, v.timecreated, v.timemodified, v.revision, v.content, v.contentformat
                   FROM {tool_policy} d
                   JOIN {tool_policy_versions} v ON v.policyid = d.id

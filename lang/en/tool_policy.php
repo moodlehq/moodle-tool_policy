@@ -62,8 +62,10 @@ $string['policydocrevision'] = 'Revision';
 $string['policydocs'] = 'Policy documents';
 $string['privacysettings'] = 'Privacy settings';
 $string['saveasnew'] = 'Save as new version';
-$string['saveasnew0'] = '<strong>No</strong>. Made changes do not amend the meaning of the policy text, terms or conditions. Users do not need to reconfirm their consent.';
-$string['saveasnew1'] = '<strong>Yes</strong>. This change amends the meaning of the policy. Users will be required to reconfirm their consent with this new version.';
+$string['saveasnew_help'] = 'Should the text be saved as a new version of the policy text?
+
+* Select __No__ if the made changes do not amend the meaning of the policy text, terms or conditions. Users do not need to reconfirm their consent.
+* Select __Yes__ if this change amends the meaning of the policy. Users will be required to reconfirm their consent with this new version.';
 $string['statusarchive'] = 'Archive';
 $string['statuscurrent'] = 'Current';
 $string['statusdraft'] = 'Draft';

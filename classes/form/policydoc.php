@@ -51,6 +51,10 @@ class policydoc extends moodleform {
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->addRule('name', get_string('maximumchars', '', 1333), 'maxlength', 1333, 'client');
 
+        $mform->addElement('text', 'description', get_string('policydocdesc', 'tool_policy'), ['maxlength' => 1333]);
+        $mform->setType('description', PARAM_TEXT);
+        $mform->addRule('description', get_string('maximumchars', '', 1333), 'maxlength', 1333, 'client');
+
         $mform->addElement('text', 'revision', get_string('policydocrevision', 'tool_policy'), ['maxlength' => 1333]);
         $mform->setType('revision', PARAM_TEXT);
         $mform->addRule('revision', null, 'required', null, 'client');
@@ -62,12 +66,13 @@ class policydoc extends moodleform {
         if (!empty($formdata->versionid)) {
             // We are editing an existing version.
             $saveasnewoptions = [
-                $mform->createElement('radio', 'saveasnew', '', get_string('saveasnew1', 'tool_policy'), 1),
-                $mform->createElement('radio', 'saveasnew', '', get_string('saveasnew0', 'tool_policy'), 0),
+                $mform->createElement('radio', 'saveasnew', '', get_string('yes', 'core'), 1),
+                $mform->createElement('radio', 'saveasnew', '', get_string('no', 'core'), 0),
             ];
 
             $mform->addGroup($saveasnewoptions, 'saveasnewgrp', get_string('saveasnew', 'tool_policy'),
                 [html_writer::empty_tag('br')], false);
+            $mform->addHelpButton('saveasnewgrp', 'saveasnew', 'tool_policy');
 
             if ($formdata->versionid == $formdata->currentversionid) {
                 // We are editing the current version.
