@@ -248,8 +248,12 @@ class api {
 
         $now = time();
 
-        // The policy name may be changed.
-        $DB->set_field('tool_policy', 'name', $form->name, ['id' => $policyid]);
+        // The policy name and description may be changed.
+        $DB->update_record('tool_policy', (object) [
+            'id' => $policyid,
+            'name' => $form->name,
+            'description' => $form->description,
+        ]);
 
         $policy = static::get_policy($policyid);
 
@@ -290,8 +294,12 @@ class api {
         // Check the data consistency.
         static::get_policy_version($policyid, $versionid);
 
-        // The policy name may be changed.
-        $DB->set_field('tool_policy', 'name', $form->name, ['id' => $policyid]);
+        // The policy name and description may be changed.
+        $DB->update_record('tool_policy', (object) [
+            'id' => $policyid,
+            'name' => $form->name,
+            'description' => $form->description,
+        ]);
 
         $contentfieldoptions = static::policy_content_field_options();
         $data = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context'],
