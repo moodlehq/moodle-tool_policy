@@ -102,7 +102,8 @@ class api {
     public static function get_policy($policyid) {
         global $DB;
 
-        return $DB->get_record('tool_policy', ['id' => $policyid], 'id,name,description,currentversionid,sortorder', MUST_EXIST);
+        return $DB->get_record('tool_policy', ['id' => $policyid],
+            'id AS policyid,name,description,currentversionid,sortorder', MUST_EXIST);
     }
 
 
@@ -198,7 +199,7 @@ class api {
      * Save the data from the policydoc form as a new policy document.
      *
      * @param stdClass $form data submitted from the {@link \tool_policy\form\policydoc} form.
-     * @return array [object,object] the new policy document and the new version record objects.
+     * @return stdClass policy version object as returned by {@link static::get_policy_version()}}
      */
     public static function form_policydoc_add(stdClass $form) {
         global $DB, $USER;
@@ -210,30 +211,13 @@ class api {
 
         $policy = (object) [
             'name' => $form->name,
-            'description' => $form->description,
+            'description' => empty($form->description) ? '' : $form->description,
             'sortorder' => 999,
         ];
 
-        $policy->id = $DB->insert_record('tool_policy', $policy);
+        $policyid = $DB->insert_record('tool_policy', $policy);
 
-        $version = (object) [
-            'usermodified' => $USER->id,
-            'timecreated' => $now,
-            'timemodified' => $now,
-            'policyid' => $policy->id,
-            'revision' => $form->revision,
-            'content' => $form->content,
-            'contentformat' => $form->contentformat,
-        ];
-
-        $version->id = $DB->insert_record('tool_policy_versions', $version);
-
-        $data = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context'],
-            'tool_policy', 'policydocumentcontent', $version->id);
-
-        $DB->set_field('tool_policy_versions', 'content', $data->content);
-
-        return [$policy, $version];
+        return static::form_policydoc_update_new($policyid, $form);
     }
 
     /**
@@ -241,7 +225,7 @@ class api {
      *
      * @param int $policyid
      * @param stdClass $form data submitted from the {@link \tool_policy\form\policydoc} form.
-     * @return array [object,object] the new policy document and the new version record objects.
+     * @return stdClass policy version object as returned by {@link static::get_policy_version()}}
      */
     public static function form_policydoc_update_new($policyid, stdClass $form) {
         global $DB, $USER;
@@ -252,7 +236,7 @@ class api {
         $DB->update_record('tool_policy', (object) [
             'id' => $policyid,
             'name' => $form->name,
-            'description' => $form->description,
+            'description' => empty($form->description) ? '' : $form->description,
         ]);
 
         $policy = static::get_policy($policyid);
@@ -264,20 +248,20 @@ class api {
             'usermodified' => $USER->id,
             'timecreated' => $now,
             'timemodified' => $now,
-            'policyid' => $policy->id,
+            'policyid' => $policy->policyid,
             'revision' => $form->revision,
             'content' => $form->content,
             'contentformat' => $form->contentformat,
         ];
 
-        $version->id = $DB->insert_record('tool_policy_versions', $version);
+        $versionid = $DB->insert_record('tool_policy_versions', $version);
 
         $data = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context'],
-            'tool_policy', 'policydocumentcontent', $version->id);
+            'tool_policy', 'policydocumentcontent', $versionid);
 
-        $DB->set_field('tool_policy_versions', 'content', $data->content);
+        $DB->set_field('tool_policy_versions', 'content', $data->content, ['id' => $versionid]);
 
-        return [$policy, $version];
+        return static::get_policy_version($policyid, $versionid);
     }
 
 
@@ -287,6 +271,7 @@ class api {
      * @param int $policyid
      * @param int $versionid
      * @param stdClass $form data submitted from the {@link \tool_policy\form\policydoc} form.
+     * @return stdClass policy version object as returned by {@link static::get_policy_version()}}
      */
     public static function form_policydoc_update_overwrite($policyid, $versionid, stdClass $form) {
         global $DB, $USER;
@@ -315,6 +300,8 @@ class api {
         ];
 
         $DB->update_record('tool_policy_versions', $version);
+
+        return static::get_policy_version($policyid, $versionid);
     }
 
     /**
