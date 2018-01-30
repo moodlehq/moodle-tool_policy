@@ -1,3 +1,9 @@
+#page-admin-tool-policy-managedocs .listpolicydocuments tr:first-child .actionicon.moveup,
+#page-admin-tool-policy-managedocs .listpolicydocuments tr:last-child .actionicon.movedown {
+    visibility: hidden;
+}
+
+/* eupopup styles */
 .eupopup-body li
 {
     display: inline;

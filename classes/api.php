@@ -217,6 +217,8 @@ class api {
 
         $policyid = $DB->insert_record('tool_policy', $policy);
 
+        static::distribute_policy_document_sortorder();
+
         return static::form_policydoc_update_new($policyid, $form);
     }
 
@@ -336,5 +338,62 @@ class api {
      */
     protected static function policy_content_field_options() {
         return ['trusttext' => true, 'subdirs' => false, 'context' => context_system::instance()];
+    }
+
+    /**
+     * Re-sets the sortorder field of the policy documents to even values.
+     */
+    protected static function distribute_policy_document_sortorder() {
+        global $DB;
+
+        $sql = "SELECT p.id, p.sortorder, MAX(v.timecreated) AS timerecentcreated
+                  FROM {tool_policy} p
+             LEFT JOIN {tool_policy_versions} v ON v.policyid = p.id
+              GROUP BY p.id, p.sortorder
+              ORDER BY p.sortorder ASC, timerecentcreated ASC";
+
+        $rs = $DB->get_recordset_sql($sql);
+        $sortorder = 10;
+
+        foreach ($rs as $record) {
+            if ($record->sortorder != $sortorder) {
+                $DB->set_field('tool_policy', 'sortorder', $sortorder, ['id' => $record->id]);
+            }
+            $sortorder = $sortorder + 2;
+        }
+
+        $rs->close();
+    }
+
+    /**
+     * Change the policy document's sortorder.
+     *
+     * @param int $policyid
+     * @param int $step
+     */
+    protected static function move_policy_document($policyid, $step) {
+        global $DB;
+
+        $policy = static::get_policy($policyid);
+        $DB->set_field('tool_policy', 'sortorder', $policy->sortorder + $step, ['id' => $policyid]);
+        static::distribute_policy_document_sortorder();
+    }
+
+    /**
+     * Move the given policy document up in the list.
+     *
+     * @param id $policyid
+     */
+    public static function move_up($policyid) {
+        static::move_policy_document($policyid, -3);
+    }
+
+    /**
+     * Move the given policy document down in the list.
+     *
+     * @param id $policyid
+     */
+    public static function move_down($policyid) {
+        static::move_policy_document($policyid, 3);
     }
 }

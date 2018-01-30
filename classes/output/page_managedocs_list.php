@@ -62,6 +62,14 @@ class page_managedocs_list implements renderable, templatable {
             $datapolicy = (object) [
                 'id' => $policy->id,
                 'manageurl' => (new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policy->id]))->out(false),
+                'moveupurl' => (new moodle_url('/admin/tool/policy/editpolicydoc.php', [
+                    'moveup' => $policy->id,
+                    'sesskey' => sesskey(),
+                ]))->out(false),
+                'movedownurl' => (new moodle_url('/admin/tool/policy/editpolicydoc.php', [
+                    'movedown' => $policy->id,
+                    'sesskey' => sesskey(),
+                ]))->out(false),
                 'name' => $policy->name,
                 'description' => $policy->description,
                 'usersaccepted' => '???',

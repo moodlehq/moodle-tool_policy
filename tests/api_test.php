@@ -113,4 +113,52 @@ class tool_policy_api_testcase extends advanced_testcase {
         $policy = api::get_policy($policy->policyid);
         $this->assertNull($policy->currentversionid);
     }
+
+    /**
+     * Test changing the sort order of the policy documents.
+     */
+    public function test_policy_sortorder() {
+        $this->resetAfterTest();
+
+        $formdata = api::form_policydoc_data();
+        $formdata->name = 'Policy1';
+        $formdata->content_editor = ['text' => 'P1 content', 'format' => FORMAT_HTML, 'itemid' => 0];
+        $policy1 = api::form_policydoc_add($formdata);
+
+        $formdata = api::form_policydoc_data();
+        $formdata->name = 'Policy2';
+        $formdata->content_editor = ['text' => 'P2 content', 'format' => FORMAT_HTML, 'itemid' => 0];
+        $policy2 = api::form_policydoc_add($formdata);
+
+        $this->assertTrue($policy1->sortorder < $policy2->sortorder);
+
+        $formdata = api::form_policydoc_data();
+        $formdata->name = 'Policy3';
+        $formdata->content_editor = ['text' => 'P3 content', 'format' => FORMAT_HTML, 'itemid' => 0];
+        $policy3 = api::form_policydoc_add($formdata);
+
+        $this->assertTrue($policy1->sortorder < $policy2->sortorder);
+        $this->assertTrue($policy2->sortorder < $policy3->sortorder);
+
+        api::move_up($policy3->policyid);
+
+        $policy1 = api::get_policy($policy1->policyid);
+        $policy2 = api::get_policy($policy2->policyid);
+        $policy3 = api::get_policy($policy3->policyid);
+
+        $this->assertTrue($policy1->sortorder < $policy3->sortorder);
+        $this->assertTrue($policy3->sortorder < $policy2->sortorder);
+
+        api::move_down($policy1->policyid);
+
+        $policy1 = api::get_policy($policy1->policyid);
+        $policy2 = api::get_policy($policy2->policyid);
+        $policy3 = api::get_policy($policy3->policyid);
+
+        $this->assertTrue($policy3->sortorder < $policy1->sortorder);
+        $this->assertTrue($policy1->sortorder < $policy2->sortorder);
+
+        $orderedlist = api::list_policies();
+        $this->assertEquals([$policy3->policyid, $policy1->policyid, $policy2->policyid], array_keys($orderedlist));
+    }
 }

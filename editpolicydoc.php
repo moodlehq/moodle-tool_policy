@@ -23,6 +23,8 @@
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use tool_policy\api;
+
 require(__DIR__.'/../../../config.php');
 require_once($CFG->libdir.'/adminlib.php');
 
@@ -32,6 +34,8 @@ $makecurrent = optional_param('makecurrent', null, PARAM_INT);
 $inactivate = optional_param('inactivate', null, PARAM_INT);
 $confirm = optional_param('confirm', false, PARAM_BOOL);
 $template = optional_param('template', '', PARAM_ALPHA);
+$moveup = optional_param('moveup', null, PARAM_INT);
+$movedown = optional_param('movedown', null, PARAM_INT);
 
 admin_externalpage_setup('tool_policy_managedocs', '', ['policyid' => $policyid, 'versionid' => $versionid],
     new moodle_url('/admin/tool/policy/editpolicydoc.php'));
@@ -41,11 +45,11 @@ $output = $PAGE->get_renderer('tool_policy');
 $PAGE->navbar->add(get_string('editingpolicydocument', 'tool_policy'));
 
 if ($makecurrent) {
-    $policy = \tool_policy\api::get_policy_version($policyid, $makecurrent);
+    $policy = api::get_policy_version($policyid, $makecurrent);
 
     if ($confirm) {
         require_sesskey();
-        \tool_policy\api::make_current($policyid, $makecurrent);
+        api::make_current($policyid, $makecurrent);
         redirect(new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
     }
 
@@ -64,7 +68,7 @@ if ($makecurrent) {
 }
 
 if ($inactivate) {
-    $policy = \tool_policy\api::get_policy_version($policyid, $inactivate);
+    $policy = api::get_policy_version($policyid, $inactivate);
 
     if ($policy->currentversionid != $policy->versionid) {
         redirect(new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
@@ -72,7 +76,7 @@ if ($inactivate) {
 
     if ($confirm) {
         require_sesskey();
-        \tool_policy\api::inactivate($policyid);
+        api::inactivate($policyid);
         redirect(new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
     }
 
@@ -90,7 +94,19 @@ if ($inactivate) {
     die();
 }
 
-$formdata = \tool_policy\api::form_policydoc_data($policyid, $versionid, $template);
+if ($moveup || $movedown) {
+    require_sesskey();
+
+    if ($moveup) {
+        api::move_up($moveup);
+    } else {
+        api::move_down($movedown);
+    }
+
+    redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
+}
+
+$formdata = api::form_policydoc_data($policyid, $versionid, $template);
 $form = new \tool_policy\form\policydoc($PAGE->url, ['formdata' => $formdata]);
 
 if ($form->is_cancelled()) {
@@ -98,14 +114,14 @@ if ($form->is_cancelled()) {
 
 } else if ($data = $form->get_data()) {
     if (empty($policyid)) {
-        $policy = \tool_policy\api::form_policydoc_add($data);
+        $policy = api::form_policydoc_add($data);
         $policyid = $policy->policyid;
 
     } else if (empty($versionid) || !empty($data->saveasnew)) {
-        \tool_policy\api::form_policydoc_update_new($policyid, $data);
+        api::form_policydoc_update_new($policyid, $data);
 
     } else {
-        \tool_policy\api::form_policydoc_update_overwrite($policyid, $versionid, $data);
+        api::form_policydoc_update_overwrite($policyid, $versionid, $data);
     }
 
     redirect(new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));

@@ -81,8 +81,8 @@
             {{/canviewacceptances}}
             {{#canmanage}}
             <td>
-                {{#pix}} t/up, core {{/pix}}
-                {{#pix}} t/down, core {{/pix}}
+                <a class="actionicon moveup" href="{{moveupurl}}">{{#pix}} t/up, core, {{#str}} moveup {{/str}} {{/pix}}</a>
+                <a class="actionicon movedown" href="{{movedownurl}}">{{#pix}} t/down, core, {{#str}} movedown {{/str}} {{/pix}}</a>
             </td>
             {{/canmanage}}
         </tr>
