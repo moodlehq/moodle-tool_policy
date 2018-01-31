@@ -125,14 +125,14 @@ class api {
                   JOIN {tool_policy_versions} v ON v.policyid = d.id
                  WHERE v.id = :versionid";
 
-        if ($policyid) {
-            $sql .= ' AND d.id = :policyid';
-        }
-
         $params = [
-            'policyid' => $policyid,
             'versionid' => $versionid,
         ];
+
+        if ($policyid) {
+            $sql .= " AND d.id = :policyid";
+            $params['policyid'] = $policyid;
+        }
 
         return $DB->get_record_sql($sql, $params, MUST_EXIST);
     }

@@ -112,6 +112,16 @@ class tool_policy_api_testcase extends advanced_testcase {
         api::inactivate($policy->policyid);
         $policy = api::get_policy($policy->policyid);
         $this->assertNull($policy->currentversionid);
+
+        // Load the policy version using both policyid and versionid.
+        $loaded = api::get_policy_version($another->policyid, $another->versionid);
+        $this->assertEquals($loaded->policyid, $another->policyid);
+        $this->assertEquals($loaded->versionid, $another->versionid);
+
+        // Load the policy version using versionid only.
+        $loaded = api::get_policy_version(null, $another->versionid);
+        $this->assertEquals($loaded->policyid, $another->policyid);
+        $this->assertEquals($loaded->versionid, $another->versionid);
     }
 
     /**
