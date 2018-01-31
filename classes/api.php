@@ -40,6 +40,11 @@ defined('MOODLE_INTERNAL') || die();
  */
 class api {
 
+    const VERSION_STATUS_DRAFT = 'draft';
+    const VERSION_STATUS_CURRENT = 'current';
+    const VERSION_STATUS_ARCHIVE = 'archive';
+
+
     /**
      * Returns a list of all policy documents and their versions (but with no actual content).
      *
@@ -135,6 +140,28 @@ class api {
         }
 
         return $DB->get_record_sql($sql, $params, MUST_EXIST);
+    }
+
+    /**
+     * Calculate the status of a particular policy document version.
+     *
+     * @param int $policyid ID of the policy document.
+     * @param int $versionid ID of the policy document revision.
+     * @return string Status of the policy document version.
+     */
+    public static function get_policy_version_status($policyid, $versionid) {
+        $status = static::VERSION_STATUS_DRAFT;
+        $policy = static::list_policies($policyid)[$policyid];
+
+        if (!empty($policy->currentversionid) && array_key_exists($versionid, $policy->versions)) {
+            if ($policy->currentversionid == $versionid) {
+                $status = static::VERSION_STATUS_CURRENT;
+            } else if ($policy->versions[$versionid]->timecreated < $policy->versions[$policy->currentversionid]->timecreated) {
+                $status = static::VERSION_STATUS_ARCHIVE;
+            }
+        }
+
+        return $status;
     }
 
     /**

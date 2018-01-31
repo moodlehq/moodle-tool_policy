@@ -86,6 +86,7 @@ $string['template_site_name'] = 'Site policy';
 $string['template_thirdparties_content'] = '<h2>Sharing data with third parties</h2><p>This is the list of other institutions with whom personal data may be shared.</p><table class="generaltable"><thead><tr><th scope="col">Name</th><th scope="col">Purpose of data sharing</th><th scope="col">Data we share with them</th></tr></thead><tbody><tr><td><a href="https://example.com">Pandora\'s Box Ltd.</a></td><td>Regular database backup are stored in their data center and can be used to restore our school systems in case of damage.</td><td>All data we have in our database. Data are encrypted before being sent to them.</td></tr></tbody></table>';
 $string['template_thirdparties_name'] = 'Third parties policy example';
 $string['useracceptances'] = 'User acceptances';
+$string['usercantviewdraftversion'] = 'You don\'t have access to this policy document version because it is a draft.';
 $string['userpolicysettings'] = 'Policies';
 $string['usersaccepted'] = 'Users accepted';
 $string['whyisthisrequired'] = 'Why is this required?';

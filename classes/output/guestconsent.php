@@ -52,6 +52,7 @@ class guestconsent implements renderable, templatable {
 
         $data = (object) [];
         $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(true);
+        $data->returnurl = qualified_me();
 
         $policies = \tool_policy\api::list_policies();
         foreach ($policies as $policy) {
