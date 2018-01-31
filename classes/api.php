@@ -27,6 +27,8 @@ namespace tool_policy;
 
 use context_system;
 use stdClass;
+use tool_policy\event\acceptance_created;
+use tool_policy\event\acceptance_updated;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -110,7 +112,7 @@ class api {
     /**
      * Load a particular policy document version.
      *
-     * @param int $policyid ID of the policy document.
+     * @param int $policyid ID of the policy document (can be null)
      * @param int $versionid ID of the policy document revision.
      * @return stdClass
      */
@@ -121,7 +123,11 @@ class api {
                        v.id AS versionid, v.usermodified, v.timecreated, v.timemodified, v.revision, v.content, v.contentformat
                   FROM {tool_policy} d
                   JOIN {tool_policy_versions} v ON v.policyid = d.id
-                 WHERE d.id = :policyid AND v.id = :versionid";
+                 WHERE v.id = :versionid";
+
+        if ($policyid) {
+            $sql .= ' AND d.id = :policyid';
+        }
 
         $params = [
             'policyid' => $policyid,
@@ -395,5 +401,119 @@ class api {
      */
     public static function move_down($policyid) {
         static::move_policy_document($policyid, 3);
+    }
+
+    /**
+     * Returns list of acceptances
+     *
+     * @param int|array $users id of a user or a list of ids
+     * @param int|array $versions list of policy versions
+     * @return array list of acceptances indexed by userid and versionid. Each acceptance has additional field 'policyid'
+     */
+    public static function get_acceptances($versions, $select = '', $params = [], $orderby = 'u.lastname, u.firstname', $limitfrom = 0, $limitto = 0) {
+        global $DB;
+        $versions = is_array($versions) ? array_values($versions) : [$versions];
+        list($vsql, $vparams) = $DB->get_in_or_equal($versions, SQL_PARAMS_NAMED, 'ver');
+        $userfields = get_all_user_name_fields(true, 'u', null, 'user');
+        $userfieldsmod = get_all_user_name_fields(true, 'm', null, 'mod');
+        $sql = "SELECT u.id AS mainuserid, $userfields, $userfieldsmod, a.*, u.policyagreed
+                  FROM {user} u
+                  LEFT OUTER JOIN {tool_policy_acceptances} a ON a.userid = u.id AND a.policyversionid $vsql
+                  LEFT OUTER JOIN {user} m ON m.id = a.usermodified";
+        if ($select) {
+            $sql .= ' WHERE '.$select;
+        }
+        if ($orderby) {
+            $sql .= ' ORDER BY '.$orderby;
+        }
+        $result = $DB->get_recordset_sql($sql, $params + $vparams);
+
+        $acceptances = [];
+        foreach ($result as $row) {
+            $acceptances[] = $row;
+        }
+        $result->close();
+        return $acceptances;
+    }
+
+    /**
+     * Accepts the current revisions of all policies that the user has not yet accepted
+     *
+     * @param array|int $policyversionid
+     * @param int|null $userid
+     * @param string|null $note
+     * @param string|null $language
+     */
+    public static function accept_policies($policyversionid, $userid = null, $note = null, $language = null) {
+        global $DB, $USER;
+        if (!isloggedin() || isguestuser()) {
+            throw new \moodle_exception('noguest');
+        }
+        if (!$userid) {
+            $userid = $USER->id;
+        }
+        $usercontext = \context_user::instance($userid);
+        if ($userid == $USER->id) {
+            require_capability('tool/policy:accept', context_system::instance());
+        } else {
+            require_capability('tool/policy:acceptbehalf', $usercontext);
+        }
+
+        if (empty($policyversionid)) {
+            return;
+        } else if (!is_array($policyversionid)) {
+            $policyversionid = [$policyversionid];
+        }
+        list($sql, $params) = $DB->get_in_or_equal($policyversionid, SQL_PARAMS_NAMED);
+        $sql = "SELECT v.id AS versionid, a.*
+                  FROM {tool_policy_versions} v
+                  LEFT JOIN {tool_policy_acceptances} a ON a.userid = :userid AND a.policyversionid = v.id
+                  WHERE (a.id IS NULL or a.status <> 1) AND v.id " . $sql;
+        $needacceptance = $DB->get_records_sql($sql, ['userid' => $userid] + $params);
+
+        $updatedata = ['status' => 1, 'language' => $language ?: current_language(),
+            'timemodified' => time(), 'usermodified' => $USER->id, 'note' => $note];
+        foreach ($needacceptance as $versionid => $currentacceptance) {
+            unset($currentacceptance->versionid);
+            if ($currentacceptance->id) {
+                $updatedata['id'] = $currentacceptance->id;
+                $DB->update_record('tool_policy_acceptances', $updatedata);
+                acceptance_updated::create_from_record((object)($updatedata + (array)$currentacceptance))->trigger();
+            } else {
+                $updatedata['timecreated'] = $updatedata['timemodified'];
+                $updatedata['policyversionid'] = $versionid;
+                $updatedata['userid'] = $userid;
+                $updatedata['id'] = $DB->insert_record('tool_policy_acceptances', $updatedata);
+                acceptance_created::create_from_record((object)($updatedata + (array)$currentacceptance))->trigger();
+            }
+        }
+
+        // TODO $user->policyagreed may need updating here
+    }
+
+    /**
+     * May be used to revert accidentally granted acceptance for another user
+     *
+     * @param int $policyversionid
+     * @param int $userid
+     * @param null $note
+     */
+    public static function revoke_acceptance($policyversionid, $userid, $note = null) {
+        global $DB, $USER;
+        if (!isloggedin() || isguestuser()) {
+            throw new \moodle_exception('noguest');
+        }
+        $usercontext = \context_user::instance($userid);
+        require_capability('tool/policy:acceptbehalf', $usercontext);
+
+        if ($currentacceptance = $DB->record_exists('tool_policy_acceptance',
+                ['policyversionid' => $policyversionid, 'userid' => $userid])) {
+            $updatedata = ['id' => $currentacceptance->id, 'status' => 0, 'timemodified' => now(),
+                'usermodified' => $USER->id, 'note' => $note];
+            $DB->update_record('tool_policy_acceptances', $updatedata);
+            acceptance_updated::create_from_record((object)($updatedata + (array)$currentacceptance))->trigger();
+        }
+
+        // TODO $user->policyagreed may need updating here
     }
 }

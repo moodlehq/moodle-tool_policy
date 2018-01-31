@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="admin/tool/policy/db" VERSION="20180120" COMMENT="The plugin allows to manage various policy documents that users have to accept to use the site."
+<XMLDB PATH="admin/tool/policy/db" VERSION="20180130" COMMENT="The plugin allows to manage various policy documents that users have to accept to use the site."
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd"
 >
@@ -39,18 +39,19 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="policyversionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the policy document version"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the user this acceptance is relevant to"/>
-        <FIELD NAME="status" TYPE="int" LENGTH="3" NOTNULL="false" SEQUENCE="false" COMMENT="Acceptance status: 0 - pending, 1 - accepted, -1 - rejected"/>
-        <FIELD NAME="language" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="Code of the language the user had when the policy document was displayed"/>
-        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="ID of the user who last modified the acceptance record"/>
+        <FIELD NAME="status" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Acceptance status: 1 - accepted, 0 - not accepted"/>
+        <FIELD NAME="lang" TYPE="char" LENGTH="30" NOTNULL="true" SEQUENCE="false" COMMENT="Code of the language the user had when the policy document was displayed"/>
+        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the user who last modified the acceptance record"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Timestamp of when the acceptance record was created"/>
-        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Timestamp of when the acceptance record was last modified"/>
-        <FIELD NAME="token" TYPE="char" LENGTH="1333" NOTNULL="false" SEQUENCE="false" COMMENT="A string that can be used to authorize to acceptance of the policy (eg by parents)"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Timestamp of when the acceptance record was last modified"/>
         <FIELD NAME="note" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Plain text note describing how the actual consent has been obtained if the policy has been accepted on other user's behalf."/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="fk_policyversionid" TYPE="foreign" FIELDS="policyversionid" REFTABLE="tool_policy_versions" REFFIELDS="id"/>
         <KEY NAME="fk_userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+        <KEY NAME="fk_usermodified" TYPE="foreign" FIELDS="usermodified" REFTABLE="user" REFFIELDS="id"/>
+        <KEY NAME="versionuser" TYPE="unique" FIELDS="policyversionid, userid"/>
       </KEYS>
     </TABLE>
   </TABLES>
