@@ -65,7 +65,6 @@ if ($versionid) {
     $policy = tool_policy\api::get_policy_version($policyid, $versionid);
 } else if ($policyid) {
     $policy = tool_policy\api::get_policy($policyid);
-    $policy->policyid = $policy->id;
 }
 
 if ($policy && !$userid) {
