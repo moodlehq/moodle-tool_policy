@@ -338,6 +338,22 @@ class api {
     }
 
     /**
+     * Check if the user is a digital minor.
+     *
+     * @param int $dateofbirth
+     * @param string $country
+     * @return bool
+     */
+    public static function is_minor($dateofbirth, $country) {
+
+        $age = static::return_age($dateofbirth);
+        $agedigitalconsentmap = static::parse_age_digital_consent_map();
+
+        return array_key_exists($country, $agedigitalconsentmap) ?
+            $age < $agedigitalconsentmap[$country] : $age < $agedigitalconsentmap['*'];
+    }
+
+    /**
      * Editor field options for the policy content text.
      *
      * @return array
@@ -515,5 +531,37 @@ class api {
         }
 
         // TODO $user->policyagreed may need updating here
+    }
+
+    /**
+     * Parse the agedigitalconsentmap setting into an array.
+     *
+     * @return array $ageconsentmapparsed
+     */
+    protected static function parse_age_digital_consent_map() {
+
+        $ageconsentmapparsed = array();
+        $ageconsentmap = get_config('tool_policy', 'agedigitalconsentmap');
+        $lines = preg_split( '/\r\n|\r|\n/', $ageconsentmap);
+        foreach ($lines as $line) {
+            $arr = explode(" ", $line);
+            $ageconsentmapparsed[$arr[0]] = $arr[1];
+        }
+
+        return $ageconsentmapparsed;
+    }
+
+    /**
+     * Return age from a date.
+     *
+     * @param int $date
+     * @return float
+     */
+    protected static function return_age($date) {
+
+        $t = time();
+        $age = $t - $date;
+
+        return floor($age/31536000);
     }
 }

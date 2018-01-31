@@ -55,7 +55,8 @@ function tool_policy_extend_navigation_user_settings(navigation_node $usersettin
  *
  * @return string The HTML code to insert before the head.
  */
-function tool_policy_before_standard_html_head() {
+function tool_policy_before_standard_html_head()
+{
     global $PAGE, $USER;
 
     $message = null;
@@ -67,4 +68,22 @@ function tool_policy_before_standard_html_head() {
     }
 
     return $message;
+}
+
+/**
+ * Hooks redirections to digital minor validation and policy acceptance pages before sign up.
+ */
+function tool_policy_pre_signup_requests() {
+
+    if (!isset($SESSION->minor)) {  // Digital minor check hasn't been done.
+        redirect(new moodle_url('/admin/tool/policy/validateminor.php'));
+    }
+
+    if ($SESSION->minor == true) { // The user is a minor.
+        // Redirect to "Contact administrator" page.
+        die("You are considered to be a digital minor. Please contact admin.");
+    } else { // The user is not a minor.
+        // Redirect to "Policy" pages.
+        die("Policy page");
+    }
 }
