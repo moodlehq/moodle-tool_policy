@@ -161,4 +161,31 @@ class tool_policy_api_testcase extends advanced_testcase {
         $orderedlist = api::list_policies();
         $this->assertEquals([$policy3->policyid, $policy1->policyid, $policy2->policyid], array_keys($orderedlist));
     }
+
+    /**
+     * Test check if a user is a digital minor.
+     */
+    public function test_is_minor() {
+        $this->resetAfterTest();
+
+        $country1 = 'AU';
+        $country2 = 'AT';
+        $dateofbirth1 = strtotime("-8 years");
+        $dateofbirth2 = strtotime("-14 years");
+        $dateofbirth3 = strtotime("-16 years");
+
+        $isminor1 = api::is_minor($dateofbirth1, $country1);
+        $isminor2 = api::is_minor($dateofbirth2, $country1);
+        $isminor3 = api::is_minor($dateofbirth3, $country1);
+        $isminor4 = api::is_minor($dateofbirth1, $country2);
+        $isminor5 = api::is_minor($dateofbirth2, $country2);
+        $isminor6 = api::is_minor($dateofbirth3, $country2);
+
+        $this->assertTrue($isminor1);
+        $this->assertTrue($isminor2);
+        $this->assertFalse($isminor3);
+        $this->assertTrue($isminor4);
+        $this->assertFalse($isminor5);
+        $this->assertFalse($isminor6);
+    }
 }
