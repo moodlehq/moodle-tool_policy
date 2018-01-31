@@ -35,7 +35,7 @@ require(['jquery', 'tool_policy/jquery-eu-cookie-law-popup'], function($) {
                 // Get localised messages.
                 // TODO: Get valid policy version URL.
                 var textmessage = "{{# str }} guestconsentmessage, tool_policy {{/ str }}" +
-                   "<ul>{{#policies}}<li><a href=\"{{pluginbaseurl}}/view.php?id={{id}}\" target=\"_blank\">{{name}}</a></li>{{/policies}}</ul>";
+                   "<ul>{{#policies}}<li><a href=\"{{pluginbaseurl}}/view.php?policyid={{id}}&returnurl={{returnurl}}\">{{name}}</a></li>{{/policies}}</ul>";
                 var continuemessage = "{{# str }} guestconsent:continue, tool_policy {{/ str }}";
 
                 // Initialize popup.

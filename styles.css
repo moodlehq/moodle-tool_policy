@@ -83,3 +83,9 @@
     text-decoration: underline;
     color: #f6a21d;
 }
+
+
+.policy-heading .policy-viewdoc-buttons {
+    text-align: center;
+    margin: 15px;
+}
