@@ -53,20 +53,25 @@ class page_viewdoc implements renderable, templatable {
     /** @var string $url Return URL. */
     protected $returnurl = null;
 
-    /** @var bool Can the user view draft versions. */
-    protected $canviewdraftrevision;
+    /** @var bool Can the user view all the versions or only their own or the current ones? */
+    protected $canviewallversions;
+
+    /** @var int $url User id who wants to view this page. */
+    protected $userid = null;
 
     /**
      * Construct this renderable.
      * @param int $policyid The policy id for this page.
-     * @param int $versionid The version id to show.
+     * @param int $versionid The version id to show. If none is specified is used the current version id.
      * @param string $returnurl Return URL.
+     * @param int $userid The userid which wants to view this policy version.
      */
-    public function __construct($policyid, $versionid = 0, $returnurl = null) {
+    public function __construct($policyid, $versionid = 0, $returnurl = null, $userid = 0) {
         $this->policyid = $policyid;
         $this->versionid = $versionid;
         $this->returnurl = $returnurl;
-        $this->canviewdraftrevision = has_capability('tool/policy:managedocs', context_system::instance());
+        $this->canviewallversions = has_capability('tool/policy:managedocs', context_system::instance()) || has_capability('tool/policy:viewacceptances', context_system::instance());
+        $this->userid = $userid;
     }
 
     /**
@@ -76,36 +81,46 @@ class page_viewdoc implements renderable, templatable {
      * @return stdClass
      */
     public function export_for_template(renderer_base $output) {
-
         $data = (object) [];
         $data->error = [];
         $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(true);
 
-        $policy = api::list_policies($this->policyid)[$this->policyid];
-        if (empty($this->versionid) && !empty($policy->currentversionid)) {
-            // If versionid is not defined, get the one defined as current.
-            $this->versionid = $policy->currentversionid;
-        }
-
-        if (!empty($this->versionid)) {
-            $version = \tool_policy\api::get_policy_version($this->policyid, $this->versionid);
-            $version->status = \tool_policy\api::get_policy_version_status($this->policyid, $this->versionid);
-            if (isset($version->status) && ($version->status != \tool_policy\api::VERSION_STATUS_DRAFT || $this->canviewdraftrevision)) {
-                $data->version = $version;
+        if (empty($this->policyid)) {
+            $data->error[] = get_string('invalidversionid', 'tool_policy');
+        } else {
+            $policy = api::list_policies($this->policyid)[$this->policyid];
+            if (empty($this->versionid) && !empty($policy->currentversionid)) {
+                // If versionid is not defined, get the one defined as current.
+                $this->versionid = $policy->currentversionid;
             } else {
-                $data->error[] = get_string('usercantviewdraftversion', 'tool_policy');
+                // Show error if the policy hasn't the specified versionid.
+                if (!array_key_exists($this->versionid, $policy->versions)) {
+                    $data->error[] = get_string('invalidversionid', 'tool_policy');
+                    $this->versionid = null;
+                }
+            }
+
+            if (!empty($this->versionid)) {
+                $version = \tool_policy\api::get_policy_version($this->policyid, $this->versionid);
+                // TODO: Check if current user has agreed to the version.
+                // TODO: Display if the policy is shown in behalf of other user.
+                $acceptances = \tool_policy\api::get_user_acceptances($this->versionid, $this->userid);
+                if ($this->canviewallversions || $this->versionid == $policy->currentversionid || (!empty($acceptances) && $acceptances->policyagreed)){
+                    $data->version = $version;
+                } else {
+                    $data->error[] = get_string('nopermissiontoviewpolicyversion', 'tool_policy');
+                }
+            }
+
+            $data->navigation = array();
+            if (!empty($this->returnurl)) {
+                $backbutton = new single_button(
+                   new moodle_url($this->returnurl),
+                   get_string('back'), 'get'
+                );
+                $data->navigation[] = $output->render($backbutton);
             }
         }
-
-        $data->navigation = array();
-        if (!empty($this->returnurl)) {
-            $backbutton = new single_button(
-               new moodle_url($this->returnurl),
-               get_string('back'), 'get'
-            );
-            $data->navigation[] = $output->render($backbutton);
-        }
-
         return $data;
     }
 }

@@ -56,8 +56,6 @@ class guestconsent implements renderable, templatable {
 
         $policies = \tool_policy\api::list_policies();
         foreach ($policies as $policy) {
-            $policy->currentversiontimecreated = null;
-            $policy->actions = [];
             // TODO: Filter guest policies.
             // Filter policies valid for guests with some current version.
             if (!isset($policy->currentversionid)) {

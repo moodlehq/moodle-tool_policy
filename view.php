@@ -27,13 +27,14 @@ require(__DIR__.'/../../../config.php');
 $policyid = required_param('policyid', PARAM_INT);
 $versionid = optional_param('versionid', 0, PARAM_INT);
 $returnurl  = optional_param('returnurl', null, PARAM_LOCALURL);
+$userid = optional_param('userid', 0, PARAM_INT);
 
 $urlparams = array('policyid' => $policyid, 'versionid' => $versionid);
 $url = new moodle_url('/admin/tool/policy/view.php', $urlparams);
 list($title, $subtitle) = \tool_policy\page_helper::setup_for_public_page($url);
 
 $output = $PAGE->get_renderer('tool_policy');
-$page = new \tool_policy\output\page_viewdoc($policyid, $versionid, $returnurl);
+$page = new \tool_policy\output\page_viewdoc($policyid, $versionid, $returnurl, $userid);
 
 echo $output->header();
 echo $output->render($page);

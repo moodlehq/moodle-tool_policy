@@ -145,14 +145,12 @@ class api {
     /**
      * Calculate the status of a particular policy document version.
      *
-     * @param int $policyid ID of the policy document.
+     * @param stdClass $policy Policy document with all the versions.
      * @param int $versionid ID of the policy document revision.
      * @return string Status of the policy document version.
      */
-    public static function get_policy_version_status($policyid, $versionid) {
+    public static function get_policy_version_status($policy, $versionid) {
         $status = static::VERSION_STATUS_DRAFT;
-        $policy = static::list_policies($policyid)[$policyid];
-
         if (!empty($policy->currentversionid) && array_key_exists($versionid, $policy->versions)) {
             if ($policy->currentversionid == $versionid) {
                 $status = static::VERSION_STATUS_CURRENT;
@@ -477,6 +475,33 @@ class api {
         }
         $result->close();
         return $acceptances;
+    }
+
+    /**
+     * Returns list of acceptances for this user.
+     *
+     * @param int|array $versions list of policy versions.
+     * @param int|array $userid id of a user.
+     * @return array list of acceptances indexed by versionid.
+     */
+    public static function get_user_acceptances($versions, $userid = null) {
+        global $DB, $USER;
+        if (!isloggedin() || isguestuser()) {
+            return;
+        }
+        if (!$userid) {
+            $userid = $USER->id;
+        }
+        $usercontext = \context_user::instance($userid);
+        if ($userid != $USER->id) {
+            require_capability('tool/policy:acceptbehalf', $usercontext);
+        }
+
+        $acceptances = static::get_acceptances($versions);
+        if (array_key_exists($userid, $acceptances)) {
+            return $acceptances[$userid];
+        }
+        return;
     }
 
     /**
