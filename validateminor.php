@@ -54,33 +54,27 @@ $PAGE->set_title(get_string('agelocationverification', 'tool_policy'));
 $PAGE->set_heading($SITE->fullname);
 
 // Handle if minor check has already been done.
-if (isset($SESSION->minor)) {
-    if ($SESSION->minor == true) { // The user is a minor.
-        // Redirect to "Contact administrator" page.
-        die("You are considered to be a digital minor. Please contact admin.");
-    } else { // The user is not a minor.
-        // Redirect to "Policy" pages.
-        die("Policy page");
+if (isset($SESSION->tool_policy->minor)) {
+    if (!\tool_policy\validateminor_helper::is_valid_minor_session()) { // Minor session is no longer valid.
+        \tool_policy\validateminor_helper::destroy_minor_session();
+    } else { // Minor session is still valid.
+        $is_minor = \tool_policy\validateminor_helper::get_minor_session_status();
+        \tool_policy\validateminor_helper::redirect($is_minor);
     }
 }
 
 $output = $PAGE->get_renderer('tool_policy');
-$mform = new \tool_policy\output\page_validateminor();
+$mform = new \tool_policy\form\agelocationverification();
+$page = new \tool_policy\output\page_validateminor($mform);
 
 if ($mform->is_cancelled()) {
     redirect(new moodle_url('/login/index.php'));
 } else if ($data = $mform->get_data()) {
-    if (\tool_policy\api::is_minor($data->dateofbirth, $data->country)) {
-        $SESSION->minor = true;
-        // Redirect to "Contact administrator" page.
-        die("You are considered to be a digital minor. Please contact admin.");
-    } else {
-        $SESSION->minor = false;
-        // Redirect to "Policy" pages.
-        die("Policy page");
-    }
+    $is_minor = \tool_policy\api::is_minor($data->age, $data->country);
+    \tool_policy\validateminor_helper::create_minor_session($is_minor);
+    \tool_policy\validateminor_helper::redirect($is_minor);
 } else {
     echo $output->header();
-    echo $output->render($mform);
+    echo $output->render($page);
     echo $output->footer();
 }

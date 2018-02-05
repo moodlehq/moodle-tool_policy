@@ -387,15 +387,16 @@ class api {
     /**
      * Check if the user is a digital minor.
      *
-     * @param int $dateofbirth
+     * @param int $age
      * @param string $country
      * @return bool
      */
-    public static function is_minor($dateofbirth, $country) {
+    public static function is_minor($age, $country) {
 
-        $age = static::return_age($dateofbirth);
         $agedigitalconsentmap = static::parse_age_digital_consent_map();
 
+        // TODO: Better handling when * wildcard is not present.
+        // Maybe define a default minor age as a separate config variable as presented in the earlier wireframes.
         return array_key_exists($country, $agedigitalconsentmap) ?
             $age < $agedigitalconsentmap[$country] : $age < $agedigitalconsentmap['*'];
     }
@@ -635,19 +636,5 @@ class api {
         }
 
         return $ageconsentmapparsed;
-    }
-
-    /**
-     * Return age from a date.
-     *
-     * @param int $date
-     * @return float
-     */
-    protected static function return_age($date) {
-
-        $t = time();
-        $age = $t - $date;
-
-        return floor($age/31536000);
     }
 }
