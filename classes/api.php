@@ -163,6 +163,28 @@ class api {
     }
 
     /**
+     * Returns a list of all current policy versions id.
+     *
+     * @return array list of policy version ids.
+     */
+    public static function get_current_policy_versionids() {
+        global $DB;
+
+        $sql = "SELECT d.currentversionid
+                  FROM {tool_policy} d
+                 WHERE d.currentversionid is NOT NULL";
+        $params = [];
+
+        $result = $DB->get_records_sql($sql, $params);
+        $versionids = [];
+        foreach ($result as $row) {
+            $versionids[] = $row->currentversionid;
+        }
+
+        return $versionids;
+    }
+
+    /**
      * Load the policy version to be used in the {@link \tool_policy\form\policydoc} form.
      *
      * @param int $policyid ID of the policy document.
@@ -479,29 +501,41 @@ class api {
 
     /**
      * Returns list of acceptances for this user.
+     * TODO: Review if it's possible to re-use some of the acceptance functions.
      *
+     * @param int $userid id of a user.
      * @param int|array $versions list of policy versions.
-     * @param int|array $userid id of a user.
      * @return array list of acceptances indexed by versionid.
      */
-    public static function get_user_acceptances($versions, $userid = null) {
+    public static function get_user_acceptances($userid, $versions = null) {
         global $DB, $USER;
-        if (!isloggedin() || isguestuser()) {
-            return;
-        }
+
         if (!$userid) {
             $userid = $USER->id;
         }
-        $usercontext = \context_user::instance($userid);
-        if ($userid != $USER->id) {
-            require_capability('tool/policy:acceptbehalf', $usercontext);
+
+        list($vsql, $vparams) = ['', []];
+        if (!empty($versions)) {
+            $versions = is_array($versions) ? array_values($versions) : [$versions];
+            list($vsql, $vparams) = $DB->get_in_or_equal($versions, SQL_PARAMS_NAMED, 'ver');
+            $vsql = ' AND a.policyversionid ' . $vsql;
         }
 
-        $acceptances = static::get_acceptances($versions);
-        if (array_key_exists($userid, $acceptances)) {
-            return $acceptances[$userid];
+        $sql = "SELECT u.id AS mainuserid, a.*, u.policyagreed
+                  FROM {user} u
+                  LEFT OUTER JOIN {tool_policy_acceptances} a ON a.userid = u.id AND a.userid = :userid $vsql";
+        $params = ['userid' => $userid];
+        $result = $DB->get_recordset_sql($sql, $params + $vparams);
+
+        $acceptances = [];
+        foreach ($result as $row) {
+            if (!empty($row->policyversionid)) {
+                $acceptances[$row->policyversionid][$row->language] = $row;
+            }
         }
-        return;
+        $result->close();
+
+        return $acceptances;
     }
 
     /**
@@ -535,9 +569,9 @@ class api {
         list($sql, $params) = $DB->get_in_or_equal($policyversionid, SQL_PARAMS_NAMED);
         $sql = "SELECT v.id AS versionid, a.*
                   FROM {tool_policy_versions} v
-                  LEFT JOIN {tool_policy_acceptances} a ON a.userid = :userid AND a.policyversionid = v.id
+                  LEFT JOIN {tool_policy_acceptances} a ON a.userid = :userid AND a.language = :language AND a.policyversionid = v.id
                   WHERE (a.id IS NULL or a.status <> 1) AND v.id " . $sql;
-        $needacceptance = $DB->get_records_sql($sql, ['userid' => $userid] + $params);
+        $needacceptance = $DB->get_records_sql($sql, ['userid' => $userid, 'language' => $language ?: current_language()] + $params);
 
         $updatedata = ['status' => 1, 'language' => $language ?: current_language(),
             'timemodified' => time(), 'usermodified' => $USER->id, 'note' => $note];

@@ -77,4 +77,46 @@ class page_helper {
 
         return array($title, $subtitle);
     }
+
+    /**
+     * Set-up the policy acceptance page.
+     *
+     * Example:
+     * list($title, $subtitle) = page_helper::setup_for_agreedocs_page($url, $pagetitle);
+     * echo $OUTPUT->heading($title);
+     * echo $OUTPUT->heading($subtitle, 3);
+     *
+     * @param  moodle_url $url The current page.
+     * @param  string $subtitle The title of the subpage, if any.
+     * @return array With the following:
+     *               - Page title
+     *               - Page sub title
+     */
+    public static function setup_for_agreedocs_page(moodle_url $url, $subtitle = '') {
+        global $PAGE, $SITE;
+
+        $PAGE->set_popup_notification_allowed(false);
+
+        if (!isloggedin()) {
+            require_login();
+        }
+
+        $context = \context_system::instance();
+        $PAGE->set_context($context);
+
+
+        if (!empty($subtitle)) {
+            $title = $subtitle;
+        } else {
+            $title = get_string('policiesagreements', 'tool_policy');
+        }
+
+        $heading = $SITE->fullname;
+        $PAGE->set_pagelayout('standard');
+        $PAGE->set_url($url);
+        $PAGE->set_title($title);
+        $PAGE->set_heading($heading);
+
+        return array($title, $subtitle);
+    }
 }

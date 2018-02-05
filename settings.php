@@ -73,6 +73,13 @@ if ($hassiteconfig || has_any_capability($managecaps, context_system::instance()
             ]),
             PARAM_RAW
         ));
+        $privacysettings->add(new admin_setting_configtextarea(
+            'tool_policy/privacyofficer',
+            new lang_string('privacyofficer', 'tool_policy'),
+            new lang_string('privacyofficer_desc', 'tool_policy'),
+            new lang_string('privacyofficer_default', 'tool_policy'),
+            PARAM_RAW
+        ));
     }
 
     $ADMIN->add('tool_policy_admin_category', new admin_externalpage(

@@ -104,7 +104,7 @@ class page_viewdoc implements renderable, templatable {
                 $version = \tool_policy\api::get_policy_version($this->policyid, $this->versionid);
                 // TODO: Check if current user has agreed to the version.
                 // TODO: Display if the policy is shown in behalf of other user.
-                $acceptances = \tool_policy\api::get_user_acceptances($this->versionid, $this->userid);
+                $acceptances = \tool_policy\api::get_user_acceptances($this->userid, $this->versionid);
                 if ($this->canviewallversions || $this->versionid == $policy->currentversionid || (!empty($acceptances) && $acceptances->policyagreed)){
                     $data->version = $version;
                 } else {
