@@ -34,52 +34,17 @@ use renderer_base;
 use templatable;
 
 /**
- * Represents a management page with the list of versions of the given policy document.
+ * Represents a digital minor verification page.
  *
  * @copyright 2018 Mihail Geshoski <mihail@moodle.com>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class page_validateminor extends \moodleform implements renderable, templatable {
+class page_validateminor implements renderable, templatable {
 
-    /**
-     * Defines the form fields.
-     */
-    public function definition() {
+    protected $form;
 
-        $mform = $this->_form;
-
-        $mform->addElement('date_selector', 'dateofbirth', get_string('dateofbirth',
-            'tool_policy'), array('optional'  => false));
-        $mform->addRule('dateofbirth', null, 'required', null, 'client');
-
-        $countries = get_string_manager()->get_list_of_countries();
-        $default_country[''] = get_string('selectacountry');
-        $countries = array_merge($default_country, $countries);
-        $mform->addElement('select', 'country', get_string('countryofresidence',
-            'tool_policy'), $countries);
-        $mform->addRule('country', null, 'required', null, 'client');
-
-        // buttons
-        $this->add_action_buttons(true, get_string('proceed', 'tool_policy'));
-    }
-
-    /**
-     * Data validation.
-     *
-     * @param array $data array of ("fieldname"=>value) of submitted data.
-     * @param array $files array of uploaded files "element_name"=>tmp_file_path
-     * @return array $errors array of "element_name"=>"error_description", if there are errors.
-     */
-    function validation($data, $files) {
-
-        $errors = parent::validation($data, $files);
-        // Validate date of birth.
-        $t = time();
-        if ($t < $data['dateofbirth']) {
-            $errors['dateofbirth'] = get_string('invaliddateofbirth', 'tool_policy');
-        }
-
-        return $errors;
+    public function __construct($form) {
+        $this->form = $form;
     }
 
     /**
@@ -91,10 +56,7 @@ class page_validateminor extends \moodleform implements renderable, templatable 
     public function export_for_template(renderer_base $output) {
         global $SITE;
 
-        ob_start();
-        $this->display();
-        $formhtml = ob_get_contents();
-        ob_end_clean();
+        $formhtml = $this->form->render();
         $context = [
             'sitename' => $SITE->fullname,
             'formhtml' => $formhtml

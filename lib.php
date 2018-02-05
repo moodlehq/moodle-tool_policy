@@ -24,6 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+use \tool_policy\validateminor_helper;
+
 /**
  * Extends the user preferences page
  *
@@ -55,8 +57,7 @@ function tool_policy_extend_navigation_user_settings(navigation_node $usersettin
  *
  * @return string The HTML code to insert before the head.
  */
-function tool_policy_before_standard_html_head()
-{
+function tool_policy_before_standard_html_head() {
     global $PAGE, $USER;
 
     $message = null;
@@ -74,16 +75,16 @@ function tool_policy_before_standard_html_head()
  * Hooks redirections to digital minor validation and policy acceptance pages before sign up.
  */
 function tool_policy_pre_signup_requests() {
+    global $SESSION;
 
-    if (!isset($SESSION->minor)) {  // Digital minor check hasn't been done.
+    if (!isset($SESSION->tool_policy->minor)) {  // Digital minor check hasn't been done.
         redirect(new moodle_url('/admin/tool/policy/validateminor.php'));
-    }
-
-    if ($SESSION->minor == true) { // The user is a minor.
-        // Redirect to "Contact administrator" page.
-        die("You are considered to be a digital minor. Please contact admin.");
-    } else { // The user is not a minor.
-        // Redirect to "Policy" pages.
-        die("Policy page");
+    } else { // Digital minor check has been done.
+        if (!validateminor_helper::is_valid_minor_session()) { // Minor session is no longer valid.
+            validateminor_helper::destroy_minor_session();
+            redirect(new moodle_url('/admin/tool/policy/validateminor.php'));
+        }
+        $is_minor = validateminor_helper::get_minor_session_status();
+        validateminor_helper::redirect($is_minor);
     }
 }
