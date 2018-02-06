@@ -51,16 +51,21 @@ class api {
     /**
      * Returns a list of all policy documents and their versions (but with no actual content).
      *
-     * @param int array|int|null Load only the given policies, defaults to all.
+     * @param array|int|null $ids Load only the given policies, defaults to all.
+     * @param bool $onlycurrent If true, return only policies with a current version defined.
      * @return stdClass;
      */
-    public static function list_policies($ids = null) {
+    public static function list_policies($ids = null, $onlycurrent = false) {
         global $DB;
 
         $sql = "SELECT d.id AS policyid, d.name, d.description, d.audience, d.currentversionid, d.sortorder,
                        v.id AS versionid, v.usermodified, v.timecreated, v.timemodified, v.revision
-                  FROM {tool_policy} d
-             LEFT JOIN {tool_policy_versions} v ON v.policyid = d.id ";
+                  FROM {tool_policy} d";
+        if ($onlycurrent) {
+            $sql .= " INNER JOIN {tool_policy_versions} v ON v.policyid = d.id AND v.id = d.currentversionid ";
+        } else {
+            $sql .= " LEFT JOIN {tool_policy_versions} v ON v.policyid = d.id ";
+        }
 
         $params = [];
 
@@ -165,28 +170,6 @@ class api {
         }
 
         return $status;
-    }
-
-    /**
-     * Returns a list of all current policy versions id.
-     *
-     * @return array list of policy version ids.
-     */
-    public static function get_current_policy_versionids() {
-        global $DB;
-
-        $sql = "SELECT d.currentversionid
-                  FROM {tool_policy} d
-                 WHERE d.currentversionid is NOT NULL";
-        $params = [];
-
-        $result = $DB->get_records_sql($sql, $params);
-        $versionids = [];
-        foreach ($result as $row) {
-            $versionids[] = $row->currentversionid;
-        }
-
-        return $versionids;
     }
 
     /**
@@ -572,9 +555,9 @@ class api {
             $vsql = ' AND a.policyversionid ' . $vsql;
         }
 
-        $sql = "SELECT u.id AS mainuserid, a.*, u.policyagreed
-                  FROM {user} u
-                  LEFT OUTER JOIN {tool_policy_acceptances} a ON a.userid = u.id AND a.userid = :userid $vsql";
+        $sql = "SELECT u.id AS mainuserid, a.policyversionid, a.status, a.language, u.policyagreed
+                  FROM {user} u, {tool_policy_acceptances} a
+                  WHERE a.userid = u.id AND a.userid = :userid $vsql";
         $params = ['userid' => $userid];
         $result = $DB->get_recordset_sql($sql, $params + $vparams);
 

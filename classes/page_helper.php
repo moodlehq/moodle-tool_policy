@@ -119,4 +119,51 @@ class page_helper {
 
         return array($title, $subtitle);
     }
+
+    /**
+     * Before display the consent page, the user has to view all the still-non-accepted policy docs.
+     * This function checks if the non-accepted policy docs have been shown and redirect to them.
+     *
+     * @param array $userid User identifier who wants to access to the consent page.
+     * @param array $policies List of policies. If it's null, all the policies with a current version will be used.
+     * @param url $returnurl URL to return after shown the policy docs.
+     */
+    public static function redirect_to_policies($userid, $policies = null, $returnurl = null) {
+        global $SESSION;
+
+        if (empty($policies)) {
+            $policies = \tool_policy\api::list_policies(null, true);
+        }
+        $currentlanguage = current_language();
+        $acceptances = \tool_policy\api::get_user_acceptances($userid);
+        foreach($policies as $policy) {
+            if (array_key_exists($policy->currentversionid, $acceptances)) {
+                if (array_key_exists($currentlanguage, $acceptances[$policy->currentversionid])) {
+                    // If version has been agreed in current language, remove from the pending policies list.
+                    unset($policies[$policy->id]);
+                }
+            }
+        }
+
+        if (!empty($policies)) {
+            $policies = array_keys($policies);
+            if (!empty($SESSION->tool_policy->viewedpolicies)) {
+                // Get the list of the policies docs which the user haven't viewed during this session.
+                $pendingpolicies = array_diff($policies, $SESSION->tool_policy->viewedpolicies);
+            } else {
+                $pendingpolicies = $policies;
+            }
+            if (sizeof($pendingpolicies) > 0) {
+                // Still is needed to show some policies docs. Save in the session and redirect.
+                // TODO: Add language to SESSION to make sure users view the full policy doc if they change the current lang.
+                $policyid = array_pop($pendingpolicies);
+                $SESSION->tool_policy->viewedpolicies[] = $policyid;
+                if (empty($returnurl)) {
+                    $returnurl = new moodle_url('/admin/tool/policy/index.php');
+                }
+                $urlparams = ['policyid' => $policyid, 'returnurl' => $returnurl];
+                redirect(new moodle_url('/admin/tool/policy/view.php', $urlparams));
+            }
+        }
+    }
 }

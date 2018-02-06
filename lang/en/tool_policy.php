@@ -86,17 +86,11 @@ $string['policydocsummary_help'] = 'This text should provide a summary of the po
 $string['policydocs'] = 'Policy documents';
 $string['policyversionacceptedinotherlang'] = 'This policy version has been accepted previously in a different language.';
 $string['privacyofficer'] = 'Privacy officer';
-$string['privacyofficer_desc'] = 'Information and contact details of the privacy officer.';
-$string['privacyofficer_default'] = 'For any questions or notice, please contact our Privacy officer at:
-
-Institution/Company name
-Address, 1
-State (Country)
-
-Email: xxxxxx@xxxxx.xxx
-Phone: yyyyyyyy';
+// TODO: Review the list of places where the privacyofficer will be shown.
+$string['privacyofficer_desc'] = 'Information and contact details of the privacy officer, such as the address, email. phone... This information will be shown to the users in the consent page.';
 $string['privacysettings'] = 'Privacy settings';
 $string['proceed'] = 'Proceed';
+$string['refertofullpolicytext'] = 'Please refer to the full {$a} text if you would like to review.';
 $string['saveasnew'] = 'Save as new version';
 $string['saveasnew_help'] = 'Should the text be saved as a new version of the policy text?
 

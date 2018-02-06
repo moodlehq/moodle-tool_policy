@@ -59,7 +59,7 @@ class page_agreedocs implements renderable, templatable {
      *
      * @param int $userid The userid which wants to view this policy version.
      */
-    public function __construct($userid = 0) {
+    public function __construct($userid = 0, $policies = null) {
         global $USER;
 
         $this->userid = $userid;
@@ -70,7 +70,10 @@ class page_agreedocs implements renderable, templatable {
             $this->user = core_user::get_user($userid, '*', MUST_EXIST);
         }
 
-        $this->policies = \tool_policy\api::list_policies();
+        $this->policies = $policies;
+        if (!isset($this->policies)) {
+            $this->policies = \tool_policy\api::list_policies(null, true);
+        }
         $currentlanguage = current_language();
         $acceptances = \tool_policy\api::get_user_acceptances($this->userid);
         foreach ($this->policies as $policy) {
@@ -80,7 +83,8 @@ class page_agreedocs implements renderable, templatable {
                 $this->policies[$policy->id]->currentversion = $policy->versions[$policy->currentversionid];
                 unset($this->policies[$policy->id]->versions);
 
-                $policy->url = new moodle_url('/admin/tool/policy/view.php', array('policyid' => $policy->id));
+                $policy->url = new moodle_url('/admin/tool/policy/view.php', array('policyid' => $policy->id, 'returnurl' => qualified_me()));
+                // TODO: Replace current link to policy document to open it in a modal window.
                 $policylinkname = html_writer::link($policy->url, $policy->name);
 
                 // Check if this policy version has been agreed or not.
@@ -105,6 +109,7 @@ class page_agreedocs implements renderable, templatable {
                     $this->policies[$policy->id]->versionlangsagreed = get_string('policyversionacceptedinotherlang', 'tool_policy');
                 }
                 // TODO: Mark as mandatory this checkbox (style).
+                $this->policies[$policy->id]->refertofulltext = get_string('refertofullpolicytext', 'tool_policy', $policylinkname);
                 $this->policies[$policy->id]->agreecheckbox = html_writer::checkbox('agreedoc[]', $policy->id, $versionagreed, get_string('iagree', 'tool_policy', $policylinkname));
             }
         }

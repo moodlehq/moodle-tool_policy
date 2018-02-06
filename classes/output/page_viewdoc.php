@@ -114,11 +114,11 @@ class page_viewdoc implements renderable, templatable {
 
             $data->navigation = array();
             if (!empty($this->returnurl)) {
-                $backbutton = new single_button(
+                $button = new single_button(
                    new moodle_url($this->returnurl),
-                   get_string('back'), 'get'
+                   get_string('continue'), 'get'
                 );
-                $data->navigation[] = $output->render($backbutton);
+                $data->navigation[] = $output->render($button);
             }
         }
         return $data;

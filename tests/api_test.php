@@ -112,6 +112,11 @@ class tool_policy_api_testcase extends advanced_testcase {
         $policy = api::get_policy($policy->policyid);
         $this->assertEquals($policy->currentversionid, $updated->versionid);
 
+        // Get just the activated policies.
+        $docs = api::list_policies(null, true);
+        $this->assertEquals(1, count($docs));
+        $this->assertEquals($docs[$policy->policyid]->currentversionid, $updated->versionid);
+
         // Activate another policy version.
         api::make_current($policy->policyid, $new->versionid);
         $policy = api::get_policy($policy->policyid);

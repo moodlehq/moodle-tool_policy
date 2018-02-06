@@ -77,7 +77,7 @@ if ($hassiteconfig || has_any_capability($managecaps, context_system::instance()
             'tool_policy/privacyofficer',
             new lang_string('privacyofficer', 'tool_policy'),
             new lang_string('privacyofficer_desc', 'tool_policy'),
-            new lang_string('privacyofficer_default', 'tool_policy'),
+            '',
             PARAM_RAW
         ));
     }

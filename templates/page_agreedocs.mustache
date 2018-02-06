@@ -28,6 +28,8 @@
     * privacyofficer - string
 }}
 
+{{! TODO: Review styles }}
+
 {{{startform}}}
 
 {{#user}}
@@ -45,8 +47,13 @@
     <div class='agreedoc-summary'>
       {{{description}}}
     </div>
-    {{{agreecheckbox}}}
-    {{{versionlangsagreed}}}
+    <div class='agreedoc-form'>
+        <p>{{{refertofulltext}}}</p>
+        <p>
+            {{{agreecheckbox}}}
+            {{{versionlangsagreed}}}
+        </p>
+    </div>
 
 {{/policies}}
 
