@@ -75,9 +75,8 @@ function tool_policy_before_standard_html_head() {
  * Hooks redirections to digital minor validation and policy acceptance pages before sign up.
  */
 function tool_policy_pre_signup_requests() {
-    global $SESSION;
 
-    if (!isset($SESSION->tool_policy->minor)) {  // Digital minor check hasn't been done.
+    if (!validateminor_helper::minor_session_exists()) {  // Digital minor check hasn't been done.
         redirect(new moodle_url('/admin/tool/policy/validateminor.php'));
     } else { // Digital minor check has been done.
         if (!validateminor_helper::is_valid_minor_session()) { // Minor session is no longer valid.

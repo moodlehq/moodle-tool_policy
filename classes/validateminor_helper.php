@@ -84,6 +84,17 @@ class validateminor_helper {
     }
 
     /**
+     * Check if a digital minor session exists.
+     *
+     * @return bool
+     */
+    public static function minor_session_exists() {
+        global $SESSION;
+
+        return isset($SESSION->tool_policy->minor);
+    }
+
+    /**
      * Redirect user to the proper page, depending on his digital minor status.
      *
      * @param bool $is_minor

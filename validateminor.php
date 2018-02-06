@@ -54,7 +54,7 @@ $PAGE->set_title(get_string('agelocationverification', 'tool_policy'));
 $PAGE->set_heading($SITE->fullname);
 
 // Handle if minor check has already been done.
-if (isset($SESSION->tool_policy->minor)) {
+if (\tool_policy\validateminor_helper::minor_session_exists()) {
     if (!\tool_policy\validateminor_helper::is_valid_minor_session()) { // Minor session is no longer valid.
         \tool_policy\validateminor_helper::destroy_minor_session();
     } else { // Minor session is still valid.
