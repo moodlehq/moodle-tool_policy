@@ -27,6 +27,7 @@ namespace tool_policy\form;
 
 use html_writer;
 use moodleform;
+use tool_policy\api;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -46,21 +47,41 @@ class policydoc extends moodleform {
         $mform = $this->_form;
         $formdata = $this->_customdata['formdata'];
 
+        $mform->addElement('header', 'hdr_policy', get_string('policydochdrpolicy', 'tool_policy'));
+
         $mform->addElement('text', 'name', get_string('policydocname', 'tool_policy'), ['maxlength' => 1333]);
         $mform->setType('name', PARAM_TEXT);
+        $mform->addHelpButton('name', 'policydocname', 'tool_policy');
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->addRule('name', get_string('maximumchars', '', 1333), 'maxlength', 1333, 'client');
 
         $mform->addElement('text', 'description', get_string('policydocdesc', 'tool_policy'), ['maxlength' => 1333]);
+        $mform->addHelpButton('description', 'policydocdesc', 'tool_policy');
         $mform->setType('description', PARAM_TEXT);
         $mform->addRule('description', get_string('maximumchars', '', 1333), 'maxlength', 1333, 'client');
 
+        $mform->addElement('select', 'audience', get_string('policydocaudience', 'tool_policy'), [
+            api::AUDIENCE_ALL => get_string('policydocaudience_all', 'tool_policy'),
+            api::AUDIENCE_LOGGEDIN => get_string('policydocaudience_loggedin', 'tool_policy'),
+            api::AUDIENCE_GUESTS => get_string('policydocaudience_guests', 'tool_policy'),
+        ]);
+        $mform->addHelpButton('audience', 'policydocaudience', 'tool_policy');
+        $mform->setDefault('audience', api::AUDIENCE_ALL);
+
+        $mform->addElement('header', 'hdr_version', get_string('policydochdrversion', 'tool_policy'));
+
         $mform->addElement('text', 'revision', get_string('policydocrevision', 'tool_policy'), ['maxlength' => 1333]);
+        $mform->addHelpButton('revision', 'policydocrevision', 'tool_policy');
         $mform->setType('revision', PARAM_TEXT);
         $mform->addRule('revision', null, 'required', null, 'client');
         $mform->addRule('revision', get_string('maximumchars', '', 1333), 'maxlength', 1333, 'client');
 
+        $mform->addElement('editor', 'summary_editor', get_string('policydocsummary', 'tool_policy'), ['rows' => 7]);
+        $mform->addHelpButton('summary_editor', 'policydocsummary', 'tool_policy');
+        $mform->addRule('summary_editor', null, 'required', null, 'client');
+
         $mform->addElement('editor', 'content_editor', get_string('policydoccontent', 'tool_policy'));
+        $mform->addHelpButton('content_editor', 'policydoccontent', 'tool_policy');
         $mform->addRule('content_editor', null, 'required', null, 'client');
 
         if (!empty($formdata->versionid)) {

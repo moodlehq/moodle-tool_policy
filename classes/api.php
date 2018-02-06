@@ -44,6 +44,9 @@ class api {
     const VERSION_STATUS_CURRENT = 'current';
     const VERSION_STATUS_ARCHIVE = 'archive';
 
+    const AUDIENCE_ALL = 0;
+    const AUDIENCE_LOGGEDIN = 1;
+    const AUDIENCE_GUESTS = 2;
 
     /**
      * Returns a list of all policy documents and their versions (but with no actual content).
@@ -54,7 +57,7 @@ class api {
     public static function list_policies($ids = null) {
         global $DB;
 
-        $sql = "SELECT d.id AS policyid, d.name, d.description, d.currentversionid, d.sortorder,
+        $sql = "SELECT d.id AS policyid, d.name, d.description, d.audience, d.currentversionid, d.sortorder,
                        v.id AS versionid, v.usermodified, v.timecreated, v.timemodified, v.revision
                   FROM {tool_policy} d
              LEFT JOIN {tool_policy_versions} v ON v.policyid = d.id ";
@@ -79,6 +82,7 @@ class api {
                     'id' => $r->policyid,
                     'name' => $r->name,
                     'description' => $r->description,
+                    'audience' => $r->audience,
                     'currentversionid' => $r->currentversionid,
                     'sortorder' => $r->sortorder,
                     'versions' => [],
@@ -110,7 +114,7 @@ class api {
         global $DB;
 
         return $DB->get_record('tool_policy', ['id' => $policyid],
-            'id AS policyid,name,description,currentversionid,sortorder', MUST_EXIST);
+            'id AS policyid,name,description,audience,currentversionid,sortorder', MUST_EXIST);
     }
 
 
@@ -124,8 +128,9 @@ class api {
     public static function get_policy_version($policyid, $versionid) {
         global $DB;
 
-        $sql = "SELECT d.id AS policyid, d.name, d.description, d.currentversionid, d.sortorder,
-                       v.id AS versionid, v.usermodified, v.timecreated, v.timemodified, v.revision, v.content, v.contentformat
+        $sql = "SELECT d.id AS policyid, d.name, d.description, d.audience, d.currentversionid, d.sortorder,
+                       v.id AS versionid, v.usermodified, v.timecreated, v.timemodified, v.revision,
+                       v.summary, v.summaryformat, v.content, v.contentformat
                   FROM {tool_policy} d
                   JOIN {tool_policy_versions} v ON v.policyid = d.id
                  WHERE v.id = :versionid";
@@ -198,6 +203,9 @@ class api {
             if ($versionid) {
                 // Editing an existing policy document version.
                 $data = static::get_policy_version($policyid, $versionid);
+                $summaryfieldoptions = static::policy_summary_field_options();
+                $data = file_prepare_standard_editor($data, 'summary', $summaryfieldoptions, $summaryfieldoptions['context'],
+                    'tool_policy', 'policydocumentsummary', $versionid);
                 $contentfieldoptions = static::policy_content_field_options();
                 $data = file_prepare_standard_editor($data, 'content', $contentfieldoptions, $contentfieldoptions['context'],
                     'tool_policy', 'policydocumentcontent', $versionid);
@@ -211,6 +219,8 @@ class api {
             if ($template) {
                 // Adding a new policy document from a template.
                 $data = static::policy_from_template($template);
+                $summaryfieldoptions = static::policy_summary_field_options();
+                $data = file_prepare_standard_editor($data, 'summary', $summaryfieldoptions, $summaryfieldoptions['context']);
                 $contentfieldoptions = static::policy_content_field_options();
                 $data = file_prepare_standard_editor($data, 'content', $contentfieldoptions, $contentfieldoptions['context']);
 
@@ -221,7 +231,11 @@ class api {
         }
 
         if (!isset($data->revision)) {
-            $data->revision = date('Y').'-'.date('m').'-'.date('d').'-'.date('Hi');
+            $data->revision = userdate(time(), get_string('strftimedate', 'core_langconfig'));
+        }
+
+        if (!isset($data->summaryformat)) {
+            $data->summaryformat = editors_get_preferred_format();
         }
 
         if (!isset($data->contentformat)) {
@@ -241,6 +255,9 @@ class api {
 
         $data = (object) [
             'name' => get_string('template_'.$template.'_name', 'tool_policy'),
+            'description' => get_string('template_'.$template.'_description', 'tool_policy'),
+            'summary' => get_string('template_'.$template.'_summary', 'tool_policy'),
+            'summaryformat' => FORMAT_HTML,
             'content' => get_string('template_'.$template.'_content', 'tool_policy'),
             'contentformat' => FORMAT_HTML,
         ];
@@ -259,12 +276,16 @@ class api {
 
         $now = time();
 
+        $summaryfieldoptions = static::policy_summary_field_options();
+        $form = file_postupdate_standard_editor($form, 'summary', $summaryfieldoptions, $summaryfieldoptions['context']);
+
         $contentfieldoptions = static::policy_content_field_options();
-        $data = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context']);
+        $form = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context']);
 
         $policy = (object) [
             'name' => $form->name,
             'description' => empty($form->description) ? '' : $form->description,
+            'audience' => empty($form->audience) ? 0 : $form->audience,
             'sortorder' => 999,
         ];
 
@@ -287,17 +308,21 @@ class api {
 
         $now = time();
 
-        // The policy name and description may be changed.
+        // The policy properties may have changed too.
         $DB->update_record('tool_policy', (object) [
             'id' => $policyid,
             'name' => $form->name,
             'description' => empty($form->description) ? '' : $form->description,
+            'audience' => empty($form->audience) ? 0 : $form->audience,
         ]);
 
         $policy = static::get_policy($policyid);
 
+        $summaryfieldoptions = static::policy_summary_field_options();
+        $form = file_postupdate_standard_editor($form, 'summary', $summaryfieldoptions, $summaryfieldoptions['context']);
+
         $contentfieldoptions = static::policy_content_field_options();
-        $data = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context']);
+        $form = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context']);
 
         $version = (object) [
             'usermodified' => $USER->id,
@@ -305,16 +330,25 @@ class api {
             'timemodified' => $now,
             'policyid' => $policy->policyid,
             'revision' => $form->revision,
+            'summary' => $form->summary,
+            'summaryformat' => $form->summaryformat,
             'content' => $form->content,
             'contentformat' => $form->contentformat,
         ];
 
         $versionid = $DB->insert_record('tool_policy_versions', $version);
 
-        $data = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context'],
+        $form = file_postupdate_standard_editor($form, 'summary', $summaryfieldoptions, $summaryfieldoptions['context'],
+            'tool_policy', 'policydocumentsummary', $versionid);
+
+        $form = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context'],
             'tool_policy', 'policydocumentcontent', $versionid);
 
-        $DB->set_field('tool_policy_versions', 'content', $data->content, ['id' => $versionid]);
+        $DB->update_record('tool_policy_versions', (object) [
+            'id' => $versionid,
+            'summary' => $form->summary,
+            'content' => $form->content,
+        ]);
 
         return static::get_policy_version($policyid, $versionid);
     }
@@ -334,15 +368,20 @@ class api {
         // Check the data consistency.
         static::get_policy_version($policyid, $versionid);
 
-        // The policy name and description may be changed.
+        // The policy properties may have changed too.
         $DB->update_record('tool_policy', (object) [
             'id' => $policyid,
             'name' => $form->name,
             'description' => $form->description,
+            'audience' => empty($form->audience) ? 0 : $form->audience,
         ]);
 
+        $summaryfieldoptions = static::policy_summary_field_options();
+        $form = file_postupdate_standard_editor($form, 'summary', $summaryfieldoptions, $summaryfieldoptions['context'],
+            'tool_policy', 'policydocumentsummary', $versionid);
+
         $contentfieldoptions = static::policy_content_field_options();
-        $data = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context'],
+        $form = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context'],
             'tool_policy', 'policydocumentcontent', $versionid);
 
         $version = (object) [
@@ -350,6 +389,8 @@ class api {
             'usermodified' => $USER->id,
             'timemodified' => time(),
             'revision' => $form->revision,
+            'summary' => $form->summary,
+            'summaryformat' => $form->summaryformat,
             'content' => $form->content,
             'contentformat' => $form->contentformat,
         ];
@@ -399,6 +440,15 @@ class api {
         // Maybe define a default minor age as a separate config variable as presented in the earlier wireframes.
         return array_key_exists($country, $agedigitalconsentmap) ?
             $age < $agedigitalconsentmap[$country] : $age < $agedigitalconsentmap['*'];
+    }
+
+    /**
+     * Editor field options for the policy summary text.
+     *
+     * @return array
+     */
+    protected static function policy_summary_field_options() {
+        return ['trusttext' => true, 'subdirs' => false, 'context' => context_system::instance()];
     }
 
     /**

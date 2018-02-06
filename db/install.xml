@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="admin/tool/policy/db" VERSION="20180130" COMMENT="The plugin allows to manage various policy documents that users have to accept to use the site."
+<XMLDB PATH="admin/tool/policy/db" VERSION="20180206" COMMENT="The plugin allows to manage various policy documents that users have to accept to use the site."
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd"
 >
@@ -10,6 +10,7 @@
         <FIELD NAME="name" TYPE="char" LENGTH="1333" NOTNULL="true" SEQUENCE="false" COMMENT="Name of the policy document"/>
         <FIELD NAME="description" TYPE="char" LENGTH="1333" NOTNULL="false" SEQUENCE="false" COMMENT="Short plain text description of the policy document"/>
         <FIELD NAME="sortorder" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="999" SEQUENCE="false" COMMENT="Defines the order in which policies should be presented to users"/>
+        <FIELD NAME="audience" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Who is this policy targeted at: 0 - all users, 1 - logged in users only, 2 - guests only"/>
         <FIELD NAME="currentversionid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="ID of the current policy version that applies on the site, NULL if the policy does not apply"/>
       </FIELDS>
       <KEYS>
@@ -25,7 +26,9 @@
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Timestamp of when the policy version was last modified."/>
         <FIELD NAME="policyid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of the policy document we are version of."/>
         <FIELD NAME="revision" TYPE="char" LENGTH="1333" NOTNULL="true" SEQUENCE="false" COMMENT="Human readable version of the policy document"/>
-        <FIELD NAME="content" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Policy text content"/>
+        <FIELD NAME="summary" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Policy text summary"/>
+        <FIELD NAME="summaryformat" TYPE="int" LENGTH="3" NOTNULL="true" SEQUENCE="false" COMMENT="Format of the summary field"/>
+        <FIELD NAME="content" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Full policy text"/>
         <FIELD NAME="contentformat" TYPE="int" LENGTH="3" NOTNULL="true" SEQUENCE="false" COMMENT="Format of the content field"/>
       </FIELDS>
       <KEYS>
@@ -51,7 +54,7 @@
         <KEY NAME="fk_policyversionid" TYPE="foreign" FIELDS="policyversionid" REFTABLE="tool_policy_versions" REFFIELDS="id"/>
         <KEY NAME="fk_userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
         <KEY NAME="fk_usermodified" TYPE="foreign" FIELDS="usermodified" REFTABLE="user" REFFIELDS="id"/>
-        <KEY NAME="versionuser" TYPE="unique" FIELDS="policyversionid, userid"/>
+        <KEY NAME="uq_versionuser" TYPE="unique" FIELDS="policyversionid, userid" COMMENT="There cannot exist more records for given user and policy document version."/>
       </KEYS>
     </TABLE>
   </TABLES>

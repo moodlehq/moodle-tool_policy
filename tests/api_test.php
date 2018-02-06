@@ -50,6 +50,9 @@ class tool_policy_api_testcase extends advanced_testcase {
         // Pre-load the form for adding a new policy document based on a template.
         $formdata = api::form_policydoc_data(null, null, 'site');
         $this->assertNotNull($formdata->name);
+        $this->assertNotNull($formdata->summary_editor['text']);
+        $this->assertNotNull($formdata->summary_editor['format']);
+        $this->assertSame(0, $formdata->summary_editor['itemid']);
         $this->assertNotNull($formdata->content_editor['text']);
         $this->assertNotNull($formdata->content_editor['format']);
         $this->assertSame(0, $formdata->content_editor['itemid']);
@@ -59,12 +62,16 @@ class tool_policy_api_testcase extends advanced_testcase {
         $this->assertNotEmpty($policy->policyid);
         $this->assertNotEmpty($policy->versionid);
         $this->assertNull($policy->currentversionid);
+        $this->assertNotNull($policy->summary);
+        $this->assertNotNull($policy->summaryformat);
         $this->assertNotNull($policy->content);
         $this->assertNotNull($policy->contentformat);
 
         // Update the policy document version.
         $formdata = api::form_policydoc_data($policy->policyid, $policy->versionid);
         $formdata->revision = '*** Unit test ***';
+        $formdata->summary_editor['text'] = '__Just a summary__';
+        $formdata->summary_editor['format'] = FORMAT_MARKDOWN;
         $formdata->content_editor['text'] = '### Just a test ###';
         $formdata->content_editor['format'] = FORMAT_MARKDOWN;
         $updated = api::form_policydoc_update_overwrite($policy->policyid, $policy->versionid, $formdata);
@@ -74,6 +81,8 @@ class tool_policy_api_testcase extends advanced_testcase {
         // Save form as a new version.
         $formdata = api::form_policydoc_data($policy->policyid, $policy->versionid);
         $formdata->revision = '*** Unit test 2 ***';
+        $formdata->summary_editor['text'] = '<strong>Yet another summary</strong>';
+        $formdata->summary_editor['format'] = FORMAT_MOODLE;
         $formdata->content_editor['text'] = '<h3>Yet another test</h3>';
         $formdata->content_editor['format'] = FORMAT_HTML;
         $new = api::form_policydoc_update_new($policy->policyid, $formdata);
@@ -132,11 +141,13 @@ class tool_policy_api_testcase extends advanced_testcase {
 
         $formdata = api::form_policydoc_data();
         $formdata->name = 'Policy1';
+        $formdata->summary_editor = ['text' => 'P1 summary', 'format' => FORMAT_HTML, 'itemid' => 0];
         $formdata->content_editor = ['text' => 'P1 content', 'format' => FORMAT_HTML, 'itemid' => 0];
         $policy1 = api::form_policydoc_add($formdata);
 
         $formdata = api::form_policydoc_data();
         $formdata->name = 'Policy2';
+        $formdata->summary_editor = ['text' => 'P2 summary', 'format' => FORMAT_HTML, 'itemid' => 0];
         $formdata->content_editor = ['text' => 'P2 content', 'format' => FORMAT_HTML, 'itemid' => 0];
         $policy2 = api::form_policydoc_add($formdata);
 
@@ -144,6 +155,7 @@ class tool_policy_api_testcase extends advanced_testcase {
 
         $formdata = api::form_policydoc_data();
         $formdata->name = 'Policy3';
+        $formdata->summary_editor = ['text' => 'P3 summary', 'format' => FORMAT_HTML, 'itemid' => 0];
         $formdata->content_editor = ['text' => 'P3 content', 'format' => FORMAT_HTML, 'itemid' => 0];
         $policy3 = api::form_policydoc_add($formdata);
 
