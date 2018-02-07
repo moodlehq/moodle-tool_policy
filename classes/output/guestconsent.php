@@ -56,7 +56,10 @@ class guestconsent implements renderable, templatable {
 
         $policies = \tool_policy\api::list_policies(null, true);
         foreach ($policies as $policy) {
-            // TODO: Filter guest policies.
+            if ($policy->audience != \tool_policy\api::AUDIENCE_ALL && $policy->audience != \tool_policy\api::AUDIENCE_GUESTS) {
+                // Remove policies which are not addressed to guests.
+                unset($policies[$policy->id]);
+            }
         }
         $data->policies = array_values($policies);
 
