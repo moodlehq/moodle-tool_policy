@@ -99,7 +99,7 @@ class page_agreedocs implements renderable, templatable {
         $acceptances = \tool_policy\api::get_user_acceptances($this->userid);
         foreach ($this->policies as $policy) {
             // Get only current version object. Remove the other versions from the object because at this point they aren't needed.
-            $this->policies[$policy->id]->currentversion = $policy->versions[$policy->currentversionid];
+            $this->policies[$policy->id]->currentversion = \tool_policy\api::get_policy_version($policy->id, $policy->currentversionid);
             unset($this->policies[$policy->id]->versions);
 
             // Get the link to display the full policy document.
