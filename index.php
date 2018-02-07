@@ -58,7 +58,7 @@ if ($userid == $USER->id) {
 
 $policies = \tool_policy\api::list_policies(null, true);
 if (!empty($agreedoc) && confirm_sesskey()) {
-    $currentlanguage = current_language();
+    $lang = current_language();
     // Accept / revoke policies.
     $acceptversionids = array();
     foreach ($policies as $policy) {
@@ -67,11 +67,11 @@ if (!empty($agreedoc) && confirm_sesskey()) {
             $acceptversionids[] = $policy->currentversionid;
         } else {
             // TODO: Revoke policy doc.
-            //\tool_policy\api::revoke_acceptance($policy->currentversionid, $userid, null, $currentlanguage);
+            //\tool_policy\api::revoke_acceptance($policy->currentversionid, $userid);
         }
     }
     // Accept all policy docs saved in $acceptversionids.
-    \tool_policy\api::accept_policies($acceptversionids, $userid, null, $currentlanguage);
+    \tool_policy\api::accept_policies($acceptversionids, $userid, null, $lang);
 }
 
 // If the user current user has the policyagreed = 1, redirect to the return page.

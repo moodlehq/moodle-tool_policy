@@ -87,7 +87,8 @@ $string['policydocrevisioncurrent'] = 'Current revision';
 $string['policydocsummary'] = 'Summary';
 $string['policydocsummary_help'] = 'This text should provide a summary of the policy, potentially in a simplified and easily accessible form, using clear and plain language.';
 $string['policydocs'] = 'Policy documents';
-$string['policyversionacceptedinotherlang'] = 'This policy version has been accepted previously in a different language.';
+$string['policyversionacceptedinbehalf'] = 'This policy version has been previously accepted by another user on behalf of you.';
+$string['policyversionacceptedinotherlang'] = 'This policy version has been previously accepted in a different language.';
 $string['privacyofficer'] = 'Privacy officer';
 // TODO: Review the list of places where the privacyofficer will be shown.
 $string['privacyofficer_desc'] = 'Information and contact details of the privacy officer, such as the address, email. phone... This information will be shown to the users in the consent page.';

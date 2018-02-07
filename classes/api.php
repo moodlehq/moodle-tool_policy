@@ -542,29 +542,24 @@ class api {
      * @return array list of acceptances indexed by versionid.
      */
     public static function get_user_acceptances($userid, $versions = null) {
-        global $DB, $USER;
-
-        if (!$userid) {
-            $userid = $USER->id;
-        }
+        global $DB;
 
         list($vsql, $vparams) = ['', []];
         if (!empty($versions)) {
-            $versions = is_array($versions) ? array_values($versions) : [$versions];
             list($vsql, $vparams) = $DB->get_in_or_equal($versions, SQL_PARAMS_NAMED, 'ver');
             $vsql = ' AND a.policyversionid ' . $vsql;
         }
 
-        $sql = "SELECT u.id AS mainuserid, a.policyversionid, a.status, a.language, u.policyagreed
-                  FROM {user} u, {tool_policy_acceptances} a
-                  WHERE a.userid = u.id AND a.userid = :userid $vsql";
+        $sql = "SELECT u.id AS mainuserid, a.policyversionid, a.status, a.lang, a.usermodified, u.policyagreed
+                  FROM {user} u
+                  INNER JOIN {tool_policy_acceptances} a ON a.userid = u.id AND a.userid = :userid $vsql";
         $params = ['userid' => $userid];
         $result = $DB->get_recordset_sql($sql, $params + $vparams);
 
         $acceptances = [];
         foreach ($result as $row) {
             if (!empty($row->policyversionid)) {
-                $acceptances[$row->policyversionid][$row->language] = $row;
+                $acceptances[$row->policyversionid] = $row;
             }
         }
         $result->close();
@@ -573,14 +568,51 @@ class api {
     }
 
     /**
+     * Returns version acceptance for this user.
+     *
+     * @param int $userid User identifier.
+     * @param int $versionid Policy version identifier.
+     * @param array|null $acceptances List of policy version acceptances indexed by versionid.
+     * @return stdClass|null Acceptance object if the user has ever accepted this version or null if not.
+     */
+    public static function get_user_version_acceptance($userid, $versionid, $acceptances = null) {
+        if (empty($acceptances)) {
+            $acceptances = static::get_user_acceptances($userid, $versionid);
+        }
+        if (array_key_exists($versionid, $acceptances)) {
+            // The policy version has ever been accepted.
+            return $acceptances[$versionid];
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns version acceptance for this user.
+     *
+     * @param int $userid User identifier.
+     * @param int $versionid Policy version identifier.
+     * @param array|null $acceptances Iist of policy version acceptances indexed by versionid.
+     * @return bool True if this user has accepted this policy version; false otherwise.
+     */
+    public static function is_user_version_accepted($userid, $versionid, $acceptances = null) {
+        $acceptance = static::get_user_version_acceptance($userid, $versionid, $acceptances);
+        if (!empty($acceptance)) {
+            return $acceptances[$versionid]->status;
+        }
+
+        return false;
+    }
+
+    /**
      * Accepts the current revisions of all policies that the user has not yet accepted
      *
      * @param array|int $policyversionid
      * @param int|null $userid
      * @param string|null $note
-     * @param string|null $language
+     * @param string|null $lang
      */
-    public static function accept_policies($policyversionid, $userid = null, $note = null, $language = null) {
+    public static function accept_policies($policyversionid, $userid = null, $note = null, $lang = null) {
         global $DB, $USER;
         if (!isloggedin() || isguestuser()) {
             throw new \moodle_exception('noguest');
@@ -603,11 +635,11 @@ class api {
         list($sql, $params) = $DB->get_in_or_equal($policyversionid, SQL_PARAMS_NAMED);
         $sql = "SELECT v.id AS versionid, a.*
                   FROM {tool_policy_versions} v
-                  LEFT JOIN {tool_policy_acceptances} a ON a.userid = :userid AND a.language = :language AND a.policyversionid = v.id
+                  LEFT JOIN {tool_policy_acceptances} a ON a.userid = :userid AND a.policyversionid = v.id
                   WHERE (a.id IS NULL or a.status <> 1) AND v.id " . $sql;
-        $needacceptance = $DB->get_records_sql($sql, ['userid' => $userid, 'language' => $language ?: current_language()] + $params);
+        $needacceptance = $DB->get_records_sql($sql, ['userid' => $userid] + $params);
 
-        $updatedata = ['status' => 1, 'language' => $language ?: current_language(),
+        $updatedata = ['status' => 1, 'lang' => $lang ?: current_language(),
             'timemodified' => time(), 'usermodified' => $USER->id, 'note' => $note];
         foreach ($needacceptance as $versionid => $currentacceptance) {
             unset($currentacceptance->versionid);

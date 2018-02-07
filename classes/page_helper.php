@@ -97,6 +97,7 @@ class page_helper {
 
         $PAGE->set_popup_notification_allowed(false);
 
+        // Check if the user is logged in, to avoid deadlock.
         if (!isloggedin()) {
             require_login();
         }
@@ -134,14 +135,12 @@ class page_helper {
         if (empty($policies)) {
             $policies = \tool_policy\api::list_policies(null, true);
         }
-        $currentlanguage = current_language();
+        $lang = current_language();
         $acceptances = \tool_policy\api::get_user_acceptances($userid);
         foreach($policies as $policy) {
-            if (array_key_exists($policy->currentversionid, $acceptances)) {
-                if (array_key_exists($currentlanguage, $acceptances[$policy->currentversionid])) {
-                    // If version has been agreed in current language, remove from the pending policies list.
-                    unset($policies[$policy->id]);
-                }
+            if (\tool_policy\api::is_user_version_accepted($userid, $policy->currentversionid, $acceptances)) {
+                // If this version is accepted by the user, remove from the pending policies list.
+                unset($policies[$policy->id]);
             }
         }
 
@@ -155,7 +154,6 @@ class page_helper {
             }
             if (sizeof($pendingpolicies) > 0) {
                 // Still is needed to show some policies docs. Save in the session and redirect.
-                // TODO: Add language to SESSION to make sure users view the full policy doc if they change the current lang.
                 $policyid = array_pop($pendingpolicies);
                 $SESSION->tool_policy->viewedpolicies[] = $policyid;
                 if (empty($returnurl)) {
