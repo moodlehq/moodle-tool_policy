@@ -25,10 +25,13 @@
 
 namespace tool_policy;
 
+use context_helper;
 use context_system;
+use context_user;
 use stdClass;
 use tool_policy\event\acceptance_created;
 use tool_policy\event\acceptance_updated;
+use user_picture;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -150,6 +153,108 @@ class api {
         }
 
         return $DB->get_record_sql($sql, $params, MUST_EXIST);
+    }
+
+    /**
+     * Can the the user view the given policy version document?
+     *
+     * @param stdClass $policy Object with currentversionid and versionid properties
+     * @param int $userid The user whom access is evaluated, defaults to the current one
+     * @param int $behalfid The id of user on whose behalf the user is viewing the policy
+     * @return bool
+     */
+    public static function can_user_view_policy_version($policy, $userid = null, $behalfid = null) {
+        global $USER;
+
+        if (empty($userid)) {
+            $userid = $USER->id;
+        }
+
+        // If it is the current version, then it is public and everybody can see it.
+        if ($policy->currentversionid == $policy->versionid) {
+            return true;
+        }
+
+        // Check if the user is viewing the policy on someone else's behalf.
+        // Typical scenario is a parent viewing the policy on behalf of her child.
+        if ($behalfid > 0) {
+            $behalfcontext = context_user::instance($behalfid);
+
+            if (!has_capability('tool/policy:acceptbehalf', $behalfcontext, $userid)) {
+                return false;
+            }
+
+            // Check that the other user (e.g. the child) has access to the policy.
+            // Pass a negative third parameter to avoid eventual endless loop.
+            // We do not support grand-parent relations.
+            return static::can_user_view_policy_version($policy, $behalfid, -1);
+        }
+
+        // Users who can manage policies, can see all versions.
+        if (has_capability('tool/policy:managedocs', context_system::instance(), $userid)) {
+            return true;
+        }
+
+        // User who can see all acceptances, must be also allowed to see what was accepted.
+        if (has_capability('tool/policy:viewacceptances', context_system::instance(), $userid)) {
+            return true;
+        }
+
+        // Users have access to all the policies they have ever accepted.
+        if (!empty(static::get_user_acceptances($userid, $policy->versionid))) {
+            return true;
+        }
+
+        // Check if the user could get access through some of her minors.
+        if ($behalfid === null) {
+            foreach (static::get_user_minors($userid) as $minor) {
+                if (static::can_user_view_policy_version($policy, $userid, $minor->id)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Return the user's minors - other users on which behalf we can accept policies.
+     *
+     * Returned objects contain all the standard user name and picture fields as well as the context instanceid.
+     *
+     * @param int $userid The id if the user with parental responsibility
+     * @param array $extrafields Extra fields to be included in result
+     * @return array of objects
+     */
+    public static function get_user_minors($userid, array $extrafields = null) {
+        global $DB;
+
+        $ctxfields = context_helper::get_preload_record_columns_sql('c');
+        $namefields = get_all_user_name_fields(true, 'u');
+        $pixfields = user_picture::fields('u', $extrafields);
+
+        $sql = "SELECT $ctxfields, $namefields, $pixfields
+                  FROM {role_assignments} ra
+                  JOIN {context} c ON c.contextlevel = ".CONTEXT_USER." AND ra.contextid = c.id
+                  JOIN {user} u ON c.instanceid = u.id
+                 WHERE ra.userid = ?
+              ORDER BY u.lastname ASC, u.firstname ASC";
+
+        $rs = $DB->get_recordset_sql($sql, [$userid]);
+
+        $minors = [];
+
+        foreach ($rs as $record) {
+            context_helper::preload_from_record($record);
+            $childcontext = context_user::instance($record->id);
+            if (has_capability('tool/policy:acceptbehalf', $childcontext, $userid)) {
+                $minors[$record->id] = $record;
+            }
+        }
+
+        $rs->close();
+
+        return $minors;
     }
 
     /**

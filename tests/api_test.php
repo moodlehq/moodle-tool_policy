@@ -215,4 +215,143 @@ class tool_policy_api_testcase extends advanced_testcase {
         $this->assertFalse($isminor5);
         $this->assertFalse($isminor6);
     }
+
+    /**
+     * Test behaviour of the {@link api::can_user_view_policy_version()} method.
+     */
+    public function test_can_user_view_policy_version() {
+        global $CFG;
+        $this->resetAfterTest();
+
+        $child = $this->getDataGenerator()->create_user();
+        $parent = $this->getDataGenerator()->create_user();
+        $adult = $this->getDataGenerator()->create_user();
+        $officer = $this->getDataGenerator()->create_user();
+        $manager = $this->getDataGenerator()->create_user();
+
+        $syscontext = context_system::instance();
+        $childcontext = context_user::instance($child->id);
+
+        $roleminorid = create_role('Digital minor', 'digiminor', 'Not old enough to accept site policies themselves');
+        $roleparentid = create_role('Parent', 'parent', 'Can accept policies on behalf of their child');
+        $roleofficerid = create_role('Policy officer', 'policyofficer', 'Can see all acceptances but can\'t edit policy documents');
+        $rolemanagerid = create_role('Policy manager', 'policymanager', 'Can manage policy documents');
+
+        assign_capability('tool/policy:accept', CAP_PROHIBIT, $roleminorid, $syscontext->id);
+        assign_capability('tool/policy:acceptbehalf', CAP_ALLOW, $roleparentid, $syscontext->id);
+        assign_capability('tool/policy:viewacceptances', CAP_ALLOW, $roleofficerid, $syscontext->id);
+        assign_capability('tool/policy:managedocs', CAP_ALLOW, $rolemanagerid, $syscontext->id);
+
+        role_assign($roleminorid, $child->id, $syscontext->id);
+        // Becoming a parent is easy. Being a good one is difficult.
+        role_assign($roleparentid, $parent->id, $childcontext->id);
+        role_assign($roleofficerid, $officer->id, $syscontext->id);
+        role_assign($rolemanagerid, $manager->id, $syscontext->id);
+
+        accesslib_clear_all_caches_for_unit_testing();
+
+        // Prepare a policy document with some versions.
+        $formdata = api::form_policydoc_data();
+        $formdata->name = 'Test policy';
+        $formdata->revision = 'v1';
+        $formdata->summary_editor = ['text' => 'summary', 'format' => FORMAT_HTML, 'itemid' => 0];
+        $formdata->content_editor = ['text' => 'content', 'format' => FORMAT_HTML, 'itemid' => 0];
+        $policy1 = api::form_policydoc_add($formdata);
+
+        $formdata = api::form_policydoc_data($policy1->policyid, $policy1->versionid);
+        $formdata->revision = 'v2';
+        $policy2 = api::form_policydoc_update_new($policy1->policyid, $formdata);
+
+        $formdata = api::form_policydoc_data($policy1->policyid, $policy1->versionid);
+        $formdata->revision = 'v3';
+        $policy3 = api::form_policydoc_update_new($policy1->policyid, $formdata);
+
+        // Normally users do not have access to policy drafts.
+        $this->assertFalse(api::can_user_view_policy_version($policy1, $child->id));
+        $this->assertFalse(api::can_user_view_policy_version($policy2, $parent->id));
+        $this->assertFalse(api::can_user_view_policy_version($policy3, $CFG->siteguest));
+
+        // Officers and managers have access even to drafts.
+        $this->assertTrue(api::can_user_view_policy_version($policy1, $officer->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy3, $manager->id));
+
+        // Current versions are public so that users can decide whether to even register on such a site.
+        api::make_current($policy2->policyid, $policy2->versionid);
+        $policy1 = api::get_policy_version($policy1->policyid, $policy1->versionid);
+        $policy2 = api::get_policy_version($policy2->policyid, $policy2->versionid);
+        $policy3 = api::get_policy_version($policy3->policyid, $policy3->versionid);
+
+        $this->assertFalse(api::can_user_view_policy_version($policy1, $child->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy2, $child->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy2, $CFG->siteguest));
+        $this->assertFalse(api::can_user_view_policy_version($policy3, $child->id));
+
+        // Let the parent accept the policy on behalf of her child.
+        $this->setUser($parent);
+        api::accept_policies($policy2->versionid, $child->id);
+
+        // Release a new version of the policy.
+        api::make_current($policy3->policyid, $policy3->versionid);
+        $policy1 = api::get_policy_version($policy1->policyid, $policy1->versionid);
+        $policy2 = api::get_policy_version($policy2->policyid, $policy2->versionid);
+        $policy3 = api::get_policy_version($policy3->policyid, $policy3->versionid);
+
+        api::get_user_minors($parent->id);
+        // They should now have access to the archived version (because they agreed) and the current one.
+        $this->assertFalse(api::can_user_view_policy_version($policy1, $child->id));
+        $this->assertFalse(api::can_user_view_policy_version($policy1, $parent->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy2, $child->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy2, $parent->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy3, $child->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy3, $parent->id));
+    }
+
+    /**
+     * Test behaviour of the {@link api::get_user_minors()} method.
+     */
+    public function test_get_user_minors() {
+        $this->resetAfterTest();
+
+        // A mother having two children, each child having own father.
+        $mother1 = $this->getDataGenerator()->create_user();
+        $father1 = $this->getDataGenerator()->create_user();
+        $father2 = $this->getDataGenerator()->create_user();
+        $child1 = $this->getDataGenerator()->create_user();
+        $child2 = $this->getDataGenerator()->create_user();
+
+        $syscontext = context_system::instance();
+        $child1context = context_user::instance($child1->id);
+        $child2context = context_user::instance($child2->id);
+
+        $roleparentid = create_role('Parent', 'parent', 'Can accept policies on behalf of their child');
+
+        assign_capability('tool/policy:acceptbehalf', CAP_ALLOW, $roleparentid, $syscontext->id);
+
+        role_assign($roleparentid, $mother1->id, $child1context->id);
+        role_assign($roleparentid, $mother1->id, $child2context->id);
+        role_assign($roleparentid, $father1->id, $child1context->id);
+        role_assign($roleparentid, $father2->id, $child2context->id);
+
+        accesslib_clear_all_caches_for_unit_testing();
+
+        $mother1minors = api::get_user_minors($mother1->id);
+        $this->assertEquals(2, count($mother1minors));
+
+        $father1minors = api::get_user_minors($father1->id);
+        $this->assertEquals(1, count($father1minors));
+        $this->assertEquals($child1->id, $father1minors[$child1->id]->id);
+
+        $father2minors = api::get_user_minors($father2->id);
+        $this->assertEquals(1, count($father2minors));
+        $this->assertEquals($child2->id, $father2minors[$child2->id]->id);
+
+        $this->assertEmpty(api::get_user_minors($child1->id));
+        $this->assertEmpty(api::get_user_minors($child2->id));
+
+        $extradata = api::get_user_minors($mother1->id, ['policyagreed', 'deleted']);
+        $this->assertTrue(property_exists($extradata[$child1->id], 'policyagreed'));
+        $this->assertTrue(property_exists($extradata[$child1->id], 'deleted'));
+        $this->assertTrue(property_exists($extradata[$child2->id], 'policyagreed'));
+        $this->assertTrue(property_exists($extradata[$child2->id], 'deleted'));
+    }
 }
