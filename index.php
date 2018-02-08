@@ -33,49 +33,71 @@ if (!empty($SESSION->wantsurl)) {
     $return = $CFG->wwwroot.'/';
 }
 
+// Guest users are not allowed to access to this page.
 if (isguestuser()) {
     unset($SESSION->wantsurl);
     redirect($return);
 }
 
 $urlparams = array();
-if (!empty($userid)) {
+if (!empty($USER->id) && !empty($userid) && $userid != $USER->id) {
     $urlparams['userid'] = $userid;
 }
 $url = new moodle_url('/admin/tool/policy/index.php', $urlparams);
-list($title, $subtitle) = \tool_policy\page_helper::setup_for_agreedocs_page($url);
+list($title, $subtitle) = \tool_policy\page_helper::setup_for_page($url);
 
 if (empty($userid)) {
     $userid = $USER->id;
 }
 
-if ($userid == $USER->id) {
-    require_capability('tool/policy:accept', context_system::instance());
-} else {
-    $usercontext = \context_user::instance($userid);
-    require_capability('tool/policy:acceptbehalf', $usercontext);
-}
-
-$policies = \tool_policy\api::list_policies(null, true);
-if (!empty($agreedoc) && confirm_sesskey()) {
-    $lang = current_language();
-    // Accept / revoke policies.
-    $acceptversionids = array();
-    foreach ($policies as $policy) {
-        if (in_array($policy->id, $agreedoc)) {
-            // Save policy version doc to accept it.
-            $acceptversionids[] = $policy->currentversionid;
-        } else {
-            // TODO: Revoke policy doc.
-            //\tool_policy\api::revoke_acceptance($policy->currentversionid, $userid);
-        }
+if (!empty($USER->id)) {
+    // For existing users, it's needed to check they have the capability for accepting policies.
+    if ($userid == $USER->id) {
+        require_capability('tool/policy:accept', context_system::instance());
+    } else {
+        $usercontext = \context_user::instance($userid);
+        require_capability('tool/policy:acceptbehalf', $usercontext);
     }
-    // Accept all policy docs saved in $acceptversionids.
-    \tool_policy\api::accept_policies($acceptversionids, $userid, null, $lang);
+} else {
+    // For new users, the userid parameter is ignored.
+    if ($userid != $USER->id) {
+        redirect($url);
+    }
 }
 
-// If the user current user has the policyagreed = 1, redirect to the return page.
-if (!is_siteadmin() && $USER->id == $userid && $USER->policyagreed) {
+// TODO: Get the policies for this audience, which are all except the specifics for guests.
+$policies = \tool_policy\api::list_policies(null, true);
+// TODO: Decide what to do if there are no policies to agree but the user has policyagreed = 0.
+if (!empty($agreedoc) && confirm_sesskey()) {
+    if (!empty($USER->id)) {
+        // Existing user.
+        $lang = current_language();
+        // Accept / revoke policies.
+        $acceptversionids = array();
+        foreach ($policies as $policy) {
+            if (in_array($policy->id, $agreedoc)) {
+                // Save policy version doc to accept it.
+                $acceptversionids[] = $policy->currentversionid;
+            } else {
+                // TODO: Revoke policy doc.
+                //\tool_policy\api::revoke_acceptance($policy->currentversionid, $userid);
+            }
+        }
+        // Accept all policy docs saved in $acceptversionids.
+        \tool_policy\api::accept_policies($acceptversionids, $userid, null, $lang);
+    } else {
+        // New user.
+        // If the user has accepted all the policies, add this to the SESSION to let continue with the signup process.
+        $SESSION->userpolicyagreed = empty(array_diff(array_keys($policies), $agreedoc));
+
+        // TODO: Show a message to let know the user he/she must agree all the policies if he/she wants to create an user.
+    }
+}
+
+$hasagreedsignupuser = empty($USER->id) && !empty($SESSION->userpolicyagreed);
+$hasagreedloggeduser = $USER->id == $userid && !empty($USER->policyagreed);
+// If the current user has the $USER->policyagreed = 1 or $SESSION->userpolicyagreed = 1, redirect to the return page.
+if (!is_siteadmin() && ($hasagreedsignupuser || $hasagreedloggeduser)) {
     unset($SESSION->wantsurl);
     redirect($return);
 }
@@ -87,6 +109,6 @@ if (!is_siteadmin() && $USER->id == $userid && $USER->policyagreed) {
 $output = $PAGE->get_renderer('tool_policy');
 
 echo $output->header();
-$page = new \tool_policy\output\page_agreedocs($userid, $policies);
+$page = new \tool_policy\output\page_agreedocs($userid, $policies, $agreedoc, $url);
 echo $output->render($page);
 echo $output->footer();

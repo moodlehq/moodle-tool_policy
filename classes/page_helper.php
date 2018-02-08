@@ -44,10 +44,10 @@ use stdClass;
 class page_helper {
 
     /**
-     * Set-up a public page.
+     * Set-up a page.
      *
      * Example:
-     * list($title, $subtitle) = page_helper::setup_for_public_page($url, $pagetitle);
+     * list($title, $subtitle) = page_helper::setup_for_page($url, $pagetitle);
      * echo $OUTPUT->heading($title);
      * echo $OUTPUT->heading($subtitle, 3);
      *
@@ -57,54 +57,13 @@ class page_helper {
      *               - Page title
      *               - Page sub title
      */
-    public static function setup_for_public_page(moodle_url $url, $subtitle = '') {
-        global $PAGE, $SITE;
-
-        $context = \context_system::instance();
-        $PAGE->set_context($context);
-
-        if (!empty($subtitle)) {
-            $title = $subtitle;
-        } else {
-            $title = get_string('policiesagreements', 'tool_policy');
-        }
-
-        $heading = $SITE->fullname;
-        $PAGE->set_pagelayout('standard');
-        $PAGE->set_url($url);
-        $PAGE->set_title($title);
-        $PAGE->set_heading($heading);
-
-        return array($title, $subtitle);
-    }
-
-    /**
-     * Set-up the policy acceptance page.
-     *
-     * Example:
-     * list($title, $subtitle) = page_helper::setup_for_agreedocs_page($url, $pagetitle);
-     * echo $OUTPUT->heading($title);
-     * echo $OUTPUT->heading($subtitle, 3);
-     *
-     * @param  moodle_url $url The current page.
-     * @param  string $subtitle The title of the subpage, if any.
-     * @return array With the following:
-     *               - Page title
-     *               - Page sub title
-     */
-    public static function setup_for_agreedocs_page(moodle_url $url, $subtitle = '') {
+    public static function setup_for_page(moodle_url $url, $subtitle = '') {
         global $PAGE, $SITE;
 
         $PAGE->set_popup_notification_allowed(false);
 
-        // Check if the user is logged in, to avoid deadlock.
-        if (!isloggedin()) {
-            require_login();
-        }
-
         $context = \context_system::instance();
         $PAGE->set_context($context);
-
 
         if (!empty($subtitle)) {
             $title = $subtitle;
@@ -137,10 +96,12 @@ class page_helper {
         }
         $lang = current_language();
         $acceptances = \tool_policy\api::get_user_acceptances($userid);
-        foreach($policies as $policy) {
-            if (\tool_policy\api::is_user_version_accepted($userid, $policy->currentversionid, $acceptances)) {
-                // If this version is accepted by the user, remove from the pending policies list.
-                unset($policies[$policy->id]);
+        if (!empty($userid)) {
+            foreach($policies as $policy) {
+                if (\tool_policy\api::is_user_version_accepted($userid, $policy->currentversionid, $acceptances)) {
+                    // If this version is accepted by the user, remove from the pending policies list.
+                    unset($policies[$policy->id]);
+                }
             }
         }
 

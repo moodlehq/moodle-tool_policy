@@ -100,12 +100,14 @@ class validateminor_helper {
      * @param bool $is_minor
      */
     public static function redirect($is_minor) {
+        global $SESSION;
 
         if ($is_minor) {
             redirect(new \moodle_url('/admin/tool/policy/contactadmin.php'));
-        } else {
-            // TODO: Redirect to "Policy" pages.
-            die("Policy page");
+        } else if (empty($SESSION->userpolicyagreed)) {
+            // Redirect to "Policy" pages for consenting before creating the user.
+            $SESSION->wantsurl = new \moodle_url('/login/signup.php');
+            redirect(new \moodle_url('/admin/tool/policy/index.php'));
         }
     }
 
