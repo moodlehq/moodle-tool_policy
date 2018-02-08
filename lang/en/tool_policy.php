@@ -64,7 +64,6 @@ $string['pluginname'] = 'Policies';
 $string['policiesagreements'] = 'Policies and agreements';
 $string['policy:accept'] = 'Accept policies';
 $string['policy:acceptbehalf'] = 'Accept policies on someone else\'s behalf';
-$string['policy:managedataproc'] = 'Manage data processing services';
 $string['policy:managedocs'] = 'Manage policy documents';
 $string['policy:manageprivacy'] = 'Manage privacy settings';
 $string['policy:viewacceptances'] = 'View user acceptances reports';

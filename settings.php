@@ -28,7 +28,6 @@ defined('MOODLE_INTERNAL') || die();
 $managecaps = [
     'tool/policy:managedocs',
     'tool/policy:manageprivacy',
-    'tool/policy:managedataproc',
     'tool/policy:viewacceptances',
 ];
 
@@ -37,6 +36,13 @@ if ($hassiteconfig || has_any_capability($managecaps, context_system::instance()
     $ADMIN->add('users', new admin_category(
         'tool_policy_admin_category',
         new lang_string('policiesagreements', 'tool_policy')
+    ));
+
+    $ADMIN->add('tool_policy_admin_category', new admin_externalpage(
+        'tool_policy_managedocs',
+        new lang_string('policydocs', 'tool_policy'),
+        new moodle_url('/admin/tool/policy/managedocs.php'),
+        ['tool/policy:managedocs', 'tool/policy:viewacceptances']
     ));
 
     $privacysettings = new admin_settingpage(
@@ -81,18 +87,4 @@ if ($hassiteconfig || has_any_capability($managecaps, context_system::instance()
             PARAM_RAW
         ));
     }
-
-    $ADMIN->add('tool_policy_admin_category', new admin_externalpage(
-        'tool_policy_managedocs',
-        new lang_string('policydocs', 'tool_policy'),
-        new moodle_url('/admin/tool/policy/managedocs.php'),
-        ['tool/policy:managedocs', 'tool/policy:viewacceptances']
-    ));
-
-    $ADMIN->add('tool_policy_admin_category', new admin_externalpage(
-        'tool_policy_managedataproc',
-        new lang_string('dataproc', 'tool_policy'),
-        new moodle_url('/admin/tool/policy/managedataproc.php'),
-        ['tool/policy:managedataproc']
-    ));
 }
