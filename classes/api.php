@@ -156,23 +156,37 @@ class api {
     }
 
     /**
-     * Can the the user view the given policy version document?
+     * Is the given policy version available even to anybody?
      *
      * @param stdClass $policy Object with currentversionid and versionid properties
-     * @param int $userid The user whom access is evaluated, defaults to the current one
-     * @param int $behalfid The id of user on whose behalf the user is viewing the policy
      * @return bool
      */
-    public static function can_user_view_policy_version($policy, $userid = null, $behalfid = null) {
+    public static function is_public($policy) {
+
+        if ($policy->currentversionid == $policy->versionid) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Can the user view the given policy version document?
+     *
+     * @param stdClass $policy Object with currentversionid and versionid properties
+     * @param int $behalfid The id of user on whose behalf the user is viewing the policy
+     * @param int $userid The user whom access is evaluated, defaults to the current one
+     * @return bool
+     */
+    public static function can_user_view_policy_version($policy, $behalfid = null, $userid = null) {
         global $USER;
+
+        if (static::is_public($policy)) {
+            return true;
+        }
 
         if (empty($userid)) {
             $userid = $USER->id;
-        }
-
-        // If it is the current version, then it is public and everybody can see it.
-        if ($policy->currentversionid == $policy->versionid) {
-            return true;
         }
 
         // Check if the user is viewing the policy on someone else's behalf.
@@ -187,7 +201,7 @@ class api {
             // Check that the other user (e.g. the child) has access to the policy.
             // Pass a negative third parameter to avoid eventual endless loop.
             // We do not support grand-parent relations.
-            return static::can_user_view_policy_version($policy, $behalfid, -1);
+            return static::can_user_view_policy_version($policy, -1, $behalfid);
         }
 
         // Users who can manage policies, can see all versions.
@@ -208,7 +222,7 @@ class api {
         // Check if the user could get access through some of her minors.
         if ($behalfid === null) {
             foreach (static::get_user_minors($userid) as $minor) {
-                if (static::can_user_view_policy_version($policy, $userid, $minor->id)) {
+                if (static::can_user_view_policy_version($policy, $minor->id, $userid)) {
                     return true;
                 }
             }
@@ -535,8 +549,16 @@ class api {
      *
      * @return array
      */
-    protected static function policy_summary_field_options() {
-        return ['trusttext' => true, 'subdirs' => false, 'context' => context_system::instance()];
+    public static function policy_summary_field_options() {
+        global $CFG;
+        require_once($CFG->libdir.'/formslib.php');
+
+        return [
+            'trusttext' => true,
+            'subdirs' => false,
+            'maxfiles' => -1,
+            'context' => context_system::instance(),
+        ];
     }
 
     /**
@@ -544,8 +566,16 @@ class api {
      *
      * @return array
      */
-    protected static function policy_content_field_options() {
-        return ['trusttext' => true, 'subdirs' => false, 'context' => context_system::instance()];
+    public static function policy_content_field_options() {
+        global $CFG;
+        require_once($CFG->libdir.'/formslib.php');
+
+        return [
+            'trusttext' => true,
+            'subdirs' => false,
+            'maxfiles' => -1,
+            'context' => context_system::instance(),
+        ];
     }
 
     /**

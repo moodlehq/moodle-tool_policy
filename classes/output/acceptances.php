@@ -154,6 +154,11 @@ class acceptances implements renderable, templatable {
                 $datapolicy->viewcurrenturl = (new moodle_url('/admin/tool/policy/view.php', [
                     'policyid' => $policy->id,
                     'versionid' => $policy->currentversionid,
+                    'manage' => 1,
+                    'returnurl' => (new moodle_url('/admin/tool/policy/acceptances.php', [
+                        'policyid' => $policy->id,
+                        'versionid' => $policy->currentversionid,
+                    ]))->out(false),
                 ]))->out(false);
             }
 

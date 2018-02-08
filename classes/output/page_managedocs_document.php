@@ -92,6 +92,8 @@ class page_managedocs_document implements renderable, templatable {
                 'viewurl' => (new moodle_url('/admin/tool/policy/view.php', [
                     'policyid' => $policy->id,
                     'versionid' => $version->id,
+                    'manage' => 1,
+                    'returnurl' => (new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $this->policyid]))->out(false),
                 ]))->out(false),
                 'timemodified' => $version->timemodified,
                 'revision' => $version->revision,

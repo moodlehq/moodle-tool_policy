@@ -24,23 +24,26 @@
     -
 
     Context variables required for this template:
-    * error - array with errors to show.
-    * navigation - array of navigation buttons.
-    * version - version document object.
+    * policy - version document object.
 }}
 
-{{#error}}
-{{{.}}}
-{{/error}}
+<div class="policy_document">
+    <h2>{{policy.name}}</h2>
+    <div class="policy_document_summary}}">
+        {{{policy.summary}}}
+    </div>
+    <div class="policy_document_content">
+        {{{policy.content}}}
+    </div>
+</div>
 
-{{#version.content}}
-<div class='policy-heading'>
-<div class='policy-content'>
-{{{version.content}}}
+<hr>
+
+<div class="policy_buttons">
+{{#returnurl}}
+    <a role="button" href="{{returnurl}}" class="btn btn-primary">{{#str}} continue {{/str}}</a>
+{{/returnurl}}
+{{#editurl}}
+    <a role="button" href="{{editurl}}" class="btn">{{#str}} edit {{/str}}</a>
+{{/editurl}}
 </div>
-<div class="policy-viewdoc-buttons">
-{{#navigation}}
-    {{{.}}}
-{{/navigation}}
-</div>
-{{/version.content}}
