@@ -38,19 +38,23 @@ use tool_policy\validateminor_helper;
  */
 function tool_policy_extend_navigation_user_settings(navigation_node $usersetting, $user, context_user $usercontext,
         $course, context_course $coursecontext) {
-    global $CFG;
+    global $CFG, $PAGE;
 
     $userpolicysettings = $usersetting->add(get_string('userpolicysettings', 'tool_policy'), null,
         navigation_node::TYPE_CONTAINER, null, 'tool_policy-userpolicysettings');
 
-    // TODO link to a page that provides details on all policies that the user has accepted, when etc.
-    $userpolicysettings->add('Policies and agreements', '');
+    $userpolicysettings->add(get_string('policiesagreements', 'tool_policy'), new moodle_url('/admin/tool/policy/index.php'));
 
-    // TODO here will links generated from the actual list of policy documents.
-    $userpolicysettings->add('Site policy', '');
-    $userpolicysettings->add('Privacy policy', '');
-    $userpolicysettings->add('Personal data sharing and processing', '');
-    $userpolicysettings->add('Intellectual property policy', '');
+    foreach (api::list_policies(null, true) as $policy) {
+        if ($policy->audience == api::AUDIENCE_GUESTS) {
+            continue;
+        }
+        $userpolicysettings->add(format_string($policy->name), new moodle_url('/admin/tool/policy/view.php', [
+            'policyid' => $policy->id,
+            'versionid' => $policy->currentversionid,
+            'returnurl' => $PAGE->url,
+        ]));
+    }
 }
 
 /**
