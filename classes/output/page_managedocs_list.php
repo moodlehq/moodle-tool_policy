@@ -81,6 +81,8 @@ class page_managedocs_list implements renderable, templatable {
                 $datapolicy->viewcurrenturl = (new moodle_url('/admin/tool/policy/view.php', [
                     'policyid' => $policy->id,
                     'versionid' => $policy->currentversionid,
+                    'manage' => 1,
+                    'returnurl' => (new moodle_url('/admin/tool/policy/managedocs.php'))->out(false),
                 ]))->out(false);
             }
 

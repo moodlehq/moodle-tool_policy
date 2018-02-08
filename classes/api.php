@@ -171,14 +171,14 @@ class api {
     }
 
     /**
-     * Can the the user view the given policy version document?
+     * Can the user view the given policy version document?
      *
      * @param stdClass $policy Object with currentversionid and versionid properties
-     * @param int $userid The user whom access is evaluated, defaults to the current one
      * @param int $behalfid The id of user on whose behalf the user is viewing the policy
+     * @param int $userid The user whom access is evaluated, defaults to the current one
      * @return bool
      */
-    public static function can_user_view_policy_version($policy, $userid = null, $behalfid = null) {
+    public static function can_user_view_policy_version($policy, $behalfid = null, $userid = null) {
         global $USER;
 
         if (static::is_public($policy)) {
@@ -201,7 +201,7 @@ class api {
             // Check that the other user (e.g. the child) has access to the policy.
             // Pass a negative third parameter to avoid eventual endless loop.
             // We do not support grand-parent relations.
-            return static::can_user_view_policy_version($policy, $behalfid, -1);
+            return static::can_user_view_policy_version($policy, -1, $behalfid);
         }
 
         // Users who can manage policies, can see all versions.
@@ -222,7 +222,7 @@ class api {
         // Check if the user could get access through some of her minors.
         if ($behalfid === null) {
             foreach (static::get_user_minors($userid) as $minor) {
-                if (static::can_user_view_policy_version($policy, $userid, $minor->id)) {
+                if (static::can_user_view_policy_version($policy, $minor->id, $userid)) {
                     return true;
                 }
             }

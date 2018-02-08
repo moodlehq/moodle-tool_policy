@@ -301,13 +301,13 @@ class tool_policy_api_testcase extends advanced_testcase {
         $policy3 = api::form_policydoc_update_new($policy1->policyid, $formdata);
 
         // Normally users do not have access to policy drafts.
-        $this->assertFalse(api::can_user_view_policy_version($policy1, $child->id));
-        $this->assertFalse(api::can_user_view_policy_version($policy2, $parent->id));
-        $this->assertFalse(api::can_user_view_policy_version($policy3, $CFG->siteguest));
+        $this->assertFalse(api::can_user_view_policy_version($policy1, null, $child->id));
+        $this->assertFalse(api::can_user_view_policy_version($policy2, null, $parent->id));
+        $this->assertFalse(api::can_user_view_policy_version($policy3, null, $CFG->siteguest));
 
         // Officers and managers have access even to drafts.
-        $this->assertTrue(api::can_user_view_policy_version($policy1, $officer->id));
-        $this->assertTrue(api::can_user_view_policy_version($policy3, $manager->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy1, null, $officer->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy3, null, $manager->id));
 
         // Current versions are public so that users can decide whether to even register on such a site.
         api::make_current($policy2->policyid, $policy2->versionid);
@@ -315,10 +315,10 @@ class tool_policy_api_testcase extends advanced_testcase {
         $policy2 = api::get_policy_version($policy2->policyid, $policy2->versionid);
         $policy3 = api::get_policy_version($policy3->policyid, $policy3->versionid);
 
-        $this->assertFalse(api::can_user_view_policy_version($policy1, $child->id));
-        $this->assertTrue(api::can_user_view_policy_version($policy2, $child->id));
-        $this->assertTrue(api::can_user_view_policy_version($policy2, $CFG->siteguest));
-        $this->assertFalse(api::can_user_view_policy_version($policy3, $child->id));
+        $this->assertFalse(api::can_user_view_policy_version($policy1, null, $child->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy2, null, $child->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy2, null, $CFG->siteguest));
+        $this->assertFalse(api::can_user_view_policy_version($policy3, null, $child->id));
 
         // Let the parent accept the policy on behalf of her child.
         $this->setUser($parent);
@@ -332,12 +332,12 @@ class tool_policy_api_testcase extends advanced_testcase {
 
         api::get_user_minors($parent->id);
         // They should now have access to the archived version (because they agreed) and the current one.
-        $this->assertFalse(api::can_user_view_policy_version($policy1, $child->id));
-        $this->assertFalse(api::can_user_view_policy_version($policy1, $parent->id));
-        $this->assertTrue(api::can_user_view_policy_version($policy2, $child->id));
-        $this->assertTrue(api::can_user_view_policy_version($policy2, $parent->id));
-        $this->assertTrue(api::can_user_view_policy_version($policy3, $child->id));
-        $this->assertTrue(api::can_user_view_policy_version($policy3, $parent->id));
+        $this->assertFalse(api::can_user_view_policy_version($policy1, null, $child->id));
+        $this->assertFalse(api::can_user_view_policy_version($policy1, null, $parent->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy2, null, $child->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy2, null, $parent->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy3, null, $child->id));
+        $this->assertTrue(api::can_user_view_policy_version($policy3, null, $parent->id));
     }
 
     /**
