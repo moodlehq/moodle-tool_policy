@@ -76,11 +76,13 @@ class policydoc extends moodleform {
         $mform->addRule('revision', null, 'required', null, 'client');
         $mform->addRule('revision', get_string('maximumchars', '', 1333), 'maxlength', 1333, 'client');
 
-        $mform->addElement('editor', 'summary_editor', get_string('policydocsummary', 'tool_policy'), ['rows' => 7]);
+        $mform->addElement('editor', 'summary_editor', get_string('policydocsummary', 'tool_policy'), ['rows' => 7],
+            api::policy_summary_field_options());
         $mform->addHelpButton('summary_editor', 'policydocsummary', 'tool_policy');
         $mform->addRule('summary_editor', null, 'required', null, 'client');
 
-        $mform->addElement('editor', 'content_editor', get_string('policydoccontent', 'tool_policy'));
+        $mform->addElement('editor', 'content_editor', get_string('policydoccontent', 'tool_policy'), null,
+            api::policy_content_field_options());
         $mform->addHelpButton('content_editor', 'policydoccontent', 'tool_policy');
         $mform->addRule('content_editor', null, 'required', null, 'client');
 

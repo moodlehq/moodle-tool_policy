@@ -156,6 +156,21 @@ class api {
     }
 
     /**
+     * Is the given policy version available even to anybody?
+     *
+     * @param stdClass $policy Object with currentversionid and versionid properties
+     * @return bool
+     */
+    public static function is_public($policy) {
+
+        if ($policy->currentversionid == $policy->versionid) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Can the the user view the given policy version document?
      *
      * @param stdClass $policy Object with currentversionid and versionid properties
@@ -166,13 +181,12 @@ class api {
     public static function can_user_view_policy_version($policy, $userid = null, $behalfid = null) {
         global $USER;
 
-        if (empty($userid)) {
-            $userid = $USER->id;
+        if (static::is_public($policy)) {
+            return true;
         }
 
-        // If it is the current version, then it is public and everybody can see it.
-        if ($policy->currentversionid == $policy->versionid) {
-            return true;
+        if (empty($userid)) {
+            $userid = $USER->id;
         }
 
         // Check if the user is viewing the policy on someone else's behalf.
@@ -535,8 +549,16 @@ class api {
      *
      * @return array
      */
-    protected static function policy_summary_field_options() {
-        return ['trusttext' => true, 'subdirs' => false, 'context' => context_system::instance()];
+    public static function policy_summary_field_options() {
+        global $CFG;
+        require_once($CFG->libdir.'/formslib.php');
+
+        return [
+            'trusttext' => true,
+            'subdirs' => false,
+            'maxfiles' => -1,
+            'context' => context_system::instance(),
+        ];
     }
 
     /**
@@ -544,8 +566,16 @@ class api {
      *
      * @return array
      */
-    protected static function policy_content_field_options() {
-        return ['trusttext' => true, 'subdirs' => false, 'context' => context_system::instance()];
+    public static function policy_content_field_options() {
+        global $CFG;
+        require_once($CFG->libdir.'/formslib.php');
+
+        return [
+            'trusttext' => true,
+            'subdirs' => false,
+            'maxfiles' => -1,
+            'context' => context_system::instance(),
+        ];
     }
 
     /**

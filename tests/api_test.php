@@ -42,6 +42,7 @@ class tool_policy_api_testcase extends advanced_testcase {
      */
     public function test_policy_document_life_cycle() {
         $this->resetAfterTest();
+        $this->setAdminUser();
 
         // Pre-load the form for adding a new policy document.
         $formdata = api::form_policydoc_data();
@@ -52,10 +53,8 @@ class tool_policy_api_testcase extends advanced_testcase {
         $this->assertNotNull($formdata->name);
         $this->assertNotNull($formdata->summary_editor['text']);
         $this->assertNotNull($formdata->summary_editor['format']);
-        $this->assertSame(0, $formdata->summary_editor['itemid']);
         $this->assertNotNull($formdata->content_editor['text']);
         $this->assertNotNull($formdata->content_editor['format']);
-        $this->assertSame(0, $formdata->content_editor['itemid']);
 
         // Save the form.
         $policy = api::form_policydoc_add($formdata);
@@ -143,6 +142,7 @@ class tool_policy_api_testcase extends advanced_testcase {
      */
     public function test_policy_sortorder() {
         $this->resetAfterTest();
+        $this->setAdminUser();
 
         $formdata = api::form_policydoc_data();
         $formdata->name = 'Policy1';
@@ -217,11 +217,45 @@ class tool_policy_api_testcase extends advanced_testcase {
     }
 
     /**
+     * Test behaviour of the {@link api::is_public()} method.
+     */
+    public function test_is_public() {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $formdata = api::form_policydoc_data();
+        $formdata->name = 'Test policy';
+        $formdata->revision = 'v1';
+        $formdata->summary_editor = ['text' => 'summary', 'format' => FORMAT_HTML, 'itemid' => 0];
+        $formdata->content_editor = ['text' => 'content', 'format' => FORMAT_HTML, 'itemid' => 0];
+        $policy1 = api::form_policydoc_add($formdata);
+
+        $formdata = api::form_policydoc_data($policy1->policyid, $policy1->versionid);
+        $formdata->revision = 'v2';
+        $policy2 = api::form_policydoc_update_new($policy1->policyid, $formdata);
+
+        $formdata = api::form_policydoc_data($policy2->policyid, $policy2->versionid);
+        $formdata->revision = 'v3';
+        $policy3 = api::form_policydoc_update_new($policy2->policyid, $formdata);
+
+        api::make_current($policy2->policyid, $policy2->versionid);
+
+        $policy1 = api::get_policy_version($policy1->policyid, $policy1->versionid);
+        $policy2 = api::get_policy_version($policy2->policyid, $policy2->versionid);
+        $policy3 = api::get_policy_version($policy3->policyid, $policy3->versionid);
+
+        $this->assertFalse(api::is_public($policy1));
+        $this->assertTrue(api::is_public($policy2));
+        $this->assertFalse(api::is_public($policy3));
+    }
+
+    /**
      * Test behaviour of the {@link api::can_user_view_policy_version()} method.
      */
     public function test_can_user_view_policy_version() {
         global $CFG;
         $this->resetAfterTest();
+        $this->setAdminUser();
 
         $child = $this->getDataGenerator()->create_user();
         $parent = $this->getDataGenerator()->create_user();

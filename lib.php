@@ -24,7 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-use \tool_policy\validateminor_helper;
+use tool_policy\api;
+use tool_policy\validateminor_helper;
 
 /**
  * Extends the user preferences page
@@ -86,6 +87,58 @@ function tool_policy_pre_signup_requests() {
         $is_minor = validateminor_helper::get_minor_session_status();
         validateminor_helper::redirect($is_minor);
     }
+}
+
+/**
+ * Serve the embedded files.
+ *
+ * @param stdClass $course the course object
+ * @param stdClass $cm the course module object
+ * @param stdClass $context the context
+ * @param string $filearea the name of the file area
+ * @param array $args extra arguments (itemid, path)
+ * @param bool $forcedownload whether or not force download
+ * @param array $options additional options affecting the file serving
+ * @return bool false if the file not found, just send the file otherwise and do not return anything
+ */
+function tool_policy_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options=array()) {
+
+    if ($context->contextlevel != CONTEXT_SYSTEM) {
+        return false;
+    }
+
+    if ($filearea !== 'policydocumentsummary' && $filearea !== 'policydocumentcontent') {
+        return false;
+    }
+
+    $itemid = array_shift($args);
+
+    $policy = api::get_policy_version(null, $itemid);
+
+    if (!api::is_public($policy)) {
+        require_login();
+    }
+
+    if (!api::can_user_view_policy_version($policy)) {
+        return false;
+    }
+
+    $filename = array_pop($args);
+
+    if (!$args) {
+        $filepath = '/';
+    } else {
+        $filepath = '/'.implode('/', $args).'/';
+    }
+
+    $fs = get_file_storage();
+    $file = $fs->get_file($context->id, 'tool_policy', $filearea, $itemid, $filepath, $filename);
+
+    if (!$file) {
+        return false;
+    }
+
+    send_stored_file($file, null, 0, $forcedownload, $options);
 }
 
 /**
