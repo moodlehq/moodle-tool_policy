@@ -52,7 +52,6 @@ class page_contactadmin implements renderable, templatable {
         $admindetails = "John Doe<br>johndoe@example.com";
 
         $context = [
-            'sitename' => $SITE->fullname,
             'admindetails' => $admindetails,
             'homelink' => new \moodle_url('/')
         ];

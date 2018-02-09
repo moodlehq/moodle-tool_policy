@@ -24,34 +24,13 @@
     -
 
     Context variables required for this template:
-    * sitename
     * admindetails
     * homelink
 }}
-<div class="container-fluid">
-    <div class="m-y-3 hidden-sm-down"></div>
-    <div class="row">
-        <div class="col-md-8 push-md-2 col-xl-6 push-xl-3">
-            <div class="card">
-                <div class="card-block">
-                    <div class="card-title text-xs-center">
-                        {{#logourl}}
-                            <h2><img src="{{logourl}}" title="{{sitename}}" alt="{{sitename}}"/></h2>
-                        {{/logourl}}
-                        {{^logourl}}
-                            <h2>{{sitename}}</h2>
-                        {{/logourl}}
-                        <hr>
-                    </div>
-                    <div class="p-t-1 p-b-2">
-                        <p>{{#str}}contactadmin_desc, tool_policy{{/str}}</p>
-                        <p class="m-b-0">{{{admindetails}}}</p>
-                    </div>
-                    <div class="backlink">
-                        <a href="{{homelink}}">{{#str}}backtohome, tool_policy{{/str}}</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="p-b-2">
+    <p>{{#str}}contactadmin_desc, tool_policy{{/str}}</p>
+    <p class="m-b-0">{{{admindetails}}}</p>
+</div>
+<div class="backlink">
+    <a href="{{homelink}}">{{#str}}backtohome, tool_policy{{/str}}</a>
 </div>

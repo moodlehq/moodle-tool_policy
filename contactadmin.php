@@ -30,11 +30,8 @@ if (!$authplugin = signup_is_enabled()) {
     print_error('notlocalisederrormessage', 'error', '', 'Sorry, you may not use this page.');
 }
 
-//HTTPS is required in this page when $CFG->loginhttps enabled
-$PAGE->https_required();
-
 $PAGE->set_context(context_system::instance());
-$PAGE->set_url($CFG->wwwroot.'/admin/tool/policy/contactadmin.php');
+$PAGE->set_url(new moodle_url('/admin/tool/policy/contactadmin.php'));
 
 if (isloggedin() and !isguestuser()) {
     // Prevent signing up when already logged in.
@@ -49,7 +46,6 @@ if (isloggedin() and !isguestuser()) {
     exit;
 }
 
-$PAGE->set_pagelayout('login');
 $PAGE->set_title(get_string('contactadmin', 'tool_policy'));
 $PAGE->set_heading($SITE->fullname);
 
