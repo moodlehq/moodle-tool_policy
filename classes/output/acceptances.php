@@ -43,12 +43,10 @@ use templatable;
  */
 class acceptances implements renderable, templatable {
 
-    protected $policyid;
-    protected $versionid;
+    protected $userid;
 
-    public function __construct($policyid = null, $verionid = null) {
-        $this->policyid = $policyid;
-        $this->versionid = $verionid;
+    public function __construct($userid) {
+        $this->userid = $userid;
     }
 
     /**
@@ -58,113 +56,65 @@ class acceptances implements renderable, templatable {
      * @return stdClass
      */
     public function export_for_template(renderer_base $output) {
-        global $PAGE;
+        global $USER;
 
-        $data = (object) ['versions' => [], 'users' => []];
+        $data = (object)[];
         $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(false);
-        $policies = api::list_policies();
-        $versionids = [];
-        foreach ($policies as $policy) {
-            if ($this->policyid && $policy->id != $this->policyid) {
-                continue;
-            }
-            foreach ($policy->versions as $version) {
-                if ($this->versionid && $version->id != $this->versionid) {
-                    continue;
-                }
-                if (!$this->policyid && !$this->versionid && $this->versionid != $policy->currentversionid) {
-                    continue;
-                }
-                $versionids[] = $version->id;
-                $data->versions[] = [
-                    'name' => format_string($policy->name).'<br>'.format_string($version->revision) // TODO
-                ];
-            }
-        }
-        $acceptances = api::get_acceptances($versionids);
-        $versionsindex = array_flip($versionids);
 
+        // Get the list of policies and versions that current user is able to see
+        // and the respective acceptance records for the selected user.
+        $policies = api::get_policies_with_acceptances($this->userid);
 
-        $useracceptances = [];
         $canviewfullnames = has_capability('moodle/site:viewfullnames', \context_system::instance());
-        $canacceptany = has_capability('tool/policy:acceptbehalf', \context_system::instance());
-        foreach ($acceptances as $row) {
-            $row->userid = $row->mainuserid;
-            if (!array_key_exists($row->userid, $useracceptances)) {
-                $user = (object)['id' => $row->userid];
-                username_load_fields_from_object($user, $row, 'user');
-                $useracceptances[$row->userid] = [
-                    'id' => $row->userid,
-                    'name' => fullname($user, $canviewfullnames ||
-                        has_capability('moodle/site:viewfullnames', \context_user::instance($row->userid))),
-                    'policyagreed' => $row->policyagreed,
-                    'acceptances' => [],
-                ];
-                foreach ($versionids as $versionid) {
-                    $canaccept = $canacceptany || has_capability('tool/policy:acceptbehalf', \context_user::instance($row->userid));
-                    $useracceptances[$row->userid]['acceptances'][] = [
-                        'status' => 0,
-                        'canaccept' => $canaccept,
-                        'acceptlink' => new moodle_url('/admin/tool/policy/acceptances.php',
-                            ['versionid' => $versionid, 'acceptfor' => $row->userid,
-                            'returnurl' => $PAGE->url->out_as_local_url(false)])
-                    ];
+        foreach ($policies as $policy) {
+            $policy->name = format_string($policy->name);
+            unset($policy->description); // If description is needed later don't forget to apply format_text().
+
+            foreach ($policy->versions as $version) {
+                $version->iscurrent = ($version->id == $policy->currentversionid);
+                $version->revision = format_string($version->revision);
+                $returnurl = (new moodle_url('/admin/tool/policy/user.php', ['userid' => $this->userid]))->out(false);
+                $version->viewurl = (new moodle_url('/admin/tool/policy/view.php', [
+                    'policyid' => $policy->id,
+                    'versionid' => $version->id,
+                    'returnurl' => $returnurl,
+                ]))->out(false);
+
+                if (!empty($version->acceptance->status)) {
+                    $acceptance = $version->acceptance;
+                    $version->accepted = get_string('yes');
+                    $version->timeaccepted = $acceptance->timemodified ? userdate($acceptance->timemodified) : '';
+                    if ($acceptance->usermodified && $acceptance->usermodified != $this->userid) {
+                        $usermodified = (object)['id' => $acceptance->usermodified];
+                        username_load_fields_from_object($usermodified, $acceptance, 'mod');
+                        $version->acceptedby = fullname($usermodified, $canviewfullnames ||
+                            has_capability('moodle/site:viewfullnames', \context_user::instance($acceptance->usermodified)));
+                        // TODO link to profile.
+                    }
+                    $version->note = format_text($acceptance->note);
+                } else if ($version->iscurrent && ($this->userid != $USER->id) && has_capability('tool/policy:acceptbehalf', \context_user::instance($this->userid))) {
+                    $version->acceptlink = (new moodle_url('/admin/tool/policy/user.php', ['userid' => $this->userid,
+                        'acceptforversion' => $version->id, 'returnurl' => $returnurl]))->out(false);
+                    $version->accepted = get_string('no');
                 }
             }
-            if ($row->policyversionid) {
-                $accept = &$useracceptances[$row->userid]['acceptances'][$versionsindex[$row->policyversionid]];
-                $accept['status'] = $row->status;
-                $accept['note'] = $row->note;
-                $accept['timemodified'] = $row->timemodified ? userdate($row->timemodified) : '';
-                if ($row->usermodified && $row->usermodified != $row->userid) {
-                    $usermodified = (object)['id' => $row->usermodified];
-                    username_load_fields_from_object($usermodified, $row, 'mod');
-                    $accept['modifiedby'] = fullname($usermodified, $canviewfullnames ||
-                        has_capability('moodle/site:viewfullnames', \context_user::instance($row->usermodified)));
-                }
-                if ($row->status) {
-                    unset($accept['acceptlink']);
-                    $accept['canaccept'] = 0;
-                }
+
+            if (empty($policy->versions[$policy->currentversionid])) {
+                // Add an empty "currentversion" on top.
+                $policy->versions = [0 => (object)[]] + $policy->versions;
+            } else if (array_search($policy->currentversionid, array_keys($policy->versions)) > 0) {
+                // Move current version to the top.
+                $currentversion = $policy->versions[$policy->currentversionid];
+                unset($policy->versions[$policy->currentversionid]);
+                $policy->versions = [$currentversion->id => $currentversion] + $policy->versions;
             }
+
+            $policy->versioncount = count($policy->versions);
+            $policy->versions = array_values($policy->versions);
+            $policy->versions[0]->isfirst = 1;
         }
 
-        $data->users = array_values($useracceptances);
-
-        //print_object($data->users);
-/*
-
-        $data->haspolicies = true;
-        $data->canmanage = has_capability('tool/policy:managedocs', \context_system::instance());
-        $data->canviewacceptances = has_capability('tool/policy:viewacceptances', \context_system::instance());
-        $data->policies = [];
-
-        foreach (api::list_policies() as $policy) {
-            $datapolicy = (object) [
-                'id' => $policy->id,
-                'manageurl' => (new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policy->id]))->out(false),
-                'name' => $policy->name,
-                'description' => $policy->description,
-                'usersaccepted' => '???',
-            ];
-
-            if ($policy->currentversionid) {
-                $current = $policy->versions[$policy->currentversionid];
-                $datapolicy->currentrevision = $current->revision;
-                $datapolicy->viewcurrenturl = (new moodle_url('/admin/tool/policy/view.php', [
-                    'policyid' => $policy->id,
-                    'versionid' => $policy->currentversionid,
-                    'manage' => 1,
-                    'returnurl' => (new moodle_url('/admin/tool/policy/acceptances.php', [
-                        'policyid' => $policy->id,
-                        'versionid' => $policy->currentversionid,
-                    ]))->out(false),
-                ]))->out(false);
-            }
-
-            $data->policies[] = $datapolicy;
-        }*/
-
+        $data->policies = array_values($policies);
         return $data;
     }
 }

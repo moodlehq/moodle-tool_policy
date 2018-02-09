@@ -27,73 +27,43 @@ require_once($CFG->libdir.'/adminlib.php');
 
 $policyid = optional_param('policyid', null, PARAM_INT);
 $versionid = optional_param('versionid', null, PARAM_INT);
-$userid = optional_param('userid', null, PARAM_INT);
-$acceptfor = optional_param('acceptfor', null, PARAM_INT);
 
-if ($acceptfor) {
-    $versionid = required_param('versionid', PARAM_INT);
-    $usercontext = context_user::instance($acceptfor);
-    require_capability('tool/policy:acceptbehalf', $usercontext);
-    $userid = $acceptfor;
-}
+// Set up the page as an admin page 'tool_policy_managedocs'.
+$urlparams = ($policyid ? ['policyid' => $policyid] : []) + ($versionid ? ['versionid' => $versionid] : []);
+admin_externalpage_setup('tool_policy_managedocs', '', $urlparams,
+    new moodle_url('/admin/tool/policy/acceptances.php'));
 
-// Set up the page either in an individual user context or as an admin page 'tool_policy_managedocs'.
-if ($userid || !has_capability('tool/policy:viewacceptances', context_system::instance())) {
-    // Viewing report for the individual user - either for oneself or for mentee or this is a privacy officer.
-    require_login();
-    if (isguestuser()) {
-        print_error('noguest');
-    }
-    $context = context_user::instance($userid ?: $USER->id);
-    if ($userid && $USER->id != $userid) {
-        if (!has_any_capability(['tool/policy:acceptbehalf', 'tool/policy:viewacceptances'], $context)) {
-            require_capability('tool/policy:viewacceptances', $context);
-        }
-    } else {
-        $userid = $USER->id;
-    }
-    $PAGE->set_context($context);
-    $PAGE->set_url(new moodle_url('/admin/tool/policy/acceptances.php', ['userid' => $userid]));
-} else {
-    // Viewing report for multiple users.
-    admin_externalpage_setup('tool_policy_managedocs', '', ['policyid' => $policyid, 'versionid' => $versionid],
-        new moodle_url('/admin/tool/policy/acceptances.php', ['policyid' => $policyid, 'versionid' => $versionid]));
-}
-
-$policy = null;
+// Find all policies that need to be displayed. Unless versionid is specified we only display current versions.
+$policies = \tool_policy\api::list_policies($policyid ? [$policyid] : null, !$versionid, \tool_policy\api::AUDIENCE_LOGGEDIN);
 if ($versionid) {
-    $policy = tool_policy\api::get_policy_version($policyid, $versionid);
-} else if ($policyid) {
-    $policy = tool_policy\api::get_policy($policyid);
+    // If versionid is specified leave only the policy where this version is present and remove all other versions.
+    $policies = array_filter($policies, function($policy) use ($versionid) {
+        $policy->versions = array_intersect_key($policy->versions, [$versionid => true]);
+        return !empty($policy->versions);
+    });
+}
+if (!$policies) {
+    throw new \moodle_exception('No policies found'); // TODO string
 }
 
-if ($policy && !$userid) {
-    $PAGE->navbar->add(format_string($policy->name),
-        new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policy->policyid]));
+if ($policyid || $versionid) {
+    $singlepolicy = reset($policies);
+    $PAGE->navbar->add(format_string($singlepolicy->name),
+        new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $singlepolicy->id]));
+    if ($versionid && $versionid <> $singlepolicy->currentversionid) {
+        $PAGE->navbar->add(format_string($singlepolicy->versions[$versionid]->revision));
+    }
+    // TODO add them to the heading?
 }
 $PAGE->navbar->add(get_string('useracceptances', 'tool_policy'));
 
-if ($acceptfor) {
-    $user = $DB->get_record('user', ['id' => $acceptfor], 'id,'.get_all_user_name_fields(true), MUST_EXIST);
-    $returnurl = optional_param('returnurl', null, PARAM_LOCALURL);
-    $form = new \tool_policy\form\accept_policy(null, ['policy' => $policy, 'user' => $user]);
-    $form->set_data('returnurl', $returnurl);
-
-    if ($form->is_cancelled()) {
-        redirect($returnurl ?: $PAGE->url);
-    } else if ($data = $form->get_data()) {
-        \tool_policy\api::accept_policies([$policy->versionid], $user->id, $data->note);
-        redirect($returnurl ?: $PAGE->url);
-    }
+$acceptances = new \tool_policy\acceptances_table('tool_policy_user_acceptances', $PAGE->url, $policies);
+if ($acceptances->is_downloading()) {
+    $acceptances->download();
 }
 
 $output = $PAGE->get_renderer('tool_policy');
 echo $output->header();
 echo $output->heading(get_string('useracceptances', 'tool_policy'));
-if ($acceptfor) {
-    $form->display();
-} else {
-    $acceptances = new \tool_policy\output\acceptances();
-    echo $output->render($acceptances);
-}
+$acceptances->display();
 echo $output->footer();

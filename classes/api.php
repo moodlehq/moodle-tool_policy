@@ -56,9 +56,10 @@ class api {
      *
      * @param array|int|null $ids Load only the given policies, defaults to all.
      * @param bool $onlycurrent If true, return only policies with a current version defined.
+     * @param int $audience Only those that match specified audience (null means any). Policies with audience AUDIENCE_ALL are always returned.
      * @return stdClass;
      */
-    public static function list_policies($ids = null, $onlycurrent = false) {
+    public static function list_policies($ids = null, $onlycurrent = false, $audience = null) {
         global $DB;
 
         $sql = "SELECT d.id AS policyid, d.name, d.description, d.audience, d.currentversionid, d.sortorder,
@@ -71,11 +72,22 @@ class api {
         }
 
         $params = [];
+        $where = [];
 
         if ($ids) {
             list($idsql, $idparams) = $DB->get_in_or_equal($ids, SQL_PARAMS_NAMED);
-            $sql .= " WHERE d.id $idsql ";
+            $where[]  = "d.id $idsql";
             $params = array_merge($params, $idparams);
+        }
+
+        if ($audience) {
+            $where[] = "(d.audience = :audience OR d.audience = :audienceall)";
+            $params['audience'] = $audience;
+            $params['audienceall'] = self::AUDIENCE_ALL;
+        }
+
+        if ($where) {
+            $sql .= " WHERE " . join(" AND ", $where) . " ";
         }
 
         $sql .= " ORDER BY d.sortorder ASC, v.timecreated DESC";
@@ -194,7 +206,7 @@ class api {
         if ($behalfid > 0) {
             $behalfcontext = context_user::instance($behalfid);
 
-            if (!has_capability('tool/policy:acceptbehalf', $behalfcontext, $userid)) {
+            if ($behalfid != $userid && !has_capability('tool/policy:acceptbehalf', $behalfcontext, $userid)) {
                 return false;
             }
 
@@ -215,7 +227,7 @@ class api {
         }
 
         // Users have access to all the policies they have ever accepted.
-        if (!empty(static::get_user_acceptances($userid, $policy->versionid))) {
+        if (static::is_user_version_accepted($userid, $policy->versionid)) {
             return true;
         }
 
@@ -636,41 +648,7 @@ class api {
     }
 
     /**
-     * Returns list of acceptances
-     *
-     * @param int|array $users id of a user or a list of ids
-     * @param int|array $versions list of policy versions
-     * @return array list of acceptances indexed by userid and versionid. Each acceptance has additional field 'policyid'
-     */
-    public static function get_acceptances($versions, $select = '', $params = [], $orderby = 'u.lastname, u.firstname', $limitfrom = 0, $limitto = 0) {
-        global $DB;
-        $versions = is_array($versions) ? array_values($versions) : [$versions];
-        list($vsql, $vparams) = $DB->get_in_or_equal($versions, SQL_PARAMS_NAMED, 'ver');
-        $userfields = get_all_user_name_fields(true, 'u', null, 'user');
-        $userfieldsmod = get_all_user_name_fields(true, 'm', null, 'mod');
-        $sql = "SELECT u.id AS mainuserid, $userfields, $userfieldsmod, a.*, u.policyagreed
-                  FROM {user} u
-                  LEFT OUTER JOIN {tool_policy_acceptances} a ON a.userid = u.id AND a.policyversionid $vsql
-                  LEFT OUTER JOIN {user} m ON m.id = a.usermodified";
-        if ($select) {
-            $sql .= ' WHERE '.$select;
-        }
-        if ($orderby) {
-            $sql .= ' ORDER BY '.$orderby;
-        }
-        $result = $DB->get_recordset_sql($sql, $params + $vparams);
-
-        $acceptances = [];
-        foreach ($result as $row) {
-            $acceptances[] = $row;
-        }
-        $result->close();
-        return $acceptances;
-    }
-
-    /**
      * Returns list of acceptances for this user.
-     * TODO: Review if it's possible to re-use some of the acceptance functions.
      *
      * @param int $userid id of a user.
      * @param int|array $versions list of policy versions.
@@ -685,9 +663,12 @@ class api {
             $vsql = ' AND a.policyversionid ' . $vsql;
         }
 
-        $sql = "SELECT u.id AS mainuserid, a.policyversionid, a.status, a.lang, a.usermodified, u.policyagreed
+        $userfieldsmod = get_all_user_name_fields(true, 'm', null, 'mod');
+        $sql = "SELECT u.id AS mainuserid, a.policyversionid, a.status, a.lang, a.timemodified, a.usermodified, a.note, 
+                  u.policyagreed, $userfieldsmod
                   FROM {user} u
-                  INNER JOIN {tool_policy_acceptances} a ON a.userid = u.id AND a.userid = :userid $vsql";
+                  INNER JOIN {tool_policy_acceptances} a ON a.userid = u.id AND a.userid = :userid $vsql
+                  LEFT JOIN {user} m ON m.id = a.usermodified";
         $params = ['userid' => $userid];
         $result = $DB->get_recordset_sql($sql, $params + $vparams);
 
@@ -733,10 +714,40 @@ class api {
     public static function is_user_version_accepted($userid, $versionid, $acceptances = null) {
         $acceptance = static::get_user_version_acceptance($userid, $versionid, $acceptances);
         if (!empty($acceptance)) {
-            return $acceptances[$versionid]->status;
+            return $acceptance->status;
         }
 
         return false;
+    }
+
+    /**
+     * Get the list of policies and versions that current user is able to see and the respective acceptance records for the selected user.
+     *
+     * @param int $userid
+     * @return array array with the same structure that list_policies() returns with additional attribute acceptance for versions
+     */
+    public static function get_policies_with_acceptances($userid) {
+        // Get the list of policies and versions that current user is able to see
+        // and the respective acceptance records for the selected user.
+        $policies = api::list_policies(null, false, api::AUDIENCE_LOGGEDIN);
+        $acceptances = api::get_user_acceptances($userid);
+        foreach ($policies as $policyid => $policy) {
+            foreach ($policy->versions as $versionid => $version) {
+                $policytocheck = fullclone($policy);
+                $policytocheck->versionid = $versionid;
+                if (!self::can_user_view_policy_version($policytocheck, $userid)) {
+                    unset($policy->versions[$versionid]);
+                } else if (!empty($acceptances[$versionid]->status)) {
+                    $policy->versions[$versionid]->acceptance = $acceptances[$versionid];
+                }
+            }
+            if (empty($policy->versions[$versionid])) {
+                // User can not view any version for this policy.
+                unset($policies[$policyid]);
+            }
+        }
+
+        return $policies;
     }
 
     /**

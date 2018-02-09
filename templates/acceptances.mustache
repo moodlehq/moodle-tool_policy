@@ -24,35 +24,41 @@
     -
 
     Context variables required for this template:
-    * users
-    * versions
+    * policies
 }}
-<table>
+<table class="generaltable fullwidth">
     <thead>
-        <th></th>
-        {{#versions}}
-            <th>
-                {{{name}}}
-            </th>
-        {{/versions}}
+    <th>Policy name</th>
+    <th>Version</th>
+    <th>Agreed</th>
+    <th>Agreed on</th>
+    <th>Agreed by</th>
+    <th>Remark</th>
     </thead>
     <tbody>
-        {{#users}}
-            <tr>
-                <td>{{name}}</td>
-                {{#acceptances}}
+        {{#policies}}
+            {{#versions}}
+                <tr>
+                    {{#isfirst}}
+                    <td rowspan="{{versioncount}}">{{{name}}}</td>
+                    {{/isfirst}}
                     <td>
-                    {{#canaccept}}
-                            <a href="{{{acceptlink}}}">{{status}}</a>
-                    {{/canaccept}}
-                    {{^canaccept}}
-                            {{status}}
-                    {{/canaccept}}
-                        <br>{{modifiedby}}
-                        <br>{{timemodified}}
+                        <a href="{{viewurl}}">{{{revision}}}</a>
+                        {{#iscurrent}}{{#pix}} t/check, core {{/pix}}{{/iscurrent}}
                     </td>
-                {{/acceptances}}
-            </tr>
-        {{/users}}
+                    <td>
+                        {{#acceptlink}}
+                            <a href="{{acceptlink}}">{{accepted}}</a>
+                        {{/acceptlink}}
+                        {{^acceptlink}}
+                            {{accepted}}
+                        {{/acceptlink}}
+                    </td>
+                    <td>{{timeaccepted}}</td>
+                    <td>{{{acceptedby}}}</td>
+                    <td>{{{note}}}</td>
+                </tr>
+            {{/versions}}
+        {{/policies}}
     </tbody>
 </table>
