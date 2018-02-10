@@ -123,10 +123,13 @@ class page_agreedocs implements renderable, templatable {
             $this->policies[$policy->id]->currentversion = \tool_policy\api::get_policy_version($policy->id, $policy->currentversionid);
             unset($this->policies[$policy->id]->versions);
 
-            // Get the link to display the full policy document.
-            $policy->url = new moodle_url('/admin/tool/policy/view.php', array('policyid' => $policy->id, 'returnurl' => qualified_me()));
-            // TODO: Replace current link to policy document to open it in a modal window.
-            $policylinkname = html_writer::link($policy->url, $policy->name);
+            // Get a link to display the full policy document.
+            $policy->url = '#';
+            $policyattributes = array('data-action' => 'view',
+                                      'data-versionid' => $policy->currentversionid,
+                                      'data-behalfid' => $this->userid);
+            $policylinkname = html_writer::link($policy->url, $policy->name, $policyattributes);
+
 
             // Check if this policy version has been agreed or not.
             if (!empty($this->userid)) {

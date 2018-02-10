@@ -18,7 +18,7 @@
     Template for showing to the user the policy docs to agree.
 
     Classes required for JS:
-    -
+    * policyactions
 
     Data attributes required for JS:
     -
@@ -72,3 +72,10 @@
 </div>
 
 {{{endform}}}
+
+{{#js}}
+// Initialise the JS for the modal window which displays the policy versions.
+require(['tool_policy/policyactions'], function(ActionsMod) {
+    var policyActions = new ActionsMod();
+});
+{{/js}}

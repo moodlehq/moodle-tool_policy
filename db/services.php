@@ -15,17 +15,23 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Tool policy external functions and service definitions.
  *
- * @package     tool_policy
- * @copyright   2018 David Mudrák <david@moodle.com>
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    tool_policy
+ * @category   external
+ * @copyright  2018 Sara Arjona (sara@moodle.com)
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->component = 'tool_policy';
-$plugin->release = '0.3.0';
-$plugin->version = 2017051505;
-$plugin->requires = 2017051500;
-$plugin->maturity = MATURITY_ALPHA;
+defined('MOODLE_INTERNAL') || die;
+$functions = [
+    'tool_policy_get_policy_version' => [
+        'classname'     => 'tool_policy\external',
+        'methodname'    => 'get_policy_version',
+        'classpath'     => '',
+        'description'   => 'Fetch the details of a policy version',
+        'type'          => 'read',
+        'capabilities'  => '',
+        'ajax'          => true,
+        'loginrequired' => false,
+    ],
+];

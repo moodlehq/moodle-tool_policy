@@ -60,8 +60,6 @@ class page_helper {
     public static function setup_for_page(moodle_url $url, $subtitle = '') {
         global $PAGE, $SITE;
 
-        $PAGE->set_popup_notification_allowed(false);
-
         $context = \context_system::instance();
         $PAGE->set_context($context);
 

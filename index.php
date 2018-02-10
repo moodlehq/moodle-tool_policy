@@ -33,8 +33,9 @@ if (!empty($SESSION->wantsurl)) {
     $return = $CFG->wwwroot.'/';
 }
 
-// Guest users are not allowed to access to this page.
-if (isguestuser()) {
+// Guest users or not logged users (but the users during the signup process) are not allowed to access to this page.
+$newsignupuser = !empty($SESSION->wantsurl) && $SESSION->wantsurl->compare(new moodle_url('/login/signup.php'), URL_MATCH_BASE);
+if (isguestuser() || (empty($USER->id) && !$newsignupuser)) {
     unset($SESSION->wantsurl);
     redirect($return);
 }
@@ -96,6 +97,7 @@ if (!empty($agreedoc) && confirm_sesskey()) {
 
 $hasagreedsignupuser = empty($USER->id) && !empty($SESSION->userpolicyagreed);
 $hasagreedloggeduser = $USER->id == $userid && !empty($USER->policyagreed);
+// TODO: Redirect only if $SESSION->wantsurl is set (to let users to access to this page after from his/her profile) ?
 // If the current user has the $USER->policyagreed = 1 or $SESSION->userpolicyagreed = 1, redirect to the return page.
 if (!is_siteadmin() && ($hasagreedsignupuser || $hasagreedloggeduser)) {
     unset($SESSION->wantsurl);
