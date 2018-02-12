@@ -92,7 +92,7 @@ class page_helper {
         global $SESSION;
 
         if (empty($policies)) {
-            $policies = \tool_policy\api::list_policies(null, true);
+            $policies = \tool_policy\api::list_policies(null, true, \tool_policy\api::AUDIENCE_LOGGEDIN);
         }
         $lang = current_language();
         $acceptances = \tool_policy\api::get_user_acceptances($userid);

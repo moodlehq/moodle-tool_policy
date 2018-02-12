@@ -81,7 +81,7 @@ class page_agreedocs implements renderable, templatable {
 
         $this->policies = $policies;
         if (!isset($this->policies)) {
-            $this->policies = \tool_policy\api::list_policies(null, true);
+            $this->policies = \tool_policy\api::list_policies(null, true, \tool_policy\api::AUDIENCE_LOGGEDIN);
         }
 
         $this->agreedoc = $agreedoc;

@@ -54,13 +54,7 @@ class guestconsent implements renderable, templatable {
         $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(true);
         $data->returnurl = qualified_me();
 
-        $policies = \tool_policy\api::list_policies(null, true);
-        foreach ($policies as $policy) {
-            if ($policy->audience != \tool_policy\api::AUDIENCE_ALL && $policy->audience != \tool_policy\api::AUDIENCE_GUESTS) {
-                // Remove policies which are not addressed to guests.
-                unset($policies[$policy->id]);
-            }
-        }
+        $policies = \tool_policy\api::list_policies(null, true, api::AUDIENCE_GUESTS);
         $data->policies = array_values($policies);
 
         return $data;

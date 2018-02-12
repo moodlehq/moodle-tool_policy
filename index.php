@@ -65,8 +65,7 @@ if (!empty($USER->id)) {
     }
 }
 
-// TODO: Get the policies for this audience, which are all except the specifics for guests.
-$policies = \tool_policy\api::list_policies(null, true);
+$policies = \tool_policy\api::list_policies(null, true, \tool_policy\api::AUDIENCE_LOGGEDIN);
 // TODO: Decide what to do if there are no policies to agree but the user has policyagreed = 0.
 if (!empty($agreedoc) && confirm_sesskey()) {
     if (!empty($USER->id)) {
