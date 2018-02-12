@@ -41,11 +41,11 @@ class accept_policy extends \moodleform {
         $user = $this->_customdata['user'];
         $policy = $this->_customdata['policy'];
 
-        $mform->addElement('hidden', 'acceptfor');
-        $mform->setType('acceptfor', PARAM_INT);
+        $mform->addElement('hidden', 'userid');
+        $mform->setType('userid', PARAM_INT);
 
-        $mform->addElement('hidden', 'versionid');
-        $mform->setType('versionid', PARAM_INT);
+        $mform->addElement('hidden', 'acceptforversion');
+        $mform->setType('acceptforversion', PARAM_INT);
 
         $mform->addElement('hidden', 'returnurl');
         $mform->setType('returnurl', PARAM_LOCALURL);
@@ -53,11 +53,11 @@ class accept_policy extends \moodleform {
         $mform->addElement('static', 'user', 'User', fullname($user)); // TODO string, cap
         $mform->addElement('static', 'policy', 'Policy', format_string($policy->name.', '.$policy->revision)); // TODO string, cap
 
-        $mform->addElement('textarea', 'note', 'Note'); // tODO strings
+        $mform->addElement('textarea', 'note', 'Remark'); // tODO strings
         $mform->setType('note', PARAM_NOTAGS);
 
         $this->add_action_buttons(true, 'Accept on behalf of the user'); // TODO
 
-        $this->set_data(['acceptfor' => $user->id, 'versionid' => $policy->versionid]);
+        $this->set_data(['userid' => $user->id, 'acceptforversion' => $policy->versionid]);
     }
 }

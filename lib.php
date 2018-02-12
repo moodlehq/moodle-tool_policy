@@ -43,12 +43,10 @@ function tool_policy_extend_navigation_user_settings(navigation_node $usersettin
     $userpolicysettings = $usersetting->add(get_string('userpolicysettings', 'tool_policy'), null,
         navigation_node::TYPE_CONTAINER, null, 'tool_policy-userpolicysettings');
 
-    $userpolicysettings->add(get_string('policiesagreements', 'tool_policy'), new moodle_url('/admin/tool/policy/index.php'));
+    $userpolicysettings->add(get_string('policiesagreements', 'tool_policy'),
+        new moodle_url('/admin/tool/policy/user.php', ['userid' => $user->id]));
 
-    foreach (api::list_policies(null, true) as $policy) {
-        if ($policy->audience == api::AUDIENCE_GUESTS) {
-            continue;
-        }
+    foreach (api::list_policies(null, true, api::AUDIENCE_LOGGEDIN) as $policy) {
         $userpolicysettings->add(format_string($policy->name), new moodle_url('/admin/tool/policy/view.php', [
             'policyid' => $policy->id,
             'versionid' => $policy->currentversionid,

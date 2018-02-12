@@ -74,8 +74,7 @@ class page_agreedocs implements renderable, templatable {
             $this->behalfid = $USER->id;
         }
 
-        // TODO: Get the policies for this audience, which are all except the specifics for guests.
-        $this->policies = api::list_policies(null, true);
+        $this->policies = api::list_policies(null, true, api::AUDIENCE_LOGGEDIN);
 
         $this->accept_and_revoke_policies();
         $this->prepare_global_page_access();

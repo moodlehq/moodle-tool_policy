@@ -190,6 +190,55 @@ class tool_policy_api_testcase extends advanced_testcase {
     }
 
     /**
+     * Test that list of policies can be filtered by audience
+     */
+    public function test_list_policies_audience() {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $policy1 = $this->add_policy(['audience' => api::AUDIENCE_LOGGEDIN]);
+        $policy2 = $this->add_policy(['audience' => api::AUDIENCE_GUESTS]);
+        $policy3 = $this->add_policy();
+
+        $list = api::list_policies();
+        $this->assertEquals([$policy1->policyid, $policy2->policyid, $policy3->policyid], array_keys($list));
+
+        $list = api::list_policies(null, false, api::AUDIENCE_LOGGEDIN);
+        $this->assertEquals([$policy1->policyid, $policy3->policyid], array_keys($list));
+
+        $list = api::list_policies([$policy1->policyid, $policy2->policyid], false, api::AUDIENCE_LOGGEDIN);
+        $this->assertEquals([$policy1->policyid], array_keys($list));
+
+        $list = api::list_policies(null, false, api::AUDIENCE_GUESTS);
+        $this->assertEquals([$policy2->policyid, $policy3->policyid], array_keys($list));
+    }
+
+    /**
+     * Helper method that creates a new policy for testing
+     *
+     * @param array $params
+     * @return stdClass
+     */
+    protected function add_policy($params = []) {
+        static $counter = 0;
+        $counter++;
+
+        $defaults = [
+            'name' => 'Policy '.$counter,
+            'summary_editor' => ['text' => "P$counter summary", 'format' => FORMAT_HTML, 'itemid' => 0],
+            'content_editor' => ['text' => "P$counter content", 'format' => FORMAT_HTML, 'itemid' => 0],
+            'audience' => api::AUDIENCE_ALL,
+        ];
+
+        $params = (array)$params + $defaults;
+        $formdata = api::form_policydoc_data();
+        foreach ($params as $key => $value) {
+            $formdata->$key = $value;
+        }
+        return api::form_policydoc_add($formdata);
+    }
+
+    /**
      * Test check if a user is a digital minor.
      */
     public function test_is_minor() {
@@ -338,6 +387,43 @@ class tool_policy_api_testcase extends advanced_testcase {
         $this->assertTrue(api::can_user_view_policy_version($policy2, null, $parent->id));
         $this->assertTrue(api::can_user_view_policy_version($policy3, null, $child->id));
         $this->assertTrue(api::can_user_view_policy_version($policy3, null, $parent->id));
+    }
+
+    /**
+     * Test that accepting policy updates 'policyagreed'
+     */
+    public function test_accept_policies() {
+        global $DB;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $policy1 = $this->add_policy();
+        api::make_current($policy1->policyid, $policy1->versionid);
+        $policy2 = $this->add_policy();
+        api::make_current($policy2->policyid, $policy2->versionid);
+
+        // Accept policy on behalf of somebody else.
+        $user1 = $this->getDataGenerator()->create_user();
+        $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+
+        api::accept_policies([$policy1->versionid, $policy2->versionid], $user1->id);
+        $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+
+        // Now revoke.
+        api::revoke_acceptance($policy1->versionid, $user1->id);
+        $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+
+        // Accept policies for oneself.
+        $user2 = $this->getDataGenerator()->create_user();
+        $this->setUser($user2);
+
+        $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user2->id]));
+
+        api::accept_policies([$policy1->versionid]);
+        $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user2->id]));
+
+        api::accept_policies([$policy2->versionid]);
+        $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user2->id]));
     }
 
     /**
