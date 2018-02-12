@@ -79,6 +79,7 @@ if ($hassiteconfig || has_any_capability($managecaps, context_system::instance()
             ]),
             PARAM_RAW
         ));
+        // TODO: Decide whether to maintain or not this field for displaying information about the officer in the consent page.
         $privacysettings->add(new admin_setting_configtextarea(
             'tool_policy/privacyofficer',
             new lang_string('privacyofficer', 'tool_policy'),

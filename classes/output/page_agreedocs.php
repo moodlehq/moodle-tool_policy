@@ -36,7 +36,6 @@ use renderer_base;
 use single_button;
 use templatable;
 use tool_policy\api;
-use tool_policy\page_helper;
 
 /**
  * Represents a page for showing all the policy documents which an user has to agree to.
@@ -55,6 +54,9 @@ class page_agreedocs implements renderable, templatable {
     /** @var int User id who wants to accept this page. */
     protected $behalfid = null;
 
+    /** @var object User who wants to accept this page. */
+    protected $behalfuser = null;
+
     /**
      * Prepare the page for rendering.
      *
@@ -72,6 +74,14 @@ class page_agreedocs implements renderable, templatable {
         $this->behalfid = $behalfid;
         if (empty($this->behalfid)) {
             $this->behalfid = $USER->id;
+        }
+
+        if ($USER->id != $this->behalfid) {
+            $this->behalfuser = core_user::get_user($this->behalfid, '*');
+            // If behalf user doesn't exist, behalfid parameter will be ignored.
+            if ($this->behalfuser === false) {
+                $this->behalfid = 0;
+            }
         }
 
         $this->policies = api::list_policies(null, true, api::AUDIENCE_LOGGEDIN);
@@ -98,7 +108,7 @@ class page_agreedocs implements renderable, templatable {
                 // Accept / revoke policies.
                 $acceptversionids = array();
                 foreach ($this->policies as $policy) {
-                    if (in_array($policy->id, $this->agreedocs)) {
+                    if (in_array($policy->currentversionid, $this->agreedocs)) {
                         // Save policy version doc to accept it.
                         $acceptversionids[] = $policy->currentversionid;
                     } else {
@@ -111,9 +121,66 @@ class page_agreedocs implements renderable, templatable {
             } else {
                 // New user.
                 // If the user has accepted all the policies, add this to the SESSION to let continue with the signup process.
-                $SESSION->userpolicyagreed = empty(array_diff(array_keys($this->policies), $this->agreedocs));
+                $currentpolicyversionids = [];
+                foreach ($this->policies as $policy) {
+                    $currentpolicyversionids[] = $policy->currentversionid;
+                }
+                $SESSION->tool_policy->userpolicyagreed = empty(array_diff($currentpolicyversionids, $this->agreedocs));
 
                 // TODO: Show a message to let know the user he/she must agree all the policies if he/she wants to create an user.
+            }
+        }
+    }
+
+    /**
+     * Before display the consent page, the user has to view all the still-non-accepted policy docs.
+     * This function checks if the non-accepted policy docs have been shown and redirect to them.
+     *
+     * @param array $userid User identifier who wants to access to the consent page.
+     * @param array $policies List of policies. If it's null, all the policies with a current version will be used.
+     * @param url $returnurl URL to return after shown the policy docs.
+     */
+    protected function redirect_to_policies($userid, $policies = null, $returnurl = null) {
+        global $SESSION;
+
+        if (empty($policies)) {
+            $policies = \tool_policy\api::list_policies(null, true, \tool_policy\api::AUDIENCE_LOGGEDIN);
+        }
+        $lang = current_language();
+        $acceptances = \tool_policy\api::get_user_acceptances($userid);
+        if (!empty($userid)) {
+            foreach($policies as $policy) {
+                if (\tool_policy\api::is_user_version_accepted($userid, $policy->currentversionid, $acceptances)) {
+                    // If this version is accepted by the user, remove from the pending policies list.
+                    unset($policies[$policy->id]);
+                }
+            }
+        }
+
+        if (!empty($policies)) {
+            $currentpolicyversionids = [];
+            foreach ($policies as $policy) {
+                $currentpolicyversionids[] = $policy->currentversionid;
+            }
+            if (!empty($SESSION->tool_policy->viewedpolicies)) {
+                // Get the list of the policies docs which the user haven't viewed during this session.
+                $pendingpolicies = array_diff($currentpolicyversionids, $SESSION->tool_policy->viewedpolicies);
+            } else {
+                $pendingpolicies = $currentpolicyversionids;
+            }
+            if (sizeof($pendingpolicies) > 0) {
+                // Still is needed to show some policies docs. Save in the session and redirect.
+                $policyversionid = array_pop($pendingpolicies);
+                $SESSION->tool_policy->viewedpolicies[] = $policyversionid;
+                if (empty($returnurl)) {
+                    $returnurl = new moodle_url('/admin/tool/policy/index.php');
+                }
+                $urlparams = ['versionid' => $policyversionid,
+                              'returnurl' => $returnurl,
+                              'numpolicy' => sizeof($currentpolicyversionids) - sizeof($pendingpolicies),
+                              'totalpolicies' => sizeof($currentpolicyversionids),
+                ];
+                redirect(new moodle_url('/admin/tool/policy/view.php', $urlparams));
             }
         }
     }
@@ -122,7 +189,7 @@ class page_agreedocs implements renderable, templatable {
      * Redirect to $SESSION->wantsurl if defined or to $CFG->wwwroot if not.
      */
     protected function redirect_to_previous_url() {
-        global $SESSION;
+        global $SESSION, $CFG;
 
         if (!empty($SESSION->wantsurl)) {
             $returnurl = $SESSION->wantsurl;
@@ -162,8 +229,8 @@ class page_agreedocs implements renderable, templatable {
             }
         }
 
-        // If the current user has the $USER->policyagreed = 1 or $SESSION->userpolicyagreed = 1, redirect to the return page.
-        $hasagreedsignupuser = empty($USER->id) && !empty($SESSION->userpolicyagreed);
+        // If the current user has the $USER->policyagreed = 1 or $SESSION->tool_policy->userpolicyagreed = 1, redirect to the return page.
+        $hasagreedsignupuser = empty($USER->id) && !empty($SESSION->tool_policy->userpolicyagreed);
         $hasagreedloggeduser = $USER->id == $this->behalfid && !empty($USER->policyagreed);
         // TODO: Redirect only if $SESSION->wantsurl is set (to let users to access to this page after from his/her profile) ?
         if (!is_siteadmin() && ($hasagreedsignupuser || $hasagreedloggeduser)) {
@@ -177,7 +244,7 @@ class page_agreedocs implements renderable, templatable {
         $myurl = new moodle_url('/admin/tool/policy/index.php', $myparams);
 
         // Redirect to policy docs before the consent page.
-        page_helper::redirect_to_policies($this->behalfid, $this->policies, $myurl);
+        $this->redirect_to_policies($this->behalfid, $this->policies, $myurl);
 
         // Page setup.
         $PAGE->set_context(context_system::instance());
@@ -192,8 +259,6 @@ class page_agreedocs implements renderable, templatable {
      * Prepare user acceptances.
      */
     protected function prepare_user_acceptances() {
-        // TODO: Use $policy->currentversionid instead of policy->id in the form.
-
         // Get all the policy version acceptances for this user.
         $acceptances = api::get_user_acceptances($this->behalfid);
         $lang = current_language();
@@ -203,14 +268,11 @@ class page_agreedocs implements renderable, templatable {
             unset($this->policies[$policy->id]->versions);
 
             // Get a link to display the full policy document.
-            // TODO: Review this part for adding the policy link name to the template (both, the link and the template).
-            //$policy->url = new moodle_url('/admin/tool/policy/view.php', array('policyid' => $policy->id, 'returnurl' => qualified_me()));
-            //$policylinkname = html_writer::link($policy->url, $policy->name);
-            $policy->url = '#';
+            $policy->url = new moodle_url('/admin/tool/policy/view.php', array('policyid' => $policy->id, 'returnurl' => qualified_me()));
             $policyattributes = array('data-action' => 'view',
                                       'data-versionid' => $policy->currentversionid,
                                       'data-behalfid' => $this->behalfid);
-            $policylinkname = html_writer::link($policy->url, $policy->name, $policyattributes);
+            $policymodal = html_writer::link($policy->url, $policy->name, $policyattributes);
 
             // Check if this policy version has been agreed or not.
             if (!empty($this->behalfid)) {
@@ -233,9 +295,9 @@ class page_agreedocs implements renderable, templatable {
                 // New user.
                 $versionagreed = in_array($policy->id, $this->agreedocs);
             }
-            // TODO: Mark as mandatory this checkbox (style).
-            $this->policies[$policy->id]->refertofulltext = get_string('refertofullpolicytext', 'tool_policy', $policylinkname);
-            $this->policies[$policy->id]->agreecheckbox = html_writer::checkbox('agreedoc[]', $policy->id, $versionagreed, get_string('iagree', 'tool_policy', $policylinkname));
+            $this->policies[$policy->id]->versionagreed = $versionagreed;
+            $this->policies[$policy->id]->policylink = html_writer::link($policy->url, $policy->name);
+            $this->policies[$policy->id]->policymodal = $policymodal;
         }
     }
 
@@ -248,45 +310,25 @@ class page_agreedocs implements renderable, templatable {
     public function export_for_template(renderer_base $output) {
         global $CFG, $USER;
 
-        // TODO: Refactor this code for moving some to the template, like the form or the buttons.
-        $data = (object) [
-            'pluginbaseurl' => (new moodle_url('/admin/tool/policy'))->out(false),
-        ];
-
         $myparams = [];
         if (!empty($USER->id) && !empty($this->behalfid) && $this->behalfid != $USER->id) {
             $myparams['userid'] = $this->behalfid;
         }
-        $myurl = new moodle_url('/admin/tool/policy/index.php', $myparams);
-
-        $attributes = array('method' => 'post',
-                            'action' => $myurl,
-                            'id'     => 'agreedocs');
+        $data = (object) [
+            'pluginbaseurl' => (new moodle_url('/admin/tool/policy'))->out(false),
+            'myurl' => (new moodle_url('/admin/tool/policy/index.php', $myparams))->out(false),
+            'sesskey' => sesskey(),
+        ];
 
         $data->policies = array_values($this->policies);
+        $data->privacyofficer = get_config('tool_policy', 'privacyofficer');
 
-        // Get privacy officer information.
-        if (!empty($CFG->privacyofficer)) {
-            $data->privacyofficer = $CFG->privacyofficer;
-        }
-
-        if ($USER->id != $this->behalfid) {
-            // If viewing docs in behalf of other user, get his/her full name and profile link.
-            $behalfuser = core_user::get_user($this->behalfid, '*', MUST_EXIST);
-            $userfullname = fullname($behalfuser, has_capability('moodle/site:viewfullnames', \context_system::instance()) ||
+        // If viewing docs in behalf of other user, get his/her full name and profile link.
+        if (!empty($this->behalfuser)) {
+            $userfullname = fullname($this->behalfuser, has_capability('moodle/site:viewfullnames', \context_system::instance()) ||
                         has_capability('moodle/site:viewfullnames', \context_user::instance($this->behalfid)));
-            $data->user = html_writer::link(\context_user::instance($this->behalfid)->get_url(), $userfullname);
+            $data->behalfuser = html_writer::link(\context_user::instance($this->behalfid)->get_url(), $userfullname);
         }
-
-        // TODO: Check if there is a better way to create this form with the buttons. This is a quite dirty hack :-(
-        $data->startform = html_writer::start_tag('form', $attributes);
-        $data->endform = html_writer::end_tag('form');
-        $formcontinue = new single_button($myurl, get_string('continue'));
-        $formcontinue->formid = 'agreedocs';
-        $formcancel = new single_button($myurl, get_string('cancel'));
-        $data->navigation = array();
-        $data->navigation[] = $output->render($formcontinue);
-        $data->navigation[] = $output->render($formcancel);
 
         return $data;
     }

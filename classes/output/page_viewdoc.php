@@ -62,12 +62,16 @@ class page_viewdoc implements renderable, templatable {
      * @param string $returnurl URL of a page to continue after reading the policy text.
      * @param int $behalfid The userid to view this policy version as (such as child's id).
      * @param bool $manage View the policy as a part of the management UI.
+     * @param int $numpolicy Position of the current policy with respect to the total of policy docs to display.
+     * @param int $totalpolicies Total number of policy documents which the user has to agree to.
      */
-    public function __construct($policyid, $versionid, $returnurl, $behalfid, $manage) {
+    public function __construct($policyid, $versionid, $returnurl, $behalfid, $manage, $numpolicy = 0, $totalpolicies = 0) {
 
         $this->returnurl = $returnurl;
         $this->behalfid = $behalfid;
         $this->manage = $manage;
+        $this->numpolicy = $numpolicy;
+        $this->totalpolicies = $totalpolicies;
 
         $this->prepare_policy($policyid, $versionid);
         $this->prepare_global_page_access();
@@ -102,6 +106,8 @@ class page_viewdoc implements renderable, templatable {
             'returnurl' => $this->returnurl,
             'behalfid' => $this->behalfid,
             'manage' => $this->manage,
+            'numpolicy' => $this->numpolicy,
+            'totalpolicies' => $this->totalpolicies,
         ]);
 
         if ($this->manage) {
@@ -142,6 +148,8 @@ class page_viewdoc implements renderable, templatable {
             'returnurl' => $this->returnurl ? (new moodle_url($this->returnurl))->out(false) : null,
             'editurl' => $this->manage ? (new moodle_url('/admin/tool/policy/editpolicydoc.php',
                 ['policyid' => $this->policy->policyid, 'versionid' => $this->policy->versionid]))->out(false) : null,
+            'numpolicy' => $this->numpolicy ? : null,
+            'totalpolicies' => $this->totalpolicies ? : null,
         ];
 
         $data->policy = clone($this->policy);

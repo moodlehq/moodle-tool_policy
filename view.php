@@ -40,8 +40,10 @@ $policyid = $versionid ? optional_param('policyid', null, PARAM_INT) : required_
 $returnurl = optional_param('returnurl', null, PARAM_LOCALURL);
 $behalfid = optional_param('behalfid', null, PARAM_INT);
 $manage = optional_param('manage', false, PARAM_BOOL);
+$numpolicy = optional_param('numpolicy', null, PARAM_INT);
+$totalpolicies = optional_param('totalpolicies', null, PARAM_INT);
 
-$viewpage = new page_viewdoc($policyid, $versionid, $returnurl, $behalfid, $manage);
+$viewpage = new page_viewdoc($policyid, $versionid, $returnurl, $behalfid, $manage, $numpolicy, $totalpolicies);
 
 $output = $PAGE->get_renderer('tool_policy');
 

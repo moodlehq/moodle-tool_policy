@@ -24,54 +24,69 @@
     -
 
     Context variables required for this template:
+    * pluginbaseurl
+    * myurl
+    * sesskey
     * policies - policy array
-    * privacyofficer - string
+    * privacyofficer - string with the privacy officer information
+    * behalfuser - If behalfid is defined and valid, full name of the behalf user with a link to his/her profilr; null otherwise
 }}
 
-{{! TODO: Review styles }}
+<form id="agreedocsform" method="post" action="{{myurl}}">
+    <input type="hidden" name="sesskey" value="{{sesskey}}">
 
-{{{startform}}}
-
-{{#user}}
-{{# str }} viewconsentpageforuser, tool_policy, {{{ . }}} {{/ str }}
-{{/user}}
+{{#behalfuser}}
+<div class="clearfix">
+    <div class="pull-right m-b-2">
+        {{# str }} viewconsentpageforuser, tool_policy, {{{ . }}} {{/ str }}
+    </div>
+</div>
+{{/behalfuser}}
 
 {{#policies}}
 
-    <div class='agreedoc'>
-    <h2>{{{name}}}</h2>
-    <div class='agreedoc-summary'>
-      {{{currentversion.summary}}}
-    </div>
-    <div class='agreedoc-form'>
-        <p>{{{refertofulltext}}}</p>
-        <p>
-            {{{agreecheckbox}}}
-            {{#versionlangsagreed}}
-                <br/>{{{.}}}
-            {{/versionlangsagreed}}
-            {{#versionbehalfsagreed}}
-                <br/>{{{.}}}
-            {{/versionbehalfsagreed}}
-        </p>
+    <div class="agreedoc-policy clearfix m-b-3">
+        <h2>{{{name}}}</h2>
+        <div class="agreedoc-content col-sm-8">
+            <div class="agreedoc-summary">
+              {{{currentversion.summary}}}
+            </div>
+            <div class="agreedoc-msg">
+                {{# str }}refertofullpolicytext, tool_policy, {{{policymodal}}} {{/ str }}
+            </div>
+        </div>
+        <div class="agreedoc-form col-sm-4">
+            <div class="lead">
+                <i class="icon fa fa-exclamation-circle text-danger fa-fw" title="{{# str }} required {{/ str }}" ></i>
+                <input value="{{currentversionid}}" name="agreedoc[]" {{#versionagreed}}checked="{{.}}"{{/versionagreed}} type="checkbox">
+                <label>{{# str }}iagree, tool_policy, {{{policymodal}}} {{/ str }}
+            </div>
+            <small>
+            <ul class="agreedoc-msg list-unstyled">
+                    {{#versionlangsagreed}}
+                        <li>{{{.}}}</li>
+                    {{/versionlangsagreed}}
+                    {{#versionbehalfsagreed}}
+                        <li>{{{.}}}</li>
+                    {{/versionbehalfsagreed}}
+            </ul>
+            </small>
+        </div>
     </div>
 
 {{/policies}}
 
-{{! TODO: Review where to show the Privacy officer information. }}
 {{#privacyofficer}}
-  <div class='agreedoc-officer'>
-    {{{privacyofficer}}}
+  <div class="agreedoc-officer well">
+    {{{.}}}
   </div>
 {{/privacyofficer}}
 
-<div class="agreedocs-buttons">
-{{#navigation}}
-    {{{.}}}
-{{/navigation}}
-</div>
 
-{{{endform}}}
+<input type="submit" class="btn btn-primary" value={{#quote}}{{#str}}continue{{/str}}{{/quote}}>
+<a role="button" href="{{myurl}}" class="btn  btn-secondary">{{#str}} cancel {{/str}}</a>
+
+</form>
 
 {{#js}}
 // Initialise the JS for the modal window which displays the policy versions.

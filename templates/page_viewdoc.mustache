@@ -27,6 +27,15 @@
     * policy - version document object.
 }}
 
+{{# numpolicy }}
+<div class="policy-information card p-x-1 p-y-1">
+    {{# str }} explanationpoliciesnumbers, tool_policy, 
+        { "numpolicy": {{# quote }}<strong>{{numpolicy}}</strong>{{/quote }}, "totalpolicies": {{# quote }}<strong>{{totalpolicies}}</strong>{{/ quote }} } 
+    {{/ str }}
+    <br/>{{# str }} explanationpolicies, tool_policy {{/ str }}
+</div>
+{{/ numpolicy }}
+
 <div class="policy_document">
     <h2>{{policy.name}}</h2>
     <div class="policy_document_summary}}">

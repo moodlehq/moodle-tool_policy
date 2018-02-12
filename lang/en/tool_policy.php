@@ -62,6 +62,10 @@ $string['newversion'] = 'New version';
 $string['nopermissiontoviewpolicyversion'] = 'You do not have the required permissions to view this policy document version.';
 // TODO: Change dummy with real text in explanationdigitalminor.
 $string['explanationdigitalminor'] = 'Some explanation about digital minors and ensuring personal information is not stored / processed / etc.';
+// TODO: Decide whether to add some explanation about policies acceptances workflow and review it if finally is needed.
+$string['explanationpolicies'] = 'You must read all these policy documents in order to arrive to the final consent page.<br/>
+	Some explanation about policies agreements: what\'s needed, why must the user agree to these policies, etc.';
+$string['explanationpoliciesnumbers'] = 'This is the policy document {$a->numpolicy} of {$a->totalpolicies}.';
 $string['pluginname'] = 'Policies';
 $string['policiesagreements'] = 'Policies and agreements';
 $string['policy:accept'] = 'Accept policies';
