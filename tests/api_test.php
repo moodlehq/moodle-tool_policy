@@ -390,6 +390,43 @@ class tool_policy_api_testcase extends advanced_testcase {
     }
 
     /**
+     * Test that accepting policy updates 'policyagreed'
+     */
+    public function test_accept_policies() {
+        global $DB;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $policy1 = $this->add_policy();
+        api::make_current($policy1->policyid, $policy1->versionid);
+        $policy2 = $this->add_policy();
+        api::make_current($policy2->policyid, $policy2->versionid);
+
+        // Accept policy on behalf of somebody else.
+        $user1 = $this->getDataGenerator()->create_user();
+        $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+
+        api::accept_policies([$policy1->versionid, $policy2->versionid], $user1->id);
+        $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+
+        // Now revoke.
+        api::revoke_acceptance($policy1->versionid, $user1->id);
+        $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+
+        // Accept policies for oneself.
+        $user2 = $this->getDataGenerator()->create_user();
+        $this->setUser($user2);
+
+        $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user2->id]));
+
+        api::accept_policies([$policy1->versionid]);
+        $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user2->id]));
+
+        api::accept_policies([$policy2->versionid]);
+        $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user2->id]));
+    }
+
+    /**
      * Test behaviour of the {@link api::get_user_minors()} method.
      */
     public function test_get_user_minors() {

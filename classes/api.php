@@ -802,7 +802,38 @@ class api {
             }
         }
 
-        // TODO $user->policyagreed may need updating here
+        self::update_policyagreed($userid);
+    }
+
+    /**
+     * Make sure that $user->policyagreed matches the agreement to the policies
+     *
+     * @param int|stdClass|null $user user to check (null for current user)
+     */
+    protected static function update_policyagreed($user = null) {
+        global $DB, $USER, $CFG;
+        require_once($CFG->dirroot.'/user/lib.php');
+
+        if (!$user || (is_numeric($user) && $user == $USER->id)) {
+            $user = $USER;
+        } else if (!is_object($user)) {
+            $user = $DB->get_record('user', ['id' => $user], 'id, policyagreed');
+        }
+
+        $sql = "SELECT d.id, a.status
+                  FROM {tool_policy} d
+                  INNER JOIN {tool_policy_versions} v ON v.policyid = d.id AND v.id = d.currentversionid
+                  LEFT JOIN {tool_policy_acceptances} a ON a.userid = :userid AND a.policyversionid = v.id
+                  WHERE (d.audience = :audience OR d.audience = :audienceall)";
+        $params = ['audience' => self::AUDIENCE_LOGGEDIN, 'audienceall' => self::AUDIENCE_ALL, 'userid' => $user->id];
+        $policies = $DB->get_records_sql_menu($sql, $params);
+        $acceptedpolicies = array_filter($policies);
+        $policyagreed = (count($policies) == count($acceptedpolicies)) ? 1 : 0;
+
+        if ($user->policyagreed != $policyagreed) {
+            $user->policyagreed = $policyagreed;
+            $DB->set_field('user', 'policyagreed', $policyagreed, ['id' => $user->id]);
+        }
     }
 
     /**
@@ -820,15 +851,15 @@ class api {
         $usercontext = \context_user::instance($userid);
         require_capability('tool/policy:acceptbehalf', $usercontext);
 
-        if ($currentacceptance = $DB->record_exists('tool_policy_acceptance',
+        if ($currentacceptance = $DB->get_record('tool_policy_acceptances',
                 ['policyversionid' => $policyversionid, 'userid' => $userid])) {
-            $updatedata = ['id' => $currentacceptance->id, 'status' => 0, 'timemodified' => now(),
+            $updatedata = ['id' => $currentacceptance->id, 'status' => 0, 'timemodified' => time(),
                 'usermodified' => $USER->id, 'note' => $note];
             $DB->update_record('tool_policy_acceptances', $updatedata);
             acceptance_updated::create_from_record((object)($updatedata + (array)$currentacceptance))->trigger();
         }
 
-        // TODO $user->policyagreed may need updating here
+        self::update_policyagreed($userid);
     }
 
     /**
