@@ -40,6 +40,11 @@ function tool_policy_extend_navigation_user_settings(navigation_node $usersettin
         $course, context_course $coursecontext) {
     global $CFG, $PAGE;
 
+    // Do nothing if we are not set as the site policies handler.
+    if (empty($CFG->sitepolicyhandler) || $CFG->sitepolicyhandler !== 'tool_policy') {
+        return;
+    }
+
     $userpolicysettings = $usersetting->add(get_string('userpolicysettings', 'tool_policy'), null,
         navigation_node::TYPE_CONTAINER, null, 'tool_policy-userpolicysettings');
 
@@ -80,9 +85,11 @@ function tool_policy_before_standard_html_head() {
 function tool_policy_pre_signup_requests() {
     global $CFG;
 
-    if (!$CFG->sitepolicyhandler || $CFG->sitepolicyhandler !== 'tool_policy') {
+    // Do nothing if we are not set as the site policies handler.
+    if (empty($CFG->sitepolicyhandler) || $CFG->sitepolicyhandler !== 'tool_policy') {
         return;
     }
+
     if (!validateminor_helper::minor_session_exists()) {  // Digital minor check hasn't been done.
         redirect(new moodle_url('/admin/tool/policy/validateminor.php'));
     } else { // Digital minor check has been done.
@@ -108,6 +115,12 @@ function tool_policy_pre_signup_requests() {
  * @return bool false if the file not found, just send the file otherwise and do not return anything
  */
 function tool_policy_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options=array()) {
+    global $CFG;
+
+    // Do not allow access to files if we are not set as the site policy handler.
+    if (empty($CFG->sitepolicyhandler) || $CFG->sitepolicyhandler !== 'tool_policy') {
+        return false;
+    }
 
     if ($context->contextlevel != CONTEXT_SYSTEM) {
         return false;
