@@ -113,7 +113,7 @@ class page_agreedocs implements renderable, templatable {
                         $acceptversionids[] = $policy->currentversionid;
                     } else {
                         // TODO: Revoke policy doc.
-                        //api::revoke_acceptance($policy->currentversionid, $userid);
+                        //api::revoke_acceptance($policy->currentversionid, $this->behalfid);
                     }
                 }
                 // Accept all policy docs saved in $acceptversionids.
@@ -208,7 +208,7 @@ class page_agreedocs implements renderable, templatable {
         global $CFG, $PAGE, $SESSION, $SITE, $USER;
 
         // Guest users or not logged users (but the users during the signup process) are not allowed to access to this page.
-        $newsignupuser = !empty($SESSION->wantsurl) && $SESSION->wantsurl->compare(new moodle_url('/login/signup.php'), URL_MATCH_BASE);
+        $newsignupuser = !empty($SESSION->wantsurl) && strpos($SESSION->wantsurl, 'login/signup.php') !== false;
         if (isguestuser() || (empty($USER->id) && !$newsignupuser)) {
             $this->redirect_to_previous_url();
         }
@@ -229,11 +229,11 @@ class page_agreedocs implements renderable, templatable {
             }
         }
 
-        // If the current user has the $USER->policyagreed = 1 or $SESSION->tool_policy->userpolicyagreed = 1, redirect to the return page.
+        // If the current user has the $USER->policyagreed = 1 or $SESSION->tool_policy->userpolicyagreed = 1
+        // and $SESSION->wantsurl is defined, redirect to the return page.
         $hasagreedsignupuser = empty($USER->id) && !empty($SESSION->tool_policy->userpolicyagreed);
         $hasagreedloggeduser = $USER->id == $this->behalfid && !empty($USER->policyagreed);
-        // TODO: Redirect only if $SESSION->wantsurl is set (to let users to access to this page after from his/her profile) ?
-        if (!is_siteadmin() && ($hasagreedsignupuser || $hasagreedloggeduser)) {
+        if (!is_siteadmin() && ($hasagreedsignupuser || ($hasagreedloggeduser && !empty($SESSION->wantsurl)))) {
             $this->redirect_to_previous_url();
         }
 
@@ -321,6 +321,10 @@ class page_agreedocs implements renderable, templatable {
         ];
 
         $data->policies = array_values($this->policies);
+        foreach ($data->policies as $policy) {
+            $policy->currentversion->summary = file_rewrite_pluginfile_urls($policy->currentversion->summary, 'pluginfile.php', SYSCONTEXTID,
+                'tool_policy', 'policydocumentsummary', $policy->currentversion->versionid);
+        }
         $data->privacyofficer = get_config('tool_policy', 'privacyofficer');
 
         // If viewing docs in behalf of other user, get his/her full name and profile link.

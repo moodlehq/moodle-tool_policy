@@ -43,11 +43,23 @@
 </div>
 {{/behalfuser}}
 
+<div class="clearfix">
+    <div class="pull-left">
+        <h2>{{# str }}consentpagetitle, tool_policy{{/ str }}</h2>
+    </div>
+</div>
+
+<div class="clearfix m-t-2">
+    <h3>{{# str }}agreepolicies, tool_policy {{/ str }}</h3>
+</div>
+<hr>
+
+
 {{#policies}}
 
-    <div class="agreedoc-policy clearfix m-b-3">
-        <h2>{{{name}}}</h2>
-        <div class="agreedoc-content col-sm-8">
+    <div class="agreedoc-policy clearfix m-t-2 m-b-1">
+        <h3>{{{name}}}</h3>
+        <div class="agreedoc-content">
             <div class="agreedoc-summary">
               {{{currentversion.summary}}}
             </div>
@@ -55,11 +67,11 @@
                 {{# str }}refertofullpolicytext, tool_policy, {{{policymodal}}} {{/ str }}
             </div>
         </div>
-        <div class="agreedoc-form col-sm-4">
-            <div class="lead">
+        <div class="agreedoc-form m-t-1">
+            <div class="agreedoc-checkbox">
                 <i class="icon fa fa-exclamation-circle text-danger fa-fw" title="{{# str }} required {{/ str }}" ></i>
                 <input value="{{currentversionid}}" name="agreedoc[]" {{#versionagreed}}checked="{{.}}"{{/versionagreed}} type="checkbox">
-                <label>{{# str }}iagree, tool_policy, {{{policymodal}}} {{/ str }}
+                <label><strong>{{# str }}iagree, tool_policy, {{{name}}} {{/ str }}</strong></label>
             </div>
             <small>
             <ul class="agreedoc-msg list-unstyled">
@@ -82,8 +94,10 @@
   </div>
 {{/privacyofficer}}
 
+{{# str }}somefieldsrequired, form, <i class="icon fa fa-exclamation-circle text-danger fa-fw" title="{{# str }} required {{/ str }}" ></i>{{/ str }}
+<hr>
 
-<input type="submit" class="btn btn-primary" value={{#quote}}{{#str}}continue{{/str}}{{/quote}}>
+<input type="submit" class="btn btn-primary" value={{#quote}}{{#str}} next {{/str}}{{/quote}}>
 <a role="button" href="{{myurl}}" class="btn  btn-secondary">{{#str}} cancel {{/str}}</a>
 
 </form>

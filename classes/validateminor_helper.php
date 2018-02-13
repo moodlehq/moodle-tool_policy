@@ -106,7 +106,7 @@ class validateminor_helper {
             redirect(new \moodle_url('/admin/tool/policy/contactadmin.php'));
         } else if (empty($SESSION->tool_policy->userpolicyagreed)) {
             // Redirect to "Policy" pages for consenting before creating the user.
-            $SESSION->wantsurl = new \moodle_url('/login/signup.php');
+            $SESSION->wantsurl = (new \moodle_url('/login/signup.php'))->out();
             redirect(new \moodle_url('/admin/tool/policy/index.php'));
         }
     }
