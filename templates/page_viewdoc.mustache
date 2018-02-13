@@ -27,21 +27,34 @@
     * policy - version document object.
 }}
 
-{{# numpolicy }}
-<div class="policy-information card p-x-1 p-y-1">
-    {{# str }} explanationpoliciesnumbers, tool_policy, 
-        { "numpolicy": {{# quote }}<strong>{{numpolicy}}</strong>{{/quote }}, "totalpolicies": {{# quote }}<strong>{{totalpolicies}}</strong>{{/ quote }} } 
-    {{/ str }}
-    <br/>{{# str }} explanationpolicies, tool_policy {{/ str }}
+<a id="top"></a>
+<div class="clearfix">
+    <div class="pull-left">
+        <h2>{{policy.name}}</h2>
+    </div>
+    {{# numpolicy }}
+        <div class="pull-right">
+            {{# str }} steppolicies, tool_policy,
+                { "numpolicy": {{# quote }}{{numpolicy}}{{/quote }}, "totalpolicies": {{# quote }}{{totalpolicies}}{{/ quote }} }
+            {{/ str }}
+        </div>
+    {{/ numpolicy }}
 </div>
+
+
+{{# numpolicy }}
+    <div class="clearfix m-t-2">
+        <h3>{{# str }}readpolicy, tool_policy, {{policy.name}} {{/ str }}</h3>
+    </div>
 {{/ numpolicy }}
 
-<div class="policy_document">
-    <h2>{{policy.name}}</h2>
-    <div class="policy_document_summary}}">
+<hr>
+
+<div class="policy_document m-t-1">
+    <div class="policy_document_summary clearfix m-b-1">
         {{{policy.summary}}}
     </div>
-    <div class="policy_document_content">
+    <div class="policy_document_content m-t-2">
         {{{policy.content}}}
     </div>
 </div>
@@ -49,10 +62,22 @@
 <hr>
 
 <div class="policy_buttons">
-{{#returnurl}}
-    <a role="button" href="{{returnurl}}" class="btn btn-primary">{{#str}} continue {{/str}}</a>
-{{/returnurl}}
-{{#editurl}}
-    <a role="button" href="{{editurl}}" class="btn">{{#str}} edit {{/str}}</a>
-{{/editurl}}
+    {{#returnurl}}
+        {{# numpolicy }}
+            <a role="button" href="{{returnurl}}" class="btn btn-primary">{{#str}} next {{/str}}</a>
+        {{/ numpolicy }}
+        {{^ numpolicy }}
+            <a role="button" href="{{returnurl}}" class="btn btn-primary">{{#str}} continue {{/str}}</a>
+        {{/ numpolicy }}
+    {{/returnurl}}
+    {{#editurl}}
+        <a role="button" href="{{editurl}}" class="btn">{{#str}} edit {{/str}}</a>
+    {{/editurl}}
+
+    <div class="pull-right">
+        <a href="#top">
+            {{# str }} backtotop, tool_policy {{/ str }}
+            <i class="icon text-primary fa fa-caret-up" title="{{# str }} backtotop, tool_policy {{/ str }}" ></i>
+        </a>
+    </div>
 </div>
