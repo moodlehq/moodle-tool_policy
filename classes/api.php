@@ -810,7 +810,7 @@ class api {
      *
      * @param int|stdClass|null $user user to check (null for current user)
      */
-    protected static function update_policyagreed($user = null) {
+    public static function update_policyagreed($user = null) {
         global $DB, $USER, $CFG;
         require_once($CFG->dirroot.'/user/lib.php');
 

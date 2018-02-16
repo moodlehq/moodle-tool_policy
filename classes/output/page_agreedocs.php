@@ -99,8 +99,6 @@ class page_agreedocs implements renderable, templatable {
         global $USER, $SESSION;
 
         // TODO: Make sure the user has the right capabilities for accepting/revoking these policies.
-
-        // TODO: Decide what to do if there are no policies to agree but the user has policyagreed = 0.
         if (!empty($this->agreedocs) && confirm_sesskey()) {
             if (!empty($USER->id)) {
                 // Existing user.
@@ -128,6 +126,19 @@ class page_agreedocs implements renderable, templatable {
                 $SESSION->tool_policy->userpolicyagreed = empty(array_diff($currentpolicyversionids, $this->agreedocs));
 
                 // TODO: Show a message to let know the user he/she must agree all the policies if he/she wants to create an user.
+            }
+        } else if (empty($this->policies)) {
+            // There are no policies to agree to. Update the policyagreed value to avoid show empty consent page.
+            if (!empty($USER->id)) {
+                // Existing user.
+                $currentuser = (!empty($behalfuser)) ? $behalfuser : $USER;
+                // Check for updating when the user policyagreed is false.
+                if (!$currentuser->policyagreed) {
+                    api::update_policyagreed($currentuser);
+                }
+            } else {
+                // New user.
+                $SESSION->tool_policy->userpolicyagreed = 1;
             }
         }
     }

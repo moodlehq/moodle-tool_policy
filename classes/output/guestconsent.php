@@ -49,10 +49,20 @@ class guestconsent implements renderable, templatable {
      * @return stdClass
      */
     public function export_for_template(renderer_base $output) {
+        global $PAGE;
 
         $data = (object) [];
         $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(true);
-        $data->returnurl = qualified_me();
+        if (strpos(qualified_me(), 'admin/tool/policy/view.php') === false) {
+            // Current page is not a policy doc, so returnurl parameter will be it.
+            $data->returnurl = qualified_me();
+        } else {
+            // If current page is also a policy doc to view, get previous returnurl parameter to avoid error.
+            $returnurl = $PAGE->url->get_param('returnurl');
+            if (isset($returnurl)){
+                $data->returnurl = $returnurl;
+            }
+        }
 
         $policies = \tool_policy\api::list_policies(null, true, api::AUDIENCE_GUESTS);
         $data->policies = array_values($policies);

@@ -27,9 +27,8 @@ define([
     'core/notification',
     'core/str',
     'core/modal_factory',
-    'core/modal_events',
-    'core/templates'],
-function($, Ajax, Notification, Str, ModalFactory, ModalEvents, Templates) {
+    'core/modal_events'],
+function($, Ajax, Notification, Str, ModalFactory, ModalEvents) {
 
     /**
      * List of action selectors.

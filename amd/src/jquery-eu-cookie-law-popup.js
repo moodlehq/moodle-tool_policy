@@ -246,7 +246,7 @@ $.fn.euCookieLawPopup = (function() {
             // Ready to start!
             $('.eupopup-container').show();
 
-            // In case it's alright to just display the message once 
+            // In case it's alright to just display the message once
             if (_self.params.autoAcceptCookiePolicy) {
                 setUserAcceptsCookies(true);
             }
