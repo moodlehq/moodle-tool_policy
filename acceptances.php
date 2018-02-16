@@ -27,43 +27,37 @@ require_once($CFG->libdir.'/adminlib.php');
 
 $policyid = optional_param('policyid', null, PARAM_INT);
 $versionid = optional_param('versionid', null, PARAM_INT);
+$versionid = optional_param('versionid', null, PARAM_INT);
+$filtersapplied = optional_param_array('unified-filters', [], PARAM_NOTAGS);
+
+$acceptancesfilter = new \tool_policy\output\acceptances_filter($policyid, $versionid, $filtersapplied);
+$policyid = $acceptancesfilter->get_policy_id_filter();
+$versionid = $acceptancesfilter->get_version_id_filter();
 
 // Set up the page as an admin page 'tool_policy_managedocs'.
 $urlparams = ($policyid ? ['policyid' => $policyid] : []) + ($versionid ? ['versionid' => $versionid] : []);
 admin_externalpage_setup('tool_policy_managedocs', '', $urlparams,
     new moodle_url('/admin/tool/policy/acceptances.php'));
+require_capability('tool/policy:viewacceptances', context_system::instance());
 
-// Find all policies that need to be displayed. Unless versionid is specified we only display current versions.
-$policies = \tool_policy\api::list_policies($policyid ? [$policyid] : null, !$versionid, \tool_policy\api::AUDIENCE_LOGGEDIN);
-if ($versionid) {
-    // If versionid is specified leave only the policy where this version is present and remove all other versions.
-    $policies = array_filter($policies, function($policy) use ($versionid) {
-        $policy->versions = array_intersect_key($policy->versions, [$versionid => true]);
-        return !empty($policy->versions);
-    });
-}
-if (!$policies) {
+if (!$acceptancesfilter->get_policies()) {
     throw new \moodle_exception('No policies found'); // TODO string
 }
 
-if ($policyid || $versionid) {
-    $singlepolicy = reset($policies);
+if ($singlepolicy = $acceptancesfilter->get_single_policy()) {
     $PAGE->navbar->add(format_string($singlepolicy->name),
-        new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $singlepolicy->id]));
-    if ($versionid && $versionid <> $singlepolicy->currentversionid) {
-        $PAGE->navbar->add(format_string($singlepolicy->versions[$versionid]->revision));
-    }
-    // TODO add them to the heading?
+        new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
 }
 $PAGE->navbar->add(get_string('useracceptances', 'tool_policy'));
 
-$acceptances = new \tool_policy\acceptances_table('tool_policy_user_acceptances', $PAGE->url, $policies);
+$output = $PAGE->get_renderer('tool_policy');
+$acceptances = new \tool_policy\acceptances_table('tool_policy_user_acceptances', $acceptancesfilter, $output);
 if ($acceptances->is_downloading()) {
     $acceptances->download();
 }
 
-$output = $PAGE->get_renderer('tool_policy');
 echo $output->header();
 echo $output->heading(get_string('useracceptances', 'tool_policy'));
+echo $output->render($acceptancesfilter);
 $acceptances->display();
 echo $output->footer();

@@ -28,12 +28,12 @@
 }}
 <table class="generaltable fullwidth">
     <thead>
-    <th>Policy name</th>
-    <th>Version</th>
-    <th>Agreed</th>
-    <th>Agreed on</th>
-    <th>Agreed by</th>
-    <th>Remark</th>
+    <th>{{#str}} policydocname, tool_policy {{/str}}</th>
+    <th>{{#str}} policydocrevision, tool_policy {{/str}}</th>
+    <th>{{#str}} agreed, tool_policy {{/str}}</th>
+    <th>{{#str}} agreedon, tool_policy {{/str}}</th>
+    <th>{{#str}} agreedby, tool_policy {{/str}}</th>
+    <th>{{#str}} acceptancenote, tool_policy {{/str}}</th>
     </thead>
     <tbody>
         {{#policies}}
@@ -47,12 +47,10 @@
                         {{#iscurrent}}{{#pix}} t/check, core {{/pix}}{{/iscurrent}}
                     </td>
                     <td>
-                        {{#acceptlink}}
-                            <a href="{{acceptlink}}">{{accepted}}</a>
-                        {{/acceptlink}}
-                        {{^acceptlink}}
-                            {{accepted}}
-                        {{/acceptlink}}
+                        {{#agreement}}
+                            {{>tool_policy/user_agreement}}
+                        {{/agreement}}
+
                     </td>
                     <td>{{timeaccepted}}</td>
                     <td>{{{acceptedby}}}</td>

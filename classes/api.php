@@ -741,7 +741,7 @@ class api {
                     $policy->versions[$versionid]->acceptance = $acceptances[$versionid];
                 }
             }
-            if (empty($policy->versions[$versionid])) {
+            if (empty($policy->versions)) {
                 // User can not view any version for this policy.
                 unset($policies[$policyid]);
             }
