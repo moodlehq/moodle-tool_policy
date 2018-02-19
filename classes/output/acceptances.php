@@ -73,18 +73,19 @@ class acceptances implements renderable, templatable {
             foreach ($policy->versions as $version) {
                 $version->iscurrent = ($version->id == $policy->currentversionid);
                 $version->revision = format_string($version->revision);
-                $returnurl = (new moodle_url('/admin/tool/policy/user.php', ['userid' => $this->userid]))->out(false);
+                $returnurl = new moodle_url('/admin/tool/policy/user.php', ['userid' => $this->userid]);
                 $version->viewurl = (new moodle_url('/admin/tool/policy/view.php', [
                     'policyid' => $policy->id,
                     'versionid' => $version->id,
-                    'returnurl' => $returnurl,
+                    'returnurl' => $returnurl->out(false),
                 ]))->out(false);
 
                 if (!empty($version->acceptance->status)) {
                     $acceptance = $version->acceptance;
-                    $version->accepted = get_string('yes');
-                    $version->timeaccepted = $acceptance->timemodified ? userdate($acceptance->timemodified) : '';
-                    if ($acceptance->usermodified && $acceptance->usermodified != $this->userid) {
+                    $version->timeaccepted = $acceptance->timemodified ? userdate($acceptance->timemodified) : ''; // TODO date format
+                    $onbehalf = $acceptance->usermodified && $acceptance->usermodified != $this->userid;
+                    $version->agreement = new user_agreement($this->userid, 1, $returnurl, $version->id, $onbehalf);
+                    if ($onbehalf) {
                         $usermodified = (object)['id' => $acceptance->usermodified];
                         username_load_fields_from_object($usermodified, $acceptance, 'mod');
                         $version->acceptedby = fullname($usermodified, $canviewfullnames ||
@@ -92,10 +93,11 @@ class acceptances implements renderable, templatable {
                         // TODO link to profile.
                     }
                     $version->note = format_text($acceptance->note);
-                } else if ($version->iscurrent && ($this->userid != $USER->id) && has_capability('tool/policy:acceptbehalf', \context_user::instance($this->userid))) {
-                    $version->acceptlink = (new moodle_url('/admin/tool/policy/user.php', ['userid' => $this->userid,
-                        'acceptforversion' => $version->id, 'returnurl' => $returnurl]))->out(false);
-                    $version->accepted = get_string('no');
+                } else if ($version->iscurrent) {
+                    $version->agreement = new user_agreement($this->userid, 0, $returnurl, $version->id);
+                }
+                if (isset($version->agreement)) {
+                    $version->agreement = $version->agreement->export_for_template($output);
                 }
             }
 
@@ -115,6 +117,7 @@ class acceptances implements renderable, templatable {
         }
 
         $data->policies = array_values($policies);
+        // TODO remove fields we don't need!
         return $data;
     }
 }

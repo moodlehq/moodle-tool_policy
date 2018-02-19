@@ -24,6 +24,10 @@
 
 namespace tool_policy;
 
+use tool_policy\output\acceptances_filter;
+use tool_policy\output\renderer;
+use tool_policy\output\user_agreement;
+
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
@@ -38,16 +42,30 @@ require_once($CFG->dirroot.'/lib/tablelib.php');
  */
 class acceptances_table extends \table_sql {
 
+    /** @var array */
     protected $versionids;
-    protected $policies;
 
-    public function __construct($uniqueid, $baseurl, $policies) {
+    /** @var acceptances_filter */
+    protected $acceptancesfilter;
+
+    /** @var renderer */
+    protected $output;
+
+    /**
+     * @var string[] The list of countries.
+     */
+    protected $countries;
+
+    public function __construct($uniqueid, acceptances_filter $acceptancesfilter, renderer $output) {
         global $CFG;
         parent::__construct($uniqueid);
+        $this->acceptancesfilter = $acceptancesfilter;
         $this->is_downloading(optional_param('download', 0, PARAM_ALPHA), 'user_acceptances'); // TODO add policy name and/or timestamp to the filename?
-        $this->baseurl = $baseurl;
+        $this->baseurl = $acceptancesfilter->get_url();
+        $this->output = $output;
 
         $this->versionids = [];
+        $policies = $acceptancesfilter->get_policies();
         if (count($policies) > 1) {
             foreach ($policies as $policy) {
                 $this->versionids[$policy->currentversionid] = format_string($policy->name);
@@ -68,6 +86,10 @@ class acceptances_table extends \table_sql {
             "{user} u",
             'u.id <> :siteguestid',
             ['siteguestid' => $CFG->siteguest]);
+        $this->add_column_header('fullname', '');
+        foreach ($extrafields as $field) {
+            $this->add_column_header($field, get_user_field_name($field));
+        }
 
         if (count($this->versionids) == 1) {
             $this->configure_for_single_version();
@@ -75,51 +97,92 @@ class acceptances_table extends \table_sql {
             $this->configure_for_multiple_versions();
         }
 
-        $this->sortable(true);
+        $this->build_sql_for_search_string($extrafields);
+        $this->build_sql_for_capability_filter();
+        $this->build_sql_for_roles_filter();
+
+        $this->sortable(true, 'firstname');
+    }
+
+    /**
+     * Remove randomness from the list by always sorting by user id in the end
+     * @return array
+     */
+    public function get_sort_columns() {
+        $c = parent::get_sort_columns();
+        $c['u.id'] = SORT_ASC;
+        return $c;
+    }
+
+    /**
+     * Allows to add only one column name and header to the table (parent class methods only allow to set all).
+     *
+     * @param string $key
+     * @param string $label
+     * @param bool $sortable
+     */
+    protected function add_column_header($key, $label, $sortable = true) {
+        $columns = array_merge(array_keys($this->columns), [$key]);
+        $headers = array_merge($this->headers, [$label]);
+        $this->define_columns($columns);
+        $this->define_headers($headers);
+        if (!$sortable) {
+            $this->no_sorting($key);
+        }
     }
 
     protected function configure_for_single_version() {
         $userfieldsmod = get_all_user_name_fields(true, 'm', null, 'mod');
         $v = key($this->versionids);
-        $this->sql->fields .= ", $userfieldsmod, a{$v}.status AS status{$v}, a{$v}.note, a{$v}.timemodified, a{$v}.usermodified";
-        $this->sql->from .= " LEFT JOIN {tool_policy_acceptances} a{$v} ON a{$v}.userid = u.id AND a{$v}.policyversionid=:versionid{$v}
-                  LEFT JOIN {user} m ON m.id = a{$v}.usermodified AND m.id <> u.id AND a{$v}.status = 1";
+        $this->sql->fields .= ", $userfieldsmod, a{$v}.status AS status{$v}, a{$v}.note, a{$v}.timemodified, a{$v}.usermodified AS usermodified{$v}";
+
+        $join = "JOIN {tool_policy_acceptances} a{$v} ON a{$v}.userid = u.id AND a{$v}.policyversionid=:versionid{$v}";
+        $filterstatus = $this->acceptancesfilter->get_status_filter();
+        if ($filterstatus == 1) {
+            $this->sql->from .= " $join AND a{$v}.status=1";
+        } else {
+            $this->sql->from .= " LEFT $join";
+        }
+
+        $this->sql->from .= " LEFT JOIN {user} m ON m.id = a{$v}.usermodified AND m.id <> u.id AND a{$v}.status = 1";
+
         $this->sql->params['versionid' . $v] = $v;
 
-        $headers = [ // TODO strings
-            'userpic' => '',
-            'fullname' => '',
-            'status' . $v => 'Agreed',
-            'timemodified' => 'Agreed on',
-            'usermodified' => 'Agreed by',
-            'note' => 'Remarks'
-        ];
-        if ($this->is_downloading()) {
-            unset($headers['userpic']);
+        if ($filterstatus === 0) {
+            $this->sql->where .= " AND (a{$v}.status IS NULL OR a{$v}.status = 0)";
         }
-        $this->define_columns(array_keys($headers));
-        $this->define_headers(array_values($headers));
-        $this->no_sorting('note');
+
+        $this->add_column_header('status' . $v, get_string('agreed', 'tool_policy'));
+        $this->add_column_header('timemodified', get_string('agreedon', 'tool_policy'));
+        $this->add_column_header('usermodified' . $v, get_string('agreedby', 'tool_policy'));
+        $this->add_column_header('note', get_string('acceptancenote', 'tool_policy'), false);
     }
 
     protected function configure_for_multiple_versions() {
-        $headers = [ // TODO strings
-            'userpic' => '',
-            'fullname' => '',
-            'statusall' => 'Overall',
-        ];
+        $this->add_column_header('statusall', get_string('acceptancestatusoverall', 'tool_policy'));
+        $filterstatus = $this->acceptancesfilter->get_status_filter();
+        $statusall = [];
         foreach ($this->versionids as $v => $versionname) {
-            $this->sql->fields .= ", a{$v}.status AS status{$v}, a{$v}.usermodified AS usermodified{$v}"; // TODO only modified self vs somebodyelse
-            $this->sql->from .= " LEFT JOIN {tool_policy_acceptances} a{$v} ON a{$v}.userid = u.id AND a{$v}.policyversionid=:versionid{$v}";
+            $this->sql->fields .= ", a{$v}.status AS status{$v}, a{$v}.usermodified AS usermodified{$v}";
+            $join = "JOIN {tool_policy_acceptances} a{$v} ON a{$v}.userid = u.id AND a{$v}.policyversionid=:versionid{$v}";
+            if ($filterstatus == 1) {
+                $this->sql->from .= " {$join} AND a{$v}.status=1";
+            } else {
+                $this->sql->from .= " LEFT {$join}";
+            }
             $this->sql->params['versionid' . $v] = $v;
-            $headers['status' . $v] = $versionname;
+            $this->add_column_header('status' . $v, $versionname);
+            $statusall[] = "COALESCE(a{$v}.status, 0)";
         }
+        $this->sql->fields .= ",".join('+', $statusall)." AS statusall";
 
-        if ($this->is_downloading()) {
-            unset($headers['userpic']);
+        if ($filterstatus === 0) {
+            $statussql = [];
+            foreach ($this->versionids as $v => $versionname) {
+                $statussql[] = "a{$v}.status IS NULL OR a{$v}.status = 0";
+            }
+            $this->sql->where .= " AND (u.policyagreed = 0 OR ".join(" OR ", $statussql).")";
         }
-        $this->define_columns(array_keys($headers));
-        $this->define_headers(array_values($headers));
     }
 
     /**
@@ -134,38 +197,179 @@ class acceptances_table extends \table_sql {
     /**
      * @return string sql to add to where statement.
      */
-    function get_sql_where() {
+    public function get_sql_where() {
         list($where, $params) = parent::get_sql_where();
         $where = preg_replace('/firstname/', 'u.firstname', $where);
         $where = preg_replace('/lastname/', 'u.lastname', $where);
         return [$where, $params];
     }
 
-    public function display() {
-        global $OUTPUT;
-        $this->out(100, true);
+    protected function build_sql_for_search_string($userfields) {
+        global $DB, $USER;
+
+        $search = $this->acceptancesfilter->get_search_strings();
+        if (empty($search)) {
+            return;
+        }
+
+        $wheres = [];
+        $params = [];
+        foreach ($search as $index => $keyword) {
+            $searchkey1 = 'search' . $index . '1';
+            $searchkey2 = 'search' . $index . '2';
+            $searchkey3 = 'search' . $index . '3';
+            $searchkey4 = 'search' . $index . '4';
+            $searchkey5 = 'search' . $index . '5';
+            $searchkey6 = 'search' . $index . '6';
+            $searchkey7 = 'search' . $index . '7';
+
+            $conditions = array();
+            // Search by fullname.
+            $fullname = $DB->sql_fullname('u.firstname', 'u.lastname');
+            $conditions[] = $DB->sql_like($fullname, ':' . $searchkey1, false, false);
+
+            // Search by email.
+            $email = $DB->sql_like('u.email', ':' . $searchkey2, false, false);
+            if (!in_array('email', $userfields)) {
+                $maildisplay = 'maildisplay' . $index;
+                $userid1 = 'userid' . $index . '1';
+                // Prevent users who hide their email address from being found by others
+                // who aren't allowed to see hidden email addresses.
+                $email = "(". $email ." AND (" .
+                    "u.maildisplay <> :$maildisplay " .
+                    "OR u.id = :$userid1". // User can always find himself.
+                    "))";
+                $params[$maildisplay] = core_user::MAILDISPLAY_HIDE;
+                $params[$userid1] = $USER->id;
+            }
+            $conditions[] = $email;
+
+            // Search by idnumber.
+            $idnumber = $DB->sql_like('u.idnumber', ':' . $searchkey3, false, false);
+            if (!in_array('idnumber', $userfields)) {
+                $userid2 = 'userid' . $index . '2';
+                // Users who aren't allowed to see idnumbers should at most find themselves
+                // when searching for an idnumber.
+                $idnumber = "(". $idnumber . " AND u.id = :$userid2)";
+                $params[$userid2] = $USER->id;
+            }
+            $conditions[] = $idnumber;
+
+            // Search by middlename.
+            $middlename = $DB->sql_like('u.middlename', ':' . $searchkey4, false, false);
+            $conditions[] = $middlename;
+
+            // Search by alternatename.
+            $alternatename = $DB->sql_like('u.alternatename', ':' . $searchkey5, false, false);
+            $conditions[] = $alternatename;
+
+            // Search by firstnamephonetic.
+            $firstnamephonetic = $DB->sql_like('u.firstnamephonetic', ':' . $searchkey6, false, false);
+            $conditions[] = $firstnamephonetic;
+
+            // Search by lastnamephonetic.
+            $lastnamephonetic = $DB->sql_like('u.lastnamephonetic', ':' . $searchkey7, false, false);
+            $conditions[] = $lastnamephonetic;
+
+            $wheres[] = "(". implode(" OR ", $conditions) .") ";
+            $params[$searchkey1] = "%$keyword%";
+            $params[$searchkey2] = "%$keyword%";
+            $params[$searchkey3] = "%$keyword%";
+            $params[$searchkey4] = "%$keyword%";
+            $params[$searchkey5] = "%$keyword%";
+            $params[$searchkey6] = "%$keyword%";
+            $params[$searchkey7] = "%$keyword%";
+        }
+
+        $this->sql->where .= ' AND '.join(' AND ', $wheres);
+        $this->sql->params += $params;
     }
 
     /**
-     * Prepares column userpic for display
-     * @param stdClass $row
-     * @return string
+     * If there is a filter to find users who can/cannot accept on their own behalf add it to the SQL query
      */
-    public function col_userpic($row) {
-        global $OUTPUT;
-        $user = \user_picture::unalias($row, [], $this->useridfield);
-        return $OUTPUT->user_picture($user);
+    protected function build_sql_for_capability_filter() {
+        global $CFG;
+        $hascapability = $this->acceptancesfilter->get_capability_accept_filter();
+        if ($hascapability === null) {
+            return;
+        }
+
+        list($neededroles, $forbiddenroles) = get_roles_with_cap_in_context(\context_system::instance(), 'tool/policy:accept');
+
+        if (empty($neededroles)) {
+            // There are no roles that allow to accept agreement on one own's behalf.
+            $this->sql->where .= $hascapability ? ' AND 1=0' : '';
+            return;
+        }
+
+        if (empty($forbiddenroles)) {
+            // There are no roles that prohibit to accept agreement on one own's behalf.
+            $this->sql->where .=  ' AND ' . $this->sql_has_role($neededroles, $hascapability);
+            return;
+        }
+
+        $defaultuserroleid = isset($CFG->defaultuserroleid) ? $CFG->defaultuserroleid : 0;
+        if (!empty($neededroles[$defaultuserroleid])) {
+            // Default role allows to accept agreement. Make sure user has/does not have one of the roles prohibiting it.
+            $this->sql->where .=  ' AND ' . $this->sql_has_role($forbiddenroles, !$hascapability);
+            return;
+        }
+
+        if ($hascapability) {
+            // User has at least one role allowing to accept and no roles prohibiting.
+            $this->sql->where .=  ' AND ' . $this->sql_has_role($neededroles);
+            $this->sql->where .=  ' AND ' . $this->sql_has_role($forbiddenroles, false);
+        } else {
+            // Option 1: User has one of the roles prohibiting to accept.
+            $this->sql->where .=  ' AND (' . $this->sql_has_role($forbiddenroles);
+            // Option 2: User has none of the roles allowing to accept.
+            $this->sql->where .=  ' OR ' . $this->sql_has_role($neededroles, false) . ")";
+        }
     }
 
-    public function col_usermodified($row) {
-        if ($row->usermodified && $row->usermodified != $row->id) {
-            return $this->username($row, 'mod', 'usermodified');
+    /**
+     * Returns SQL snippet for users that have (do not have) one of the given roles in the system context
+     *
+     * @param array $roles list of roles indexed by role id
+     * @param bool $positive true: return users who HAVE roles; false: return users who DO NOT HAVE roles
+     * @return string
+     */
+    protected function sql_has_role($roles, $positive = true) {
+        global $CFG;
+        if (empty($roles)) {
+            return $positive ? '1=0' : '1=1';
         }
-        return null;
+        $defaultuserroleid = isset($CFG->defaultuserroleid) ? $CFG->defaultuserroleid : 0;
+        if (!empty($roles[$defaultuserroleid])) {
+            // No need to query, everybody has the default role.
+            return $positive ? '1=1' : '1=0';
+        }
+        return "u.id " . ($positive ? "" : "NOT") . " IN (
+                SELECT userid
+                FROM {role_assignments}
+                WHERE contextid = " . SYSCONTEXTID . " AND roleid IN (" . implode(',', array_keys($roles)) . ")
+            )";
+    }
+
+    /**
+     * If there is a filter by user roles add it to the SQL query.
+     */
+    protected function build_sql_for_roles_filter() {
+        foreach ($this->acceptancesfilter->get_role_filters() as $roleid) {
+            $this->sql->where .= ' AND ' . $this->sql_has_role([$roleid => $roleid]);
+        }
+    }
+
+    public function display() {
+        $this->out(100, true);
     }
 
     public function col_fullname($row) {
-        return $this->username($row);
+        global $OUTPUT;
+        $user = \user_picture::unalias($row, [], $this->useridfield);
+        $userpic = $this->is_downloading() ? '' : $OUTPUT->user_picture($user);
+        return $userpic . $this->username($user);
     }
 
     protected function username($row, $fieldsprefix = '', $useridfield = 'id') {
@@ -182,24 +386,21 @@ class acceptances_table extends \table_sql {
         return null;
     }
 
+    protected function get_return_url() {
+        $pageurl = $this->baseurl;
+        if ($this->currpage) {
+            $pageurl = new \moodle_url($pageurl, [$this->request[TABLE_VAR_PAGE] => $this->currpage]);
+        }
+        return $pageurl;
+    }
+
     protected function status($versionid, $row) {
         $status = $row->{'status' . $versionid};
-        $statusstr = empty($status) ? get_string('no') : get_string('yes');
         if ($this->is_downloading()) {
-            return $statusstr;
+            return empty($status) ? get_string('no') : get_string('yes');
         }
-        if (empty($status)) {
-            $pageurl = $this->baseurl;
-            if ($this->currpage) {
-                $pageurl = new \moodle_url($pageurl, [$this->request[TABLE_VAR_PAGE] => $this->currpage]);
-            }
-            $link = new \moodle_url('/admin/tool/policy/user.php',
-                ['acceptforversion' => $versionid, 'userid' => $row->id,
-                    'returnurl' => $pageurl->out_as_local_url(false)]);
-            return \html_writer::link($link, $statusstr);
-        } else {
-            return $statusstr;
-        }
+        $onbehalf = $status && ($row->{'usermodified' . $versionid} != $row->id);
+        return $this->output->render(new user_agreement($row->id, $status, $this->get_return_url(), $versionid, $onbehalf));
     }
 
     public function col_timemodified($row) {
@@ -214,7 +415,7 @@ class acceptances_table extends \table_sql {
         if ($this->is_downloading()) {
             return $row->note;
         } else {
-            return format_text($row->note, FORMAT_MOODLE); // TODO shorten?
+            return format_text($row->note, FORMAT_MOODLE);
         }
     }
 
@@ -231,13 +432,33 @@ class acceptances_table extends \table_sql {
                 }
             }
         }
+        $str = get_string('acceptancecount', 'tool_policy', (object)[
+            'agreedcount' => $cnt,
+            'policiescount' => $totalcnt
+        ]);
         if ($this->is_downloading()) {
-            return $cnt . " of " . $totalcnt; // TODO string
+            return $str;
         } else {
-            // TODO icon that takes into account onbehalf
-            $s = ($cnt < $totalcnt) ? get_string('no') : get_string('yes');
-            return $s . "<br>" . $cnt . " of " . $totalcnt; // TODO string
+            $s = $this->output->render(new user_agreement($row->id, $cnt == $totalcnt, $this->get_return_url(), 0, $onbehalf));
+            $str = \html_writer::link(new \moodle_url('/admin/tool/policy/user.php', ['userid' => $row->id]), $str);
+            return $s . "<br>" . $str;
         }
+    }
+
+    /**
+     * Generate the country column.
+     *
+     * @param \stdClass $data
+     * @return string
+     */
+    public function col_country($data) {
+        if ($data->country && $this->countries === null) {
+            $this->countries = get_string_manager()->get_list_of_countries();
+        }
+        if (!empty($this->countries[$data->country])) {
+            return $this->countries[$data->country];
+        }
+        return '';
     }
 
     /**
@@ -248,6 +469,12 @@ class acceptances_table extends \table_sql {
         if (preg_match('/^status([\d]+)$/', $column, $matches)) {
             $versionid = $matches[1];
             return $this->status($versionid, $row);
+        }
+        if (preg_match('/^usermodified([\d]+)$/', $column, $matches)) {
+            if ($row->$column && $row->$column != $row->id) {
+                return $this->username($row, 'mod', $column);
+            }
+            return ''; // User agreed by themselves.
         }
         return null;
     }

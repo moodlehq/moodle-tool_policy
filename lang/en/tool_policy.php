@@ -25,11 +25,17 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['acceptancecount'] = '{$a->agreedcount} of {$a->policiescount}';
+$string['acceptancenote'] = 'Remark';
+$string['acceptancestatusoverall'] = 'Overall';
 $string['addpolicydocument'] = 'Add new policy document';
 $string['addpolicyversion'] = 'Add new version';
 $string['agelocationverification'] = 'Age and location verification';
 $string['ageofdigitalconsentmap'] = 'Age of digital consent';
 $string['ageofdigitalconsentmap_desc'] = 'Allows to define the age of digital consent. Users below the age are not allowed to accept the policy documents on their own. In such a case, policies must accepted by the holder of parental responsibility over the user. The age may be different in different countries. If there is no explicit value provided for the user\'s country code, the wildcard character\'s value is used.';
+$string['agreed'] = 'Agreed';
+$string['agreedby'] = 'Agreed by';
+$string['agreedon'] = 'Agreed on';
 $string['agreepolicies'] = 'Please agree to the following policies';
 $string['backtohome'] = 'Back to home';
 $string['backtotop'] = 'Back to top';
@@ -42,6 +48,16 @@ $string['errorpolicyversionnotfound'] = 'There isn\'t any policy version with th
 $string['errorusercantviewpolicyversion'] = 'The user hasn\'t access to this policy version.';
 $string['event_acceptance_created'] = 'User policy acceptance created';
 $string['event_acceptance_updated'] = 'User policy acceptance updated';
+$string['filtercapabilityno'] = 'Permission: Can not agree';
+$string['filtercapabilityyes'] = 'Permission: Can agree';
+$string['filterrevision'] = 'Version: {$a}';
+$string['filterrevisionstatus'] = 'Version: {$a->name} ({$a->status})';
+$string['filterrole'] = 'Role: {$a}';
+$string['filters'] = 'Filters';
+$string['filterstatusno'] = 'Status: Not agreed';
+$string['filterstatusyes'] = 'Status: Agreed';
+$string['filterplaceholder'] = 'Search keyword or select filter';
+$string['filterpolicy'] = 'Policy: {$a}';
 $string['guestconsent:continue'] = 'Continue';
 $string['guestconsentmessage'] = 'If you continue browsing this website, we\'ll assume that you agree to the following policy documents:';
 $string['howoldareyou'] = 'How old are you?';
@@ -62,6 +78,7 @@ $string['newpolicyprivacy'] = 'Privacy policy';
 $string['newpolicysite'] = 'Site policy';
 $string['newpolicythirdparties'] = 'Third parties policy';
 $string['newversion'] = 'New version';
+$string['nofiltersapplied'] = 'No filters applied';
 $string['nopermissiontoviewpolicyversion'] = 'You do not have the required permissions to view this policy document version.';
 // TODO: Change dummy with real text in explanationdigitalminor.
 $string['explanationdigitalminor'] = 'Some explanation about digital minors and ensuring personal information is not stored / processed / etc.';
