@@ -163,12 +163,10 @@ function tool_policy_pluginfile($course, $cm, $context, $filearea, $args, $force
 /**
  * Check if current user has to accept some site policies.
  *
- * @return moodle_url The URL to a script where the user should accept the policies or empty if
+ * @return moodle_url|string The URL to a script where the user should accept the policies or empty if
  * the user can continue using the site without being redirected.
  */
 function tool_policy_site_policy_handler() {
     global $CFG;
-
-    $url = $CFG->wwwroot . '/admin/tool/policy/index.php';
-    return $url;
+    return $CFG->wwwroot . '/' . $CFG->admin . '/tool/policy/index.php';
 }

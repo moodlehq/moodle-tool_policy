@@ -39,6 +39,10 @@ $agreedocs = optional_param_array('agreedoc', null, PARAM_INT);
 // TODO: Rename userid parameter to behalfid.
 $behalfid = optional_param('userid', null, PARAM_INT);
 
+$PAGE->set_context(context_system::instance());
+$PAGE->set_url('/admin/tool/policy/index.php');
+$PAGE->set_popup_notification_allowed(false);
+
 $consentpage = new \tool_policy\output\page_agreedocs($agreedocs, $behalfid);
 
 $output = $PAGE->get_renderer('tool_policy');
