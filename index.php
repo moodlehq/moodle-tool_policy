@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Show an user the policy documents to be agreed to.
+ * Show a user the policy documents to be agreed to.
  *
  * Script parameters:
  *  agreedoc=<array> Policy version id which have been accepted by the user.
@@ -36,7 +36,6 @@ define('NO_SITEPOLICY_CHECK', true);
 require(__DIR__.'/../../../config.php');
 
 $agreedocs = optional_param_array('agreedoc', null, PARAM_INT);
-// TODO: Rename userid parameter to behalfid.
 $behalfid = optional_param('userid', null, PARAM_INT);
 
 $PAGE->set_context(context_system::instance());

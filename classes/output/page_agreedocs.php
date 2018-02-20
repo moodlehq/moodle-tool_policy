@@ -38,7 +38,7 @@ use templatable;
 use tool_policy\api;
 
 /**
- * Represents a page for showing all the policy documents which an user has to agree to.
+ * Represents a page for showing all the policy documents which a user has to agree to.
  *
  * @copyright 2018 Sara Arjona <sara@moodle.com>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -56,6 +56,9 @@ class page_agreedocs implements renderable, templatable {
 
     /** @var object User who wants to accept this page. */
     protected $behalfuser = null;
+
+    /** @var array Info or error messages to show. */
+    protected $messages = [];
 
     /**
      * Prepare the page for rendering.
@@ -93,12 +96,12 @@ class page_agreedocs implements renderable, templatable {
 
     /**
      * Accept and revoke the policy versions.
+     * The capabilities for accepting/revoking policies are checked into the api functions.
      *
      */
     protected function accept_and_revoke_policies() {
         global $USER, $SESSION;
 
-        // TODO: Make sure the user has the right capabilities for accepting/revoking these policies.
         if (!empty($this->agreedocs) && confirm_sesskey()) {
             if (!empty($USER->id)) {
                 // Existing user.
@@ -110,12 +113,25 @@ class page_agreedocs implements renderable, templatable {
                         // Save policy version doc to accept it.
                         $acceptversionids[] = $policy->currentversionid;
                     } else {
-                        // TODO: Revoke policy doc.
-                        //api::revoke_acceptance($policy->currentversionid, $this->behalfid);
+                        // Revoke policy doc.
+                        api::revoke_acceptance($policy->currentversionid, $this->behalfid);
                     }
                 }
                 // Accept all policy docs saved in $acceptversionids.
                 api::accept_policies($acceptversionids, $this->behalfid, null, $lang);
+                // Show a message to let know the user he/she must agree all the policies.
+                if (sizeof($acceptversionids) != sizeof($this->policies)) {
+                    $message = (object) [
+                        'type' => 'error',
+                        'text' => get_string('mustagreetocontinue', 'tool_policy')
+                    ];
+                } else {
+                    $message = (object) [
+                        'type' => 'success',
+                        'text' => get_string('acceptancessavedsucessfully', 'tool_policy')
+                    ];
+                }
+                $this->messages[] = $message;
             } else {
                 // New user.
                 // If the user has accepted all the policies, add this to the SESSION to let continue with the signup process.
@@ -125,7 +141,14 @@ class page_agreedocs implements renderable, templatable {
                 }
                 $SESSION->tool_policy->userpolicyagreed = empty(array_diff($currentpolicyversionids, $this->agreedocs));
 
-                // TODO: Show a message to let know the user he/she must agree all the policies if he/she wants to create an user.
+                if (!$SESSION->tool_policy->userpolicyagreed) {
+                    // Show a message to let know the user he/she must agree all the policies if he/she wants to create a user.
+                    $message = (object) [
+                        'type' => 'error',
+                        'text' => get_string('mustagreetocontinue', 'tool_policy')
+                    ];
+                    $this->messages[] = $message;
+                }
             }
         } else if (empty($this->policies)) {
             // There are no policies to agree to. Update the policyagreed value to avoid show empty consent page.
@@ -293,13 +316,15 @@ class page_agreedocs implements renderable, templatable {
                 if (!empty($this->policies[$policy->id]->versionacceptance)) {
                     // The policy version has ever been agreed. Check if status = 1 to know if still is accepted.
                     $versionagreed = $this->policies[$policy->id]->versionacceptance->status;
-                    if ($this->policies[$policy->id]->versionacceptance->lang != $lang) {
-                        // Add a message because this version has been accepted in a different language than the current one.
-                        $this->policies[$policy->id]->versionlangsagreed = get_string('policyversionacceptedinotherlang', 'tool_policy');
-                    }
-                    if ($this->policies[$policy->id]->versionacceptance->usermodified != $this->behalfid) {
-                        // Add a message because this version has been accepted in behalf of current user.
-                        $this->policies[$policy->id]->versionbehalfsagreed = get_string('policyversionacceptedinbehalf', 'tool_policy');
+                    if ($versionagreed) {
+                        if ($this->policies[$policy->id]->versionacceptance->lang != $lang) {
+                            // Add a message because this version has been accepted in a different language than the current one.
+                            $this->policies[$policy->id]->versionlangsagreed = get_string('policyversionacceptedinotherlang', 'tool_policy');
+                        }
+                        if ($this->policies[$policy->id]->versionacceptance->usermodified != $this->behalfid) {
+                            // Add a message because this version has been accepted in behalf of current user.
+                            $this->policies[$policy->id]->versionbehalfsagreed = get_string('policyversionacceptedinbehalf', 'tool_policy');
+                        }
                     }
                 }
             } else {
@@ -330,6 +355,24 @@ class page_agreedocs implements renderable, templatable {
             'myurl' => (new moodle_url('/admin/tool/policy/index.php', $myparams))->out(false),
             'sesskey' => sesskey(),
         ];
+
+        if (!empty($this->messages)) {
+            foreach ($this->messages as $message) {
+                switch ($message->type) {
+                    case 'error':
+                        $data->messages[] = $output->notify_problem($message->text);
+                        break;
+
+                    case 'success':
+                        $data->messages[] = $output->notify_success($message->text);
+                        break;
+
+                    default:
+                        $data->messages[] = $output->notify_message($message->text);
+                        break;
+                }
+            }
+        }
 
         $data->policies = array_values($this->policies);
         foreach ($data->policies as $policy) {

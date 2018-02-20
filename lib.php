@@ -66,10 +66,10 @@ function tool_policy_extend_navigation_user_settings(navigation_node $usersettin
  * @return string The HTML code to insert before the head.
  */
 function tool_policy_before_standard_html_head() {
-    global $PAGE, $USER;
+    global $CFG, $PAGE, $USER;
 
     $message = null;
-    if (empty($USER->policyagreed) and isguestuser()) {
+    if (!empty($CFG->sitepolicyhandler) && $CFG->sitepolicyhandler == 'tool_policy' && empty($USER->policyagreed) && isguestuser()) {
         $output = $PAGE->get_renderer('tool_policy');
         $page = new \tool_policy\output\guestconsent();
 

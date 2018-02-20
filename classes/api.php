@@ -848,8 +848,15 @@ class api {
         if (!isloggedin() || isguestuser()) {
             throw new \moodle_exception('noguest');
         }
+        if (!$userid) {
+            $userid = $USER->id;
+        }
         $usercontext = \context_user::instance($userid);
-        require_capability('tool/policy:acceptbehalf', $usercontext);
+        if ($userid == $USER->id) {
+            require_capability('tool/policy:accept', context_system::instance());
+        } else {
+            require_capability('tool/policy:acceptbehalf', $usercontext);
+        }
 
         if ($currentacceptance = $DB->get_record('tool_policy_acceptances',
                 ['policyversionid' => $policyversionid, 'userid' => $userid])) {

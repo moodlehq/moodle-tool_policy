@@ -68,14 +68,28 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
         api::make_current($this->policy2->policyid, $this->policy2->versionid);
 
         // Create users.
-        $this->user = self::getDataGenerator()->create_user();
+        $this->child = $this->getDataGenerator()->create_user();
+        $this->parent = $this->getDataGenerator()->create_user();
+        $this->adult = $this->getDataGenerator()->create_user();
+
+        $syscontext = context_system::instance();
+        $childcontext = context_user::instance($this->child->id);
+
+        $roleminorid = create_role('Digital minor', 'digiminor', 'Not old enough to accept site policies themselves');
+        $roleparentid = create_role('Parent', 'parent', 'Can accept policies on behalf of their child');
+
+        assign_capability('tool/policy:accept', CAP_PROHIBIT, $roleminorid, $syscontext->id);
+        assign_capability('tool/policy:acceptbehalf', CAP_ALLOW, $roleparentid, $syscontext->id);
+
+        role_assign($roleminorid, $this->child->id, $syscontext->id);
+        role_assign($roleparentid, $this->parent->id, $childcontext->id);
     }
 
     /**
      * Test for the get_policy_version() function.
      */
     public function test_get_policy_version() {
-        $this->setUser($this->user);
+        $this->setUser($this->adult);
 
         // View current policy version.
         $result = external::get_policy_version($this->policy2->versionid);
@@ -91,9 +105,35 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
         $this->assertCount(1, $result['warnings']);
         $this->assertEquals(array_pop($result['warnings'])['warningcode'], 'errorusercantviewpolicyversion');
 
-        // TODO: Add test for non existing versionid.
+        // Add test for non existing versionid.
+        $result = external::get_policy_version(999);
+        $result = external_api::clean_returnvalue(external::get_policy_version_returns(), $result);
+        $this->assertCount(0, $result['result']);
+        $this->assertCount(1, $result['warnings']);
+        $this->assertEquals(array_pop($result['warnings'])['warningcode'], 'errorpolicyversionnotfound');
 
-        // TODO: Add test for behalfid.
+        // View previous non-accepted version in behalf of a child.
+        $this->setUser($this->parent);
+        $result = external::get_policy_version($this->policy1->versionid, $this->child->id);
+        $result = external_api::clean_returnvalue(external::get_policy_version_returns(), $result);
+        $this->assertCount(0, $result['result']);
+        $this->assertCount(1, $result['warnings']);
+        $this->assertEquals(array_pop($result['warnings'])['warningcode'], 'errorusercantviewpolicyversion');
 
+        // Let the parent accept the policy on behalf of her child and view it again.
+        api::accept_policies($this->policy1->versionid, $this->child->id);
+        $result = external::get_policy_version($this->policy1->versionid, $this->child->id);
+        $result = external_api::clean_returnvalue(external::get_policy_version_returns(), $result);
+        $this->assertCount(1, $result['result']);
+        $this->assertEquals($this->policy1->name, $result['result']['policy']['name']);
+        $this->assertEquals($this->policy1->content, $result['result']['policy']['content']);
+
+        // Only parent is able to view the child policy version accepted by her child.
+        $this->setUser($this->adult);
+        $result = external::get_policy_version($this->policy1->versionid, $this->child->id);
+        $result = external_api::clean_returnvalue(external::get_policy_version_returns(), $result);
+        $this->assertCount(0, $result['result']);
+        $this->assertCount(1, $result['warnings']);
+        $this->assertEquals(array_pop($result['warnings'])['warningcode'], 'errorusercantviewpolicyversion');
     }
 }

@@ -21,7 +21,9 @@
  * @copyright  2018 Sara Arjona (sara@moodle.com)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 namespace tool_policy;
+
 defined('MOODLE_INTERNAL') || die();
 
 use coding_exception;
@@ -86,23 +88,25 @@ class external extends external_api {
         $versionid = $params['versionid'];
         $behalfid = $params['behalfid'];
 
-        // Validate if the user has access to the policy version.
-        // TODO: Check if the policy version exists (to avoid SQL error).
-        $version = api::get_policy_version(null, $versionid);
-        if (!api::can_user_view_policy_version($version, $behalfid)) {
-            // TODO: Error.
-            $warnings[] = [
-                'item' => $versionid,
-                'warningcode' => 'errorusercantviewpolicyversion',
-                'message' => get_string('errorusercantviewpolicyversion', 'tool_policy')
-            ];
-        } else if (!empty($version)) {
+        // Check if the policy version exists (to avoid SQL error).
+        $policyversionexists = policy_version::record_exists($versionid);
+        if ($policyversionexists) {
+            // Validate if the user has access to the policy version.
             $version = api::get_policy_version(null, $versionid);
-            $policy['name'] = $version->name;
-            $policy['versionid'] = $versionid;
-            list($policy['content'], $notusedformat) = external_format_text($version->content, $version->contentformat, SYSCONTEXTID,
-                'tool_policy', 'policydocumentcontent', $version->versionid);
-            $result['policy'] = $policy;
+            if (!api::can_user_view_policy_version($version, $behalfid)) {
+                $warnings[] = [
+                    'item' => $versionid,
+                    'warningcode' => 'errorusercantviewpolicyversion',
+                    'message' => get_string('errorusercantviewpolicyversion', 'tool_policy')
+                ];
+            } else if (!empty($version)) {
+                $version = api::get_policy_version(null, $versionid);
+                $policy['name'] = $version->name;
+                $policy['versionid'] = $versionid;
+                list($policy['content'], $notusedformat) = external_format_text($version->content, $version->contentformat, SYSCONTEXTID,
+                    'tool_policy', 'policydocumentcontent', $version->versionid);
+                $result['policy'] = $policy;
+            }
         } else {
             $warnings[] = [
                 'item' => $versionid,

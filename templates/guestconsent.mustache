@@ -19,6 +19,7 @@
 
     Classes required for JS:
     * eupopup
+    * policyactions
 
     Data attributes required for JS:
     -
@@ -28,13 +29,23 @@
 }}
 
 {{#js}}
-require(['jquery', 'tool_policy/jquery-eu-cookie-law-popup'], function($) {
+
+require(['jquery', 'tool_policy/jquery-eu-cookie-law-popup', 'tool_policy/policyactions'], function($, Popup, ActionsMod) {
+        // Initialise the guest popup.
         $(document).ready( function() {
             // Only show message if there is some policy related to guests.
             {{#policies.0}}
                 // Get localised messages.
                 var textmessage = "{{# str }} guestconsentmessage, tool_policy {{/ str }}" +
-                   "<ul>{{#policies}}<li><a href=\"{{pluginbaseurl}}/view.php?policyid={{id}}{{#returnurl}}&returnurl={{.}}{{/returnurl}}\">{{name}}</a></li>{{/policies}}</ul>";
+                   "<ul>{{#policies}}" +
+                   "<li>" +
+                   "<a href=\"{{pluginbaseurl}}/view.php?policyid={{id}}{{#returnurl}}&returnurl={{.}}{{/returnurl}}\" "+
+                   "   data-action=\"view\" data-versionid=\"{{currentversionid}}\" data-behalfid=\"1\" >" +
+                   "{{name}}" +
+                   "</a>" +
+                   "</li>" +
+                   "{{/policies}}" +
+                   "</ul>";
                 var continuemessage = "{{# str }} guestconsent:continue, tool_policy {{/ str }}";
 
                 // Initialize popup.
@@ -49,7 +60,11 @@ require(['jquery', 'tool_policy/jquery-eu-cookie-law-popup'], function($) {
                         compactStyle : true,
                     });
                 }
-            //{{/policies.0}}
+            {{/policies.0}}
+
+            // Initialise the JS for the modal window which displays the policy versions.
+            var policyActions = new ActionsMod();
         });
 });
+
 {{/js}}

@@ -25,10 +25,9 @@ define([
     'jquery',
     'core/ajax',
     'core/notification',
-    'core/str',
     'core/modal_factory',
     'core/modal_events'],
-function($, Ajax, Notification, Str, ModalFactory, ModalEvents) {
+function($, Ajax, Notification, ModalFactory, ModalEvents) {
 
     /**
      * List of action selectors.
@@ -68,12 +67,10 @@ function($, Ajax, Notification, Str, ModalFactory, ModalEvents) {
 
             var promises = Ajax.call([request]);
             var modalTitle = '';
-            // TODO: Create a modal type for replacing the CANCEL button to CLOSE or similar.
-            var modalType = ModalFactory.types.CANCEL;
-            // TODO: Decide which is the best title for the modal window.
-            $.when(promises[0], Str.get_string('policiesagreements', 'tool_policy')).then(function(data, langString) {
-                if (data.result) {
-                    modalTitle = langString;
+            var modalType = ModalFactory.types.DEFAULT;
+            $.when(promises[0]).then(function(data) {
+                if (data.result.policy) {
+                    modalTitle = data.result.policy.name;
                     return data.result.policy.content;
                 }
                 // Fail.
@@ -84,20 +81,22 @@ function($, Ajax, Notification, Str, ModalFactory, ModalEvents) {
                 return false;
 
             }).then(function(html) {
-                return ModalFactory.create({
-                    title: modalTitle,
-                    body: html,
-                    type: modalType,
-                    large: true
-                }).then(function(modal) {
-                    // Handle hidden event.
-                    modal.getRoot().on(ModalEvents.hidden, function() {
-                        // Destroy when hidden.
-                        modal.destroy();
-                    });
+                if (html != false) {
+                    return ModalFactory.create({
+                        title: modalTitle,
+                        body: html,
+                        type: modalType,
+                        large: true
+                    }).then(function(modal) {
+                        // Handle hidden event.
+                        modal.getRoot().on(ModalEvents.hidden, function() {
+                            // Destroy when hidden.
+                            modal.destroy();
+                        });
 
-                    return modal;
-                });
+                        return modal;
+                    });
+                }
             }).done(function(modal) {
                 // Show the modal.
                 modal.show();

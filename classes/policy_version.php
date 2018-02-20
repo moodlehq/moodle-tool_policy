@@ -15,25 +15,42 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tool policy external functions and service definitions.
+ * Class for tool_policy_versions persistence.
  *
  * @package    tool_policy
- * @category   external
  * @copyright  2018 Sara Arjona (sara@moodle.com)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die;
+namespace tool_policy;
 
-$functions = [
-    'tool_policy_get_policy_version' => [
-        'classname'     => 'tool_policy\external',
-        'methodname'    => 'get_policy_version',
-        'classpath'     => '',
-        'description'   => 'Fetch the details of a policy version',
-        'type'          => 'read',
-        'capabilities'  => '',
-        'ajax'          => true,
-        'loginrequired' => false,
-    ],
-];
+defined('MOODLE_INTERNAL') || die();
+
+use core\persistent;
+
+/**
+ * Class for loading/storing tool_policy_versions from the DB.
+ *
+ * @copyright  2018 Sara Arjona (sara@moodle.com)
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class policy_version extends persistent {
+
+    const TABLE = 'tool_policy_versions';
+
+    /**
+     * Return the definition of the properties of this model.
+     *
+     * @return array
+     */
+    protected static function define_properties() {
+        return [
+            'policyid' => [
+                'type' => PARAM_INT,
+            ],
+            'content' => [
+                'type' => PARAM_TEXT,
+            ],
+        ];
+    }
+}
