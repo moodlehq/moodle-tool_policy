@@ -57,14 +57,15 @@ class api {
      * @param array|int|null $ids Load only the given policies, defaults to all.
      * @param bool $onlycurrent If true, return only policies with a current version defined.
      * @param int $audience Only those that match specified audience (null means any). Policies with audience AUDIENCE_ALL are always returned.
+     * @param int $countacceptances return number of user acceptances for each version
      * @return stdClass;
      */
-    public static function list_policies($ids = null, $onlycurrent = false, $audience = null) {
+    public static function list_policies($ids = null, $onlycurrent = false, $audience = null, $countacceptances = false) {
         global $DB;
 
-        $sql = "SELECT d.id AS policyid, d.name, d.description, d.audience, d.currentversionid, d.sortorder,
-                       v.id AS versionid, v.usermodified, v.timecreated, v.timemodified, v.revision
-                  FROM {tool_policy} d";
+        $fields = "SELECT d.id AS policyid, d.name, d.description, d.audience, d.currentversionid, d.sortorder,
+                       v.id AS versionid, v.usermodified, v.timecreated, v.timemodified, v.revision";
+        $sql = " FROM {tool_policy} d";
         if ($onlycurrent) {
             $sql .= " INNER JOIN {tool_policy_versions} v ON v.policyid = d.id AND v.id = d.currentversionid ";
         } else {
@@ -86,6 +87,15 @@ class api {
             $params['audienceall'] = self::AUDIENCE_ALL;
         }
 
+        if ($countacceptances) {
+            $sql .= " LEFT JOIN (
+                            SELECT policyversionid, count(*) AS acceptancescount
+                            FROM {tool_policy_acceptances}
+                            GROUP BY policyversionid
+                        ) ua ON ua.policyversionid = v.id";
+            $fields .= ", COALESCE(ua.acceptancescount,0) AS acceptancescount";
+        }
+
         if ($where) {
             $sql .= " WHERE " . join(" AND ", $where) . " ";
         }
@@ -94,7 +104,7 @@ class api {
 
         $policies = [];
 
-        $rs = $DB->get_recordset_sql($sql, $params);
+        $rs = $DB->get_recordset_sql($fields . $sql, $params);
 
         foreach ($rs as $r) {
             if (!isset($policies[$r->policyid])) {
@@ -107,6 +117,9 @@ class api {
                     'sortorder' => $r->sortorder,
                     'versions' => [],
                 ];
+                if ($countacceptances) {
+                    $policies[$r->policyid]->acceptancescount = null;
+                }
             }
 
             if (!empty($r->versionid)) {
@@ -116,12 +129,34 @@ class api {
                     'timemodified' => $r->timemodified,
                     'revision' => $r->revision,
                 ];
-            };
+            }
+
+            if ($countacceptances && $r->versionid) {
+                $acceptancescount = ($r->audience == self::AUDIENCE_GUESTS) ? null : $r->acceptancescount;
+                $policies[$r->policyid]->versions[$r->versionid]->acceptancescount = $acceptancescount;
+                if ($r->versionid == $r->currentversionid) {
+                    $policies[$r->policyid]->acceptancescount = $acceptancescount;
+                }
+            }
         }
 
         $rs->close();
 
         return $policies;
+    }
+
+    /**
+     * Returns total number of users who are expected to accept site policy
+     *
+     * @return int|null
+     */
+    public static function count_total_users() {
+        global $DB, $CFG;
+        static $cached = null;
+        if ($cached === null) {
+            $cached = $DB->count_records_select('user', 'deleted = 0 AND id <> ?', [$CFG->siteguest]);
+        }
+        return $cached;
     }
 
     /**

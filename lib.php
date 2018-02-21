@@ -168,5 +168,7 @@ function tool_policy_pluginfile($course, $cm, $context, $filearea, $args, $force
  */
 function tool_policy_site_policy_handler() {
     global $CFG;
-    return $CFG->wwwroot . '/' . $CFG->admin . '/tool/policy/index.php';
+    if (!isguestuser()) {
+        return $CFG->wwwroot . '/' . $CFG->admin . '/tool/policy/index.php';
+    }
 }

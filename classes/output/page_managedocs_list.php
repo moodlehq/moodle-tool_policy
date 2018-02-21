@@ -58,7 +58,7 @@ class page_managedocs_list implements renderable, templatable {
         $data->canviewacceptances = has_capability('tool/policy:viewacceptances', \context_system::instance());
         $data->policies = [];
 
-        foreach (api::list_policies() as $policy) {
+        foreach (api::list_policies(null, false, null, $data->canviewacceptances) as $policy) {
             $datapolicy = (object) [
                 'id' => $policy->id,
                 'manageurl' => (new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policy->id]))->out(false),
@@ -72,8 +72,13 @@ class page_managedocs_list implements renderable, templatable {
                 ]))->out(false),
                 'name' => $policy->name,
                 'description' => $policy->description,
-                'usersaccepted' => '???',
             ];
+            if ($data->canviewacceptances && isset($policy->acceptancescount)) {
+                $cnt = api::count_total_users();
+                $a = (object)['agreedcount' => $policy->acceptancescount, 'userscount' => $cnt,
+                    'percent' => round($policy->acceptancescount/max($cnt, 1))];
+                $datapolicy->usersaccepted = get_string('useracceptancecount', 'tool_policy', $a);
+            }
 
             if ($policy->currentversionid) {
                 $current = $policy->versions[$policy->currentversionid];

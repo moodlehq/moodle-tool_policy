@@ -78,7 +78,12 @@ class page_managedocs_document implements renderable, templatable {
         $data->canmanage = $this->canmanage;
         $data->canviewacceptances = $this->canviewacceptances;
 
-        $policy = api::list_policies($this->policyid)[$this->policyid];
+        $policy = api::list_policies($this->policyid, false, null, $data->canviewacceptances)[$this->policyid];
+
+        if ($policy->audience == api::AUDIENCE_GUESTS) {
+            // No user acceptances report for guest-only policies.
+            $data->canviewacceptances = false;
+        }
 
         $data->policyid = $policy->id;
         $data->name = $policy->name;
@@ -97,9 +102,14 @@ class page_managedocs_document implements renderable, templatable {
                 ]))->out(false),
                 'timemodified' => $version->timemodified,
                 'revision' => $version->revision,
-                'usersaccepted' => '???',
                 'actions' => [],
             ];
+            if ($data->canviewacceptances && isset($version->acceptancescount)) {
+                $cnt = api::count_total_users();
+                $a = (object)['agreedcount' => $version->acceptancescount, 'userscount' => $cnt,
+                    'percent' => round($policy->acceptancescount/max($cnt, 1))];
+                $dataversion->usersaccepted = get_string('useracceptancecount', 'tool_policy', $a);
+            }
 
             $editbaseurl = new moodle_url('/admin/tool/policy/editpolicydoc.php', [
                 'policyid' => $policy->id,

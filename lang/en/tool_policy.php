@@ -140,6 +140,7 @@ $string['template_thirdparties_content'] = '<h2>Sharing data with third parties<
 $string['template_thirdparties_description'] = 'Sharing personal data with other institutions';
 $string['template_thirdparties_name'] = 'Third parties policy example';
 $string['template_thirdparties_summary'] = '<p><strong>Some of your personal data are shared with other institutions. The list of these institutions, description of shared data and the purpose of that sharing is available in the full text of the policy.</strong></p>';
+$string['useracceptancecount'] = '{$a->agreedcount} of {$a->userscount} ({$a->percent}%)';
 $string['useracceptances'] = 'User acceptances';
 $string['userpolicysettings'] = 'Policies';
 $string['usersaccepted'] = 'Users accepted';
