@@ -76,7 +76,7 @@ class page_managedocs_list implements renderable, templatable {
             if ($data->canviewacceptances && isset($policy->acceptancescount)) {
                 $cnt = api::count_total_users();
                 $a = (object)['agreedcount' => $policy->acceptancescount, 'userscount' => $cnt,
-                    'percent' => round($policy->acceptancescount/max($cnt, 1))];
+                    'percent' => round($policy->acceptancescount*100/max($cnt, 1))];
                 $datapolicy->usersaccepted = get_string('useracceptancecount', 'tool_policy', $a);
             }
 
