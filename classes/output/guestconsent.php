@@ -63,6 +63,7 @@ class guestconsent implements renderable, templatable {
                 $data->returnurl = $returnurl;
             }
         }
+        $data->returnurl = urlencode($data->returnurl);
 
         $policies = \tool_policy\api::list_policies(null, true, api::AUDIENCE_GUESTS);
         $data->policies = array_values($policies);

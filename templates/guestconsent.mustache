@@ -39,7 +39,7 @@ require(['jquery', 'tool_policy/jquery-eu-cookie-law-popup', 'tool_policy/policy
                 var textmessage = "{{# str }} guestconsentmessage, tool_policy {{/ str }}" +
                    "<ul>{{#policies}}" +
                    "<li>" +
-                   "<a href=\"{{pluginbaseurl}}/view.php?policyid={{id}}{{#returnurl}}&returnurl={{.}}{{/returnurl}}\" "+
+                   "<a href=\"{{pluginbaseurl}}/view.php?policyid={{id}}{{#returnurl}}&amp;returnurl={{.}}{{/returnurl}}\" "+
                    "   data-action=\"view\" data-versionid=\"{{currentversionid}}\" data-behalfid=\"1\" >" +
                    "{{name}}" +
                    "</a>" +
