@@ -98,7 +98,7 @@ class page_viewdoc implements renderable, templatable {
      * Sets up the global $PAGE and performs the access checks.
      */
     protected function prepare_global_page_access() {
-        global $CFG, $PAGE, $SITE;
+        global $CFG, $PAGE, $SITE, $USER;
 
         $myurl = new moodle_url('/admin/tool/policy/view.php', [
             'policyid' => $this->policy->policyid,
@@ -116,10 +116,12 @@ class page_viewdoc implements renderable, templatable {
             require_capability('tool/policy:managedocs', context_system::instance());
             $PAGE->navbar->add(format_string($this->policy->name),
                 new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $this->policy->policyid]));
-
         } else {
             if (!api::is_public($this->policy)) {
                 require_login();
+            } else if (isguestuser() || empty($USER->id) || !$USER->policyagreed) {
+                // Disable notifications for new users, guests or users who haven't agreed to the policies.
+                $PAGE->set_popup_notification_allowed(false);
             }
             $PAGE->set_context(context_system::instance());
             $PAGE->set_pagelayout('standard');
