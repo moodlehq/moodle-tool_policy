@@ -203,6 +203,56 @@ class api {
     }
 
     /**
+     * Check if there is another version with the same revision name for this policy.
+     * If a version ID is specified, it will be excluded from the search.
+     *
+     * @param string $revision Revision name to check if exists.
+     * @param int $policyid ID of the policy document.
+     * @param int $excludedversionid ID of the policy version to exclude from the search.
+     * @return bool
+     */
+    public static function policy_revision_exists($revision, $policyid, $excludedversionid = null) {
+        global $DB;
+
+        $sql = "SELECT v.id AS versionid
+                  FROM {tool_policy_versions} v
+                 WHERE v.policyid = :policyid AND v.revision = :revision";
+
+        $params = [
+            'policyid' => $policyid,
+            'revision' => $revision,
+        ];
+
+        if ($excludedversionid) {
+            $sql .= " AND v.id != :versionid";
+            $params['versionid'] = $excludedversionid;
+        }
+
+        return $DB->record_exists_sql($sql, $params);
+    }
+
+    /**
+     * Calculate the default revision value for a policy version.
+     *
+     * @param int $policyid ID of the policy document.
+     * @param int $versionid ID of the policy version to get default revision.
+     * @return string
+     */
+    public static function get_default_policy_revision_value($policyid, $versionid = null) {
+        $revision = userdate(time(), get_string('strftimedate', 'core_langconfig'));
+
+        // Make sure the revision is unique for this policy.
+        $defaultrevision = $revision;
+        $i = 1;
+        while (static::policy_revision_exists($defaultrevision, $policyid, $versionid)) {
+            $defaultrevision = "$revision - v$i";
+            $i++;
+        }
+
+        return $defaultrevision;
+    }
+
+    /**
      * Is the given policy version available even to anybody?
      *
      * @param stdClass $policy Object with currentversionid and versionid properties
@@ -379,10 +429,6 @@ class api {
             }
         }
 
-        if (!isset($data->revision)) {
-            $data->revision = userdate(time(), get_string('strftimedate', 'core_langconfig'));
-        }
-
         if (!isset($data->summaryformat)) {
             $data->summaryformat = editors_get_preferred_format();
         }
@@ -473,6 +519,11 @@ class api {
         $contentfieldoptions = static::policy_content_field_options();
         $form = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context']);
 
+        if (empty($form->revision) || static::policy_revision_exists($form->revision, $policyid)) {
+            // Revision must be unique for each policy.
+            $form->revision = static::get_default_policy_revision_value($policyid);
+        }
+
         $version = (object) [
             'usermodified' => $USER->id,
             'timecreated' => $now,
@@ -532,6 +583,11 @@ class api {
         $contentfieldoptions = static::policy_content_field_options();
         $form = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context'],
             'tool_policy', 'policydocumentcontent', $versionid);
+
+        if (empty($form->revision) || static::policy_revision_exists($form->revision, $policyid, $versionid)) {
+            // Revision must be unique for each policy.
+            $form->revision = static::get_default_policy_revision_value($policyid, $versionid);
+        }
 
         $version = (object) [
             'id' => $versionid,
@@ -913,10 +969,16 @@ class api {
 
         $ageconsentmapparsed = array();
         $ageconsentmap = get_config('tool_policy', 'agedigitalconsentmap');
-        $lines = preg_split( '/\r\n|\r|\n/', $ageconsentmap);
-        foreach ($lines as $line) {
-            $arr = explode(" ", $line);
-            $ageconsentmapparsed[$arr[0]] = $arr[1];
+        if (!empty($ageconsentmap)) {
+            $lines = preg_split( '/\r\n|\r|\n/', $ageconsentmap);
+            foreach ($lines as $line) {
+                $arr = explode(" ", $line);
+                $ageconsentmapparsed[$arr[0]] = $arr[1];
+            }
+        }
+        // If the consent map is empty, initialise to make sure * is defined.
+        if (empty($ageconsentmapparsed)) {
+            $ageconsentmapparsed['*'] = 0;
         }
 
         return $ageconsentmapparsed;

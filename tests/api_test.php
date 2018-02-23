@@ -46,7 +46,6 @@ class tool_policy_api_testcase extends advanced_testcase {
 
         // Pre-load the form for adding a new policy document.
         $formdata = api::form_policydoc_data();
-        $this->assertNotNull($formdata->revision);
 
         // Pre-load the form for adding a new policy document based on a template.
         $formdata = api::form_policydoc_data(null, null, 'site');
@@ -135,6 +134,32 @@ class tool_policy_api_testcase extends advanced_testcase {
         $loaded = api::get_policy_version(null, $another->versionid);
         $this->assertEquals($loaded->policyid, $another->policyid);
         $this->assertEquals($loaded->versionid, $another->versionid);
+
+        // Save form as a new version with an empty revision.
+        $formdata = api::form_policydoc_data($policy->policyid, $new->versionid);
+        $formdata->revision = '';
+        $formdata->summary_editor['text'] = '<strong>And one more summary</strong>';
+        $formdata->summary_editor['format'] = FORMAT_MOODLE;
+        $formdata->content_editor['text'] = '<h3>And one more test</h3>';
+        $formdata->content_editor['format'] = FORMAT_HTML;
+        $defaultrevision = api::get_default_policy_revision_value($new->policyid);
+        $new2 = api::form_policydoc_update_new($policy->policyid, $formdata);
+        $this->assertEquals($policy->policyid, $new2->policyid);
+        $this->assertNotEquals($new->versionid, $new2->versionid);
+        $this->assertEquals($defaultrevision, $new2->revision);
+
+        // Save form as a new version with an existing revision.
+        $formdata = api::form_policydoc_data($policy->policyid, $new->versionid);
+        $formdata->revision = $new->revision;
+        $formdata->summary_editor['text'] = '<strong>And one more summary</strong>';
+        $formdata->summary_editor['format'] = FORMAT_MOODLE;
+        $formdata->content_editor['text'] = '<h3>And one more test</h3>';
+        $formdata->content_editor['format'] = FORMAT_HTML;
+        $defaultrevision = api::get_default_policy_revision_value($new->policyid);
+        $new2 = api::form_policydoc_update_new($policy->policyid, $formdata);
+        $this->assertEquals($policy->policyid, $new2->policyid);
+        $this->assertNotEquals($new->versionid, $new2->versionid);
+        $this->assertEquals($defaultrevision, $new2->revision);
     }
 
     /**
@@ -239,6 +264,32 @@ class tool_policy_api_testcase extends advanced_testcase {
     }
 
     /**
+     * Helper method that prepare a policy document with some versions.
+     *
+     * @param int $numbersions The number of policy versions to create.
+     * @return array Array with all the policy versions created.
+     */
+    protected function create_versions($numversions = 2) {
+        $policyversions = [];
+        // Prepare a policy document with some versions.
+        $formdata = api::form_policydoc_data();
+        $formdata->name = 'Test policy';
+        $formdata->revision = 'v1';
+        $formdata->summary_editor = ['text' => 'summary', 'format' => FORMAT_HTML, 'itemid' => 0];
+        $formdata->content_editor = ['text' => 'content', 'format' => FORMAT_HTML, 'itemid' => 0];
+        $policy1 = api::form_policydoc_add($formdata);
+        $policyversions[] = $policy1;
+
+        for ($i = 2; $i <= $numversions; $i++) {
+            $formdata = api::form_policydoc_data($policy1->policyid, $policy1->versionid);
+            $formdata->revision = 'v'.$i;
+            $policyversions[] = api::form_policydoc_update_new($policy1->policyid, $formdata);
+        }
+
+        return $policyversions;
+    }
+
+    /**
      * Test check if a user is a digital minor.
      */
     public function test_is_minor() {
@@ -272,20 +323,8 @@ class tool_policy_api_testcase extends advanced_testcase {
         $this->resetAfterTest();
         $this->setAdminUser();
 
-        $formdata = api::form_policydoc_data();
-        $formdata->name = 'Test policy';
-        $formdata->revision = 'v1';
-        $formdata->summary_editor = ['text' => 'summary', 'format' => FORMAT_HTML, 'itemid' => 0];
-        $formdata->content_editor = ['text' => 'content', 'format' => FORMAT_HTML, 'itemid' => 0];
-        $policy1 = api::form_policydoc_add($formdata);
-
-        $formdata = api::form_policydoc_data($policy1->policyid, $policy1->versionid);
-        $formdata->revision = 'v2';
-        $policy2 = api::form_policydoc_update_new($policy1->policyid, $formdata);
-
-        $formdata = api::form_policydoc_data($policy2->policyid, $policy2->versionid);
-        $formdata->revision = 'v3';
-        $policy3 = api::form_policydoc_update_new($policy2->policyid, $formdata);
+        // Prepare a policy document with some versions.
+        list($policy1, $policy2, $policy3) = $this->create_versions(3);
 
         api::make_current($policy2->policyid, $policy2->versionid);
 
@@ -334,20 +373,7 @@ class tool_policy_api_testcase extends advanced_testcase {
         accesslib_clear_all_caches_for_unit_testing();
 
         // Prepare a policy document with some versions.
-        $formdata = api::form_policydoc_data();
-        $formdata->name = 'Test policy';
-        $formdata->revision = 'v1';
-        $formdata->summary_editor = ['text' => 'summary', 'format' => FORMAT_HTML, 'itemid' => 0];
-        $formdata->content_editor = ['text' => 'content', 'format' => FORMAT_HTML, 'itemid' => 0];
-        $policy1 = api::form_policydoc_add($formdata);
-
-        $formdata = api::form_policydoc_data($policy1->policyid, $policy1->versionid);
-        $formdata->revision = 'v2';
-        $policy2 = api::form_policydoc_update_new($policy1->policyid, $formdata);
-
-        $formdata = api::form_policydoc_data($policy1->policyid, $policy1->versionid);
-        $formdata->revision = 'v3';
-        $policy3 = api::form_policydoc_update_new($policy1->policyid, $formdata);
+        list($policy1, $policy2, $policy3) = $this->create_versions(3);
 
         // Normally users do not have access to policy drafts.
         $this->assertFalse(api::can_user_view_policy_version($policy1, null, $child->id));
@@ -473,5 +499,22 @@ class tool_policy_api_testcase extends advanced_testcase {
         $this->assertTrue(property_exists($extradata[$child1->id], 'deleted'));
         $this->assertTrue(property_exists($extradata[$child2->id], 'policyagreed'));
         $this->assertTrue(property_exists($extradata[$child2->id], 'deleted'));
+    }
+
+    /**
+     * Test behaviour of the {@link api::policy_revision_exists()} method.
+     */
+    public function test_policy_revision_exists() {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        list($policy1, $policy2) = $this->create_versions(2);
+
+        $this->assertTrue(api::policy_revision_exists($policy1->revision, $policy1->policyid));
+        $this->assertTrue(api::policy_revision_exists($policy2->revision, $policy2->policyid));
+
+        // Check that the function excludes the specified version.
+        $this->assertFalse(api::policy_revision_exists($policy1->revision, $policy1->policyid, $policy1->versionid));
+        $this->assertTrue(api::policy_revision_exists($policy2->revision, $policy1->policyid, $policy1->versionid));
     }
 }

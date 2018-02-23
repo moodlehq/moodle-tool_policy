@@ -120,6 +120,7 @@ $string['privacysettings'] = 'Privacy settings';
 $string['proceed'] = 'Proceed';
 $string['readpolicy'] = 'Please read our {$a}';
 $string['refertofullpolicytext'] = 'Please refer to the full {$a} text if you would like to review.';
+$string['revisionunique'] = 'Revision must be unique for each policy document.';
 $string['saveasnew'] = 'Save as new version';
 $string['saveasnew_help'] = 'Should the text be saved as a new version of the policy text?
 

@@ -73,7 +73,6 @@ class policydoc extends moodleform {
         $mform->addElement('text', 'revision', get_string('policydocrevision', 'tool_policy'), ['maxlength' => 1333]);
         $mform->addHelpButton('revision', 'policydocrevision', 'tool_policy');
         $mform->setType('revision', PARAM_TEXT);
-        $mform->addRule('revision', null, 'required', null, 'client');
         $mform->addRule('revision', get_string('maximumchars', '', 1333), 'maxlength', 1333, 'client');
 
         $mform->addElement('editor', 'summary_editor', get_string('policydocsummary', 'tool_policy'), ['rows' => 7],
@@ -107,5 +106,26 @@ class policydoc extends moodleform {
         }
 
         $this->add_action_buttons();
+    }
+
+    /**
+     * Data validation.
+     *
+     * @param array $data array of ("fieldname"=>value) of submitted data.
+     * @param array $files array of uploaded files "element_name"=>tmp_file_path
+     * @return array $errors array of "element_name"=>"error_description", if there are errors.
+     */
+    function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+
+        $formdata = $this->_customdata['formdata'];
+        // If it's a new version, versionid will be different. So we must to ignore it.
+        $versionid = $data['saveasnew']? null : $formdata->versionid;
+        if (api::policy_revision_exists($data['revision'], $formdata->policyid, $versionid)) {
+            // Validate that revision is unique for this policy.
+            $errors['revision'] = get_string('revisionunique', 'tool_policy');
+        }
+
+        return $errors;
     }
 }
