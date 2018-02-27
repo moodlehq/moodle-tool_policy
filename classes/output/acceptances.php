@@ -82,7 +82,7 @@ class acceptances implements renderable, templatable {
 
                 if (!empty($version->acceptance->status)) {
                     $acceptance = $version->acceptance;
-                    $version->timeaccepted = $acceptance->timemodified ? userdate($acceptance->timemodified) : ''; // TODO date format
+                    $version->timeaccepted = userdate($acceptance->timemodified, get_string('strftimedatetime'));
                     $onbehalf = $acceptance->usermodified && $acceptance->usermodified != $this->userid;
                     $version->agreement = new user_agreement($this->userid, 1, $returnurl, $version->id, $onbehalf);
                     if ($onbehalf) {

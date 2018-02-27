@@ -54,7 +54,7 @@ if ($acceptforversion) {
     $user = $DB->get_record('user', ['id' => $userid], 'id,'.get_all_user_name_fields(true), MUST_EXIST);
     $returnurl = $returnurl ? new moodle_url($returnurl) : new moodle_url('/admin/tool/policy/user.php', ['userid' => $user->id]);
     $policy = tool_policy\api::get_policy_version(null, $acceptforversion);
-    $form = new \tool_policy\form\accept_policy(null, ['policy' => $policy, 'user' => $user]);
+    $form = new \tool_policy\form\accept_policy(null, ['policies' => [$policy], 'users' => [$user]]);
     $form->set_data(['returnurl' => $returnurl]);
 
     if ($form->is_cancelled()) {
@@ -67,10 +67,11 @@ if ($acceptforversion) {
 
 $output = $PAGE->get_renderer('tool_policy');
 echo $output->header();
-echo $output->heading(get_string('policiesagreements', 'tool_policy'));
 if ($acceptforversion) {
+    echo $output->heading(get_string('consentdetails', 'tool_policy'));
     $form->display();
 } else {
+    echo $output->heading(get_string('policiesagreements', 'tool_policy'));
     $acceptances = new \tool_policy\output\acceptances($userid);
     echo $output->render($acceptances);
 }

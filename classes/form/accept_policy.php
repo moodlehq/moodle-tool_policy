@@ -38,8 +38,21 @@ class accept_policy extends \moodleform {
     public function definition() {
         $mform = $this->_form;
 
-        $user = $this->_customdata['user'];
-        $policy = $this->_customdata['policy'];
+        $users = $this->_customdata['users'];
+        $policies = $this->_customdata['policies'];
+        $usernames = [];
+        foreach ($users as $user) {
+            $usernames[] = fullname($user);
+        }
+        $policiesnames = [];
+        foreach ($policies as $policy) {
+            $url = new \moodle_url('/admin/tool/policy/view.php', ['versionid' => $policy->versionid]);
+            $policyname = format_string($policy->name);
+            if ($policy->currentversionid != $policy->versionid) {
+                $policyname .= ' ' . format_string($policy->revision);
+            }
+            $policiesnames[] = \html_writer::link($url, $policyname);
+        }
 
         $mform->addElement('hidden', 'userid');
         $mform->setType('userid', PARAM_INT);
@@ -50,13 +63,16 @@ class accept_policy extends \moodleform {
         $mform->addElement('hidden', 'returnurl');
         $mform->setType('returnurl', PARAM_LOCALURL);
 
-        $mform->addElement('static', 'user', 'User', fullname($user)); // TODO string, cap
-        $mform->addElement('static', 'policy', 'Policy', format_string($policy->name.', '.$policy->revision)); // TODO string, cap
+        $mform->addElement('static', 'user', get_string('acceptanceusers', 'tool_policy'), join(', ', $usernames));
+        $mform->addElement('static', 'policy', get_string('acceptancepolicies', 'tool_policy'),
+            join(', ', $policiesnames));
 
-        $mform->addElement('textarea', 'note', 'Remark'); // tODO strings
+        $mform->addElement('static', 'ack', '', get_string('acceptanceacknowledgement', 'tool_policy'));
+
+        $mform->addElement('textarea', 'note', get_string('acceptancenote', 'tool_policy'));
         $mform->setType('note', PARAM_NOTAGS);
 
-        $this->add_action_buttons(true, 'Accept on behalf of the user'); // TODO
+        $this->add_action_buttons(true, get_string('iagreetothepolicy', 'tool_policy'));
 
         $this->set_data(['userid' => $user->id, 'acceptforversion' => $policy->versionid]);
     }

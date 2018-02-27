@@ -121,11 +121,20 @@ class acceptances_table extends \table_sql {
      * @param string $label
      * @param bool $sortable
      */
-    protected function add_column_header($key, $label, $sortable = true) {
-        $columns = array_merge(array_keys($this->columns), [$key]);
-        $headers = array_merge($this->headers, [$label]);
-        $this->define_columns($columns);
-        $this->define_headers($headers);
+    protected function add_column_header($key, $label, $sortable = true, $columnclass = '') {
+        if (empty($this->columns)) {
+            $this->define_columns([$key]);
+            $this->define_headers([$label]);
+        } else {
+            $this->columns[$key] = count($this->columns);
+            $this->column_style[$key] = array();
+            $this->column_class[$key] = $columnclass;
+            $this->column_suppress[$key] = false;
+            $this->headers[] = $label;
+        }
+        if ($columnclass !== null) {
+            $this->column_class($key, $columnclass);
+        }
         if (!$sortable) {
             $this->no_sorting($key);
         }
@@ -152,7 +161,7 @@ class acceptances_table extends \table_sql {
             $this->sql->where .= " AND (a{$v}.status IS NULL OR a{$v}.status = 0)";
         }
 
-        $this->add_column_header('status' . $v, get_string('agreed', 'tool_policy'));
+        $this->add_column_header('status' . $v, get_string('agreed', 'tool_policy'), true, 'mdl-align');
         $this->add_column_header('timemodified', get_string('agreedon', 'tool_policy'));
         $this->add_column_header('usermodified' . $v, get_string('agreedby', 'tool_policy'));
         $this->add_column_header('note', get_string('acceptancenote', 'tool_policy'), false);
@@ -171,7 +180,7 @@ class acceptances_table extends \table_sql {
                 $this->sql->from .= " LEFT {$join}";
             }
             $this->sql->params['versionid' . $v] = $v;
-            $this->add_column_header('status' . $v, $versionname);
+            $this->add_column_header('status' . $v, $versionname, true, 'mdl-align');
             $statusall[] = "COALESCE(a{$v}.status, 0)";
         }
         $this->sql->fields .= ",".join('+', $statusall)." AS statusall";
@@ -405,7 +414,13 @@ class acceptances_table extends \table_sql {
 
     public function col_timemodified($row) {
         if ($row->timemodified) {
-            return userdate($row->timemodified); // TODO format, different for download and display
+            if ($this->is_downloading()) {
+                // Use timestamp format readable for both machines and humans.
+                return date_format_string($row->timemodified, '%Y-%m-%d %H:%M:%S %Z');
+            } else {
+                // Use localised calendar format.
+                return userdate($row->timemodified, get_string('strftimedatetime'));
+            }
         } else {
             return null;
         }

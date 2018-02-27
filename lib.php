@@ -161,6 +161,17 @@ function tool_policy_pluginfile($course, $cm, $context, $filearea, $args, $force
 }
 
 /**
+ * Map icons for font-awesome themes.
+ */
+function tool_policy_get_fontawesome_icon_map() {
+    return [
+        'tool_policy:agreedno' => 'fa-times text-danger',
+        'tool_policy:agreedyes' => 'fa-check text-success',
+        'tool_policy:agreedyesonbehalf' => 'fa-check text-info'
+    ];
+}
+
+/**
  * Check if current user has to accept some site policies.
  *
  * @return moodle_url|string The URL to a script where the user should accept the policies or empty if

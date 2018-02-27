@@ -25,10 +25,13 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['acceptanceacknowledgement'] = 'I acknowledge that consents to these policies have been acquired';
 $string['acceptancecount'] = '{$a->agreedcount} of {$a->policiescount}';
-$string['acceptancenote'] = 'Remark';
+$string['acceptancenote'] = 'Remarks';
+$string['acceptancepolicies'] = 'Policies';
 $string['acceptancessavedsucessfully'] = 'The agreements has been saved successfully.';
 $string['acceptancestatusoverall'] = 'Overall';
+$string['acceptanceusers'] = 'Users';
 $string['addpolicydocument'] = 'Add new policy document';
 $string['addpolicyversion'] = 'Add new version';
 $string['agelocationverification'] = 'Age and location verification';
@@ -40,6 +43,7 @@ $string['agreedon'] = 'Agreed on';
 $string['agreepolicies'] = 'Please agree to the following policies';
 $string['backtohome'] = 'Back to home';
 $string['backtotop'] = 'Back to top';
+$string['consentdetails'] = 'Consent details';
 $string['consentpagetitle'] = 'Policy summary and agreements';
 $string['contactadmin'] = 'Contact administrator';
 $string['contactadmin_desc'] = 'To create an account on this site please have your parent / guardian contact the following person.';
@@ -63,6 +67,7 @@ $string['guestconsent:continue'] = 'Continue';
 $string['guestconsentmessage'] = 'If you continue browsing this website, we\'ll assume that you agree to the following policy documents:';
 $string['howoldareyou'] = 'How old are you?';
 $string['iagree'] = 'I agree to the {$a}';
+$string['iagreetothepolicy'] = 'I agree to the policy';
 $string['inactivate'] = 'Inactivate';
 $string['inactivating'] = 'Inactivating a policy document';
 $string['inactivatingconfirm'] = '<p>You are about to inactivate a policy document <em>\'{$a->name}\'</em> revision <em>\'{$a->revision}\'</em>.</p><p>The policy will not apply until some version is made the current one.</p>';
@@ -148,3 +153,6 @@ $string['usersaccepted'] = 'Users accepted';
 $string['viewconsentpageforuser'] = 'Viewing this page in behalf of {$a}';
 $string['wheredoyoulive'] = 'Where do you live?';
 $string['whyisthisrequired'] = 'Why is this required?';
+$string['agreedno'] = 'Not agreed';
+$string['agreedyes'] = 'Agreed';
+$string['agreedyesonbehalf'] = 'Agreed on behalf of';

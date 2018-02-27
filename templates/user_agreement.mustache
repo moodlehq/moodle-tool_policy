@@ -30,13 +30,19 @@
     * acceptlink
 }}
 {{#status}}
-    {{#str}}yes{{/str}}{{#onbehalf}}*{{/onbehalf}}
+
+    {{#onbehalf}}
+        <span>{{#pix}}agreedyesonbehalf, tool_policy, {{#str}} agreedyesonbehalf, tool_policy {{/str}}{{/pix}}</span>
+    {{/onbehalf}}
+    {{^onbehalf}}
+        <span>{{#pix}}agreedyes, tool_policy, {{#str}} agreedyes, tool_policy {{/str}}{{/pix}}</span>
+    {{/onbehalf}}
 {{/status}}
 {{^status}}
     {{#canaccept}}
-        <a href="{{acceptlink}}">{{#str}}no{{/str}}</a>
+        <a href="{{acceptlink}}">{{#pix}}agreedno, tool_policy, {{#str}} agreedno, tool_policy {{/str}}{{/pix}}</a>
     {{/canaccept}}
     {{^canaccept}}
-        {{#str}}no{{/str}}
+        <span>{{#pix}}agreedno, tool_policy, {{#str}} agreedno, tool_policy {{/str}}{{/pix}}</span>
     {{/canaccept}}
 {{/status}}
