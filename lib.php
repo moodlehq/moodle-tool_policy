@@ -25,7 +25,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 use tool_policy\api;
-use tool_policy\validateminor_helper;
 
 /**
  * Extends the user preferences page
@@ -80,7 +79,7 @@ function tool_policy_before_standard_html_head() {
 }
 
 /**
- * Hooks redirections to digital minor validation and policy acceptance pages before sign up.
+ * Hooks redirection to policy acceptance pages before sign up.
  */
 function tool_policy_pre_signup_requests() {
     global $CFG;
@@ -88,17 +87,6 @@ function tool_policy_pre_signup_requests() {
     // Do nothing if we are not set as the site policies handler.
     if (empty($CFG->sitepolicyhandler) || $CFG->sitepolicyhandler !== 'tool_policy') {
         return;
-    }
-
-    if (!validateminor_helper::minor_session_exists()) {  // Digital minor check hasn't been done.
-        redirect(new moodle_url('/admin/tool/policy/validateminor.php'));
-    } else { // Digital minor check has been done.
-        if (!validateminor_helper::is_valid_minor_session()) { // Minor session is no longer valid.
-            validateminor_helper::destroy_minor_session();
-            redirect(new moodle_url('/admin/tool/policy/validateminor.php'));
-        }
-        $is_minor = validateminor_helper::get_minor_session_status();
-        validateminor_helper::redirect($is_minor);
     }
 }
 

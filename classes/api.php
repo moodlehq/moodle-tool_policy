@@ -631,23 +631,6 @@ class api {
     }
 
     /**
-     * Check if the user is a digital minor.
-     *
-     * @param int $age
-     * @param string $country
-     * @return bool
-     */
-    public static function is_minor($age, $country) {
-
-        $agedigitalconsentmap = static::parse_age_digital_consent_map();
-
-        // TODO: Better handling when * wildcard is not present.
-        // Maybe define a default minor age as a separate config variable as presented in the earlier wireframes.
-        return array_key_exists($country, $agedigitalconsentmap) ?
-            $age < $agedigitalconsentmap[$country] : $age < $agedigitalconsentmap['*'];
-    }
-
-    /**
      * Editor field options for the policy summary text.
      *
      * @return array
@@ -958,29 +941,5 @@ class api {
         }
 
         self::update_policyagreed($userid);
-    }
-
-    /**
-     * Parse the agedigitalconsentmap setting into an array.
-     *
-     * @return array $ageconsentmapparsed
-     */
-    protected static function parse_age_digital_consent_map() {
-
-        $ageconsentmapparsed = array();
-        $ageconsentmap = get_config('tool_policy', 'agedigitalconsentmap');
-        if (!empty($ageconsentmap)) {
-            $lines = preg_split( '/\r\n|\r|\n/', $ageconsentmap);
-            foreach ($lines as $line) {
-                $arr = explode(" ", $line);
-                $ageconsentmapparsed[$arr[0]] = $arr[1];
-            }
-        }
-        // If the consent map is empty, initialise to make sure * is defined.
-        if (empty($ageconsentmapparsed)) {
-            $ageconsentmapparsed['*'] = 0;
-        }
-
-        return $ageconsentmapparsed;
     }
 }

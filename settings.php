@@ -59,31 +59,6 @@ if ($hassiteconfig || has_any_capability($managecaps, context_system::instance()
     $ADMIN->add('tool_policy_admin_category', $privacysettings);
 
     if ($ADMIN->fulltree) {
-        $privacysettings->add(new admin_setting_configtextarea(
-            'tool_policy/agedigitalconsentmap',
-            new lang_string('ageofdigitalconsentmap', 'tool_policy'),
-            new lang_string('ageofdigitalconsentmap_desc', 'tool_policy'),
-            // See {@link https://gdpr-info.eu/art-8-gdpr/}.
-            // See {@link https://www.betterinternetforkids.eu/web/portal/practice/awareness/detail?articleId=2019355}.
-            implode(PHP_EOL, [
-                '* 16',
-                'AT 14',
-                'CZ 13',
-                'DE 14',
-                'DK 13',
-                'ES 13',
-                'FI 15',
-                'GB 13',
-                'HU 14',
-                'IE 13',
-                'LT 16',
-                'LU 16',
-                'NL 16',
-                'PL 13',
-                'SE 13',
-            ]),
-            PARAM_RAW
-        ));
         // TODO: Decide whether to maintain or not this field for displaying information about the officer in the consent page.
         $privacysettings->add(new admin_setting_configtextarea(
             'tool_policy/privacyofficer',

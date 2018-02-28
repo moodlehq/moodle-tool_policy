@@ -290,33 +290,6 @@ class tool_policy_api_testcase extends advanced_testcase {
     }
 
     /**
-     * Test check if a user is a digital minor.
-     */
-    public function test_is_minor() {
-        $this->resetAfterTest();
-
-        $country1 = 'AU';
-        $country2 = 'AT';
-        $age1 = 8;
-        $age2 = 14;
-        $age3 = 16;
-
-        $isminor1 = api::is_minor($age1, $country1);
-        $isminor2 = api::is_minor($age2, $country1);
-        $isminor3 = api::is_minor($age3, $country1);
-        $isminor4 = api::is_minor($age1, $country2);
-        $isminor5 = api::is_minor($age2, $country2);
-        $isminor6 = api::is_minor($age3, $country2);
-
-        $this->assertTrue($isminor1);
-        $this->assertTrue($isminor2);
-        $this->assertFalse($isminor3);
-        $this->assertTrue($isminor4);
-        $this->assertFalse($isminor5);
-        $this->assertFalse($isminor6);
-    }
-
-    /**
      * Test behaviour of the {@link api::is_public()} method.
      */
     public function test_is_public() {
