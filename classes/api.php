@@ -123,11 +123,16 @@ class api {
             }
 
             if (!empty($r->versionid)) {
+                // Get default revision if it's empty.
+                $revision = $r->revision;
+                if (empty($revision)) {
+                    $revision = static::get_default_policy_revision_value($r->policyid, $r->versionid, $r->timecreated);
+                }
                 $policies[$r->policyid]->versions[$r->versionid] = (object) [
                     'id' => $r->versionid,
                     'timecreated' => $r->timecreated,
                     'timemodified' => $r->timemodified,
-                    'revision' => $r->revision,
+                    'revision' => $revision,
                 ];
             }
 
@@ -214,6 +219,10 @@ class api {
     public static function policy_revision_exists($revision, $policyid, $excludedversionid = null) {
         global $DB;
 
+        if (empty($revision)) {
+            return false;
+        }
+
         $sql = "SELECT v.id AS versionid
                   FROM {tool_policy_versions} v
                  WHERE v.policyid = :policyid AND v.revision = :revision";
@@ -236,10 +245,18 @@ class api {
      *
      * @param int $policyid ID of the policy document.
      * @param int $versionid ID of the policy version to get default revision.
+     * @param int $defaulttime Date to use as default value (usually the timecreated).
      * @return string
      */
-    public static function get_default_policy_revision_value($policyid, $versionid = null) {
-        $revision = userdate(time(), get_string('strftimedate', 'core_langconfig'));
+    public static function get_default_policy_revision_value($policyid, $versionid = null, $defaulttime = null) {
+        if ($versionid && empty($defaulttime)) {
+            $version = static::get_policy_version($policyid, $versionid);
+            $defaulttime = $version->timecreated;
+        }
+        if (empty($defaulttime)) {
+            $defaulttime = time();
+        }
+        $revision = userdate($defaulttime, get_string('strftimedate', 'core_langconfig'));
 
         // Make sure the revision is unique for this policy.
         $defaultrevision = $revision;
@@ -519,22 +536,24 @@ class api {
         $contentfieldoptions = static::policy_content_field_options();
         $form = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context']);
 
-        if (empty($form->revision) || static::policy_revision_exists($form->revision, $policyid)) {
-            // Revision must be unique for each policy.
-            $form->revision = static::get_default_policy_revision_value($policyid);
-        }
-
         $version = (object) [
             'usermodified' => $USER->id,
             'timecreated' => $now,
             'timemodified' => $now,
             'policyid' => $policy->policyid,
-            'revision' => $form->revision,
             'summary' => $form->summary,
             'summaryformat' => $form->summaryformat,
             'content' => $form->content,
             'contentformat' => $form->contentformat,
         ];
+
+        if (!empty($form->revision)) {
+            if (static::policy_revision_exists($form->revision, $policyid)) {
+                // Revision must be unique for each policy.
+                $form->revision = '';
+            }
+            $version->revision = $form->revision;
+        }
 
         $versionid = $DB->insert_record('tool_policy_versions', $version);
 
@@ -584,9 +603,9 @@ class api {
         $form = file_postupdate_standard_editor($form, 'content', $contentfieldoptions, $contentfieldoptions['context'],
             'tool_policy', 'policydocumentcontent', $versionid);
 
-        if (empty($form->revision) || static::policy_revision_exists($form->revision, $policyid, $versionid)) {
+        if (!empty($form->revision) && static::policy_revision_exists($form->revision, $policyid, $versionid)) {
             // Revision must be unique for each policy.
-            $form->revision = static::get_default_policy_revision_value($policyid, $versionid);
+            $form->revision = '';
         }
 
         $version = (object) [

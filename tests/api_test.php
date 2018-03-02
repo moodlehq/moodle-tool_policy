@@ -142,24 +142,26 @@ class tool_policy_api_testcase extends advanced_testcase {
         $formdata->summary_editor['format'] = FORMAT_MOODLE;
         $formdata->content_editor['text'] = '<h3>And one more test</h3>';
         $formdata->content_editor['format'] = FORMAT_HTML;
-        $defaultrevision = api::get_default_policy_revision_value($new->policyid);
         $new2 = api::form_policydoc_update_new($policy->policyid, $formdata);
         $this->assertEquals($policy->policyid, $new2->policyid);
         $this->assertNotEquals($new->versionid, $new2->versionid);
-        $this->assertEquals($defaultrevision, $new2->revision);
+        $this->assertEquals('', $new2->revision);
 
         // Save form as a new version with an existing revision.
         $formdata = api::form_policydoc_data($policy->policyid, $new->versionid);
         $formdata->revision = $new->revision;
-        $formdata->summary_editor['text'] = '<strong>And one more summary</strong>';
+        $formdata->summary_editor['text'] = '<strong>And one more summary with non unique revision</strong>';
         $formdata->summary_editor['format'] = FORMAT_MOODLE;
-        $formdata->content_editor['text'] = '<h3>And one more test</h3>';
+        $formdata->content_editor['text'] = '<h3>And one more test with non unique revision</h3>';
         $formdata->content_editor['format'] = FORMAT_HTML;
-        $defaultrevision = api::get_default_policy_revision_value($new->policyid);
-        $new2 = api::form_policydoc_update_new($policy->policyid, $formdata);
-        $this->assertEquals($policy->policyid, $new2->policyid);
-        $this->assertNotEquals($new->versionid, $new2->versionid);
-        $this->assertEquals($defaultrevision, $new2->revision);
+        $new3 = api::form_policydoc_update_new($policy->policyid, $formdata);
+        $this->assertEquals($policy->policyid, $new3->policyid);
+        $this->assertNotEquals($new->versionid, $new3->versionid);
+        $this->assertEquals('', $new3->revision);
+        // All versions created the same day with empty revision, have the same default revision name.
+        $defaultrevision2 = api::get_default_policy_revision_value($new2->policyid, $new2->versionid);
+        $defaultrevision3 = api::get_default_policy_revision_value($new3->policyid, $new3->versionid);
+        $this->assertEquals($defaultrevision2, $defaultrevision3);
     }
 
     /**
