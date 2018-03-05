@@ -166,14 +166,41 @@ function tool_policy_get_fontawesome_icon_map() {
 }
 
 /**
- * Check if current user has to accept some site policies.
+ * Site policy handler callback implemented by tool_policy as an alternative mechanisms
+ * for site policies managements and agreements.
  *
- * @return moodle_url|string The URL to a script where the user should accept the policies or empty if
- * the user can continue using the site without being redirected.
+ * The return value will depend on $action:
+ * [redirect] =  Policy acceptance page.
+ * [viewall] = URL to a page (with 'popup' layout, without any headers) that lists all policies on the same page, one under another.
+ * [acceptall] = Accept all policies for the current user.
+ * [checkcanaccept] = Return whether current user is allowed to accept policies for themselves.
+ *
+ * @param string $action []
+ * @return moodle_url|string The URL to be redirected depending on the $action or the
+ * result of the callback (if no URL has to be returned).
  */
-function tool_policy_site_policy_handler() {
-    global $CFG;
+function tool_policy_site_policy_handler($action = 'redirect') {
+    global $CFG, $USER, $DB;
+
     if (!isguestuser()) {
-        return $CFG->wwwroot . '/' . $CFG->admin . '/tool/policy/index.php';
+        if ($action === 'redirect') {
+            // Policy acceptance page.
+            return (new \moodle_url('/admin/tool/policy/index.php'))->out();
+        } else if ($action === 'viewall') {
+            // Page with all the public policies of this site, one under another.
+            return (new \moodle_url('/admin/tool/policy/viewall.php'))->out();
+        } else if ($action === 'acceptall') {
+            // Accepts all policies with a current version for logged users on behalf of the current user.
+            $policies = api::list_policies(null, true, api::AUDIENCE_LOGGEDIN);
+            $policyversionid = array();
+            foreach ($policies as $policy) {
+                $policyversionid[] = $policy->currentversionid;
+            }
+            api::accept_policies($policyversionid);
+        } else if ($action === 'checkcanaccept') {
+            return has_capability('tool/policy:accept', context_system::instance());
+        } else {
+            throw new coding_exception('Unrecognised action');
+        }
     }
 }

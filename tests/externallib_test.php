@@ -28,9 +28,11 @@ global $CFG;
 
 require_once($CFG->libdir . '/externallib.php');
 require_once($CFG->dirroot . '/webservice/tests/helpers.php');
+require_once($CFG->dirroot . '/user/externallib.php');
 
 use tool_policy\api;
 use tool_policy\external;
+use tool_mobile\external as external_mobile;
 
 /**
  * External policy webservice API tests.
@@ -46,7 +48,7 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
      */
     public function setUp() {
         global $DB;
-        $this->resetAfterTest();
+        $this->resetAfterTest(true);
         $this->setAdminUser();
 
         // Prepare a policy document with some versions.
@@ -135,5 +137,97 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
         $this->assertCount(0, $result['result']);
         $this->assertCount(1, $result['warnings']);
         $this->assertEquals(array_pop($result['warnings'])['warningcode'], 'errorusercantviewpolicyversion');
+    }
+
+    /**
+     * Test tool_mobile\external callback to site_policy_handler.
+     */
+    public function test_get_config_with_site_policy_handler() {
+        global $CFG;
+
+        $this->resetAfterTest(true);
+
+        // Set the handler for the site policy, make sure it substitutes link to the sitepolicy.
+        $CFG->sitepolicyhandler = 'tool_policy';
+        $result = external_mobile::get_config();
+        $result = external_api::clean_returnvalue(external_mobile::get_config_returns(), $result);
+        $toolsitepolicy = tool_policy_site_policy_handler('viewall');
+        foreach (array_values($result['settings']) as $r) {
+            if ($r['name'] == 'sitepolicy') {
+                $configsitepolicy = $r['value'];
+            }
+        }
+        $this->assertEquals($toolsitepolicy, $configsitepolicy);
+    }
+
+    /**
+     * Test for agree_site_policy() when site policy handler is set.
+     */
+    public function test_agree_site_policy_with_handler() {
+        global $CFG, $DB, $USER;
+
+        $this->resetAfterTest(true);
+        $user = self::getDataGenerator()->create_user();
+        $this->setUser($user);
+
+        // Set mock site policy handler. See function tool_phpunit_site_policy_handler() below.
+        $CFG->sitepolicyhandler = 'tool_policy';
+        $this->assertEquals(0, $USER->policyagreed);
+
+        // Make sure user can not login.
+        try {
+            core_user_external::validate_context(context_system::instance());
+            $this->fail('Expected exception policy not agreed');
+        } catch (moodle_exception $e) {
+            $toolconsentpage = tool_policy_site_policy_handler('redirect');
+            $this->assertEquals(get_string('sitepolicynotagreed', 'error', $toolconsentpage), $e->getMessage());
+        }
+
+        // Call WS to agree to the site policy. It will call tool_policy_site_policy_handler().
+        $result = core_user_external::agree_site_policy();
+        $result = external_api::clean_returnvalue(core_user_external::agree_site_policy_returns(), $result);
+        $this->assertTrue($result['status']);
+        $this->assertCount(0, $result['warnings']);
+        $this->assertEquals(1, $USER->policyagreed);
+        $this->assertEquals(1, $DB->get_field('user', 'policyagreed', array('id' => $USER->id)));
+
+        // Try again, we should get a warning.
+        $result = core_user_external::agree_site_policy();
+        $result = external_api::clean_returnvalue(core_user_external::agree_site_policy_returns(), $result);
+        $this->assertFalse($result['status']);
+        $this->assertCount(1, $result['warnings']);
+        $this->assertEquals('alreadyagreed', $result['warnings'][0]['warningcode']);
+    }
+
+    /**
+     * Test for action='checkcanaccept' when site policy handler is set.
+     */
+    public function test_checkcanaccept_with_handler() {
+        global $CFG;
+
+        $this->resetAfterTest(true);
+        $CFG->sitepolicyhandler = 'tool_policy';
+        $syscontext = context_system::instance();
+
+        $adult = $this->getDataGenerator()->create_user();
+
+        $child = $this->getDataGenerator()->create_user();
+        $rolechildid = create_role('Child', 'child', 'Not old enough to accept site policies themselves');
+        assign_capability('tool/policy:accept', CAP_PROHIBIT, $rolechildid, $syscontext->id);
+        role_assign($rolechildid, $child->id, $syscontext->id);
+
+        // Default user can accept policies.
+        $this->setUser($adult);
+        $result = external_mobile::get_config();
+        $result = external_api::clean_returnvalue(external_mobile::get_config_returns(), $result);
+        $toolsitepolicy = tool_policy_site_policy_handler('checkcanaccept');
+        $this->assertTrue($toolsitepolicy);
+
+        // Child user can not accept policies.
+        $this->setUser($child);
+        $result = external_mobile::get_config();
+        $result = external_api::clean_returnvalue(external_mobile::get_config_returns(), $result);
+        $toolsitepolicy = tool_policy_site_policy_handler('checkcanaccept');
+        $this->assertFalse($toolsitepolicy);
     }
 }
