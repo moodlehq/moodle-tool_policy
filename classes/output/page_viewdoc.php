@@ -36,6 +36,7 @@ use renderer_base;
 use single_button;
 use templatable;
 use tool_policy\api;
+use tool_policy\policy_version;
 
 /**
  * Represents a page for showing the given policy document version.
@@ -45,7 +46,7 @@ use tool_policy\api;
  */
 class page_viewdoc implements renderable, templatable {
 
-    /** @var int Policy version to display on this page. */
+    /** @var stdClass Exported {@link \tool_policy\policy_version_exporter} to display on this page. */
     protected $policy;
 
     /** @var string Return URL. */
@@ -86,11 +87,11 @@ class page_viewdoc implements renderable, templatable {
     protected function prepare_policy($policyid, $versionid) {
 
         if ($versionid) {
-            $this->policy = api::get_policy_version($policyid, $versionid);
+            $this->policy = api::get_policy_version($versionid);
 
         } else {
-            $document = api::get_policy($policyid);
-            $this->policy = api::get_policy_version($document->policyid, $document->currentversionid);
+            $list = api::list_policies($policyid);
+            $this->policy = $list[0]->currentversion;
         }
     }
 
@@ -117,7 +118,7 @@ class page_viewdoc implements renderable, templatable {
             $PAGE->navbar->add(format_string($this->policy->name),
                 new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $this->policy->policyid]));
         } else {
-            if (!api::is_public($this->policy)) {
+            if ($this->policy->status != policy_version::STATUS_ACTIVE) {
                 require_login();
             } else if (isguestuser() || empty($USER->id) || !$USER->policyagreed) {
                 // Disable notifications for new users, guests or users who haven't agreed to the policies.

@@ -29,7 +29,10 @@ use tool_policy\api;
 
 defined('MOODLE_INTERNAL') || die();
 
+use action_menu;
+use action_menu_link;
 use moodle_url;
+use pix_icon;
 use renderable;
 use renderer_base;
 use single_button;
@@ -37,6 +40,8 @@ use templatable;
 
 /**
  * Represents a management page with the list of policy documents.
+ *
+ * The page displays all policy documents in their sort order, together with draft future versions.
  *
  * @copyright 2018 David Mudrak <david@moodle.com>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -53,45 +58,75 @@ class page_managedocs_list implements renderable, templatable {
 
         $data = (object) [];
         $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(false);
-        $data->haspolicies = true;
         $data->canmanage = has_capability('tool/policy:managedocs', \context_system::instance());
         $data->canviewacceptances = has_capability('tool/policy:viewacceptances', \context_system::instance());
         $data->policies = [];
 
-        foreach (api::list_policies(null, false, null, $data->canviewacceptances) as $policy) {
-            $datapolicy = (object) [
-                'id' => $policy->id,
-                'manageurl' => (new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policy->id]))->out(false),
-                'moveupurl' => (new moodle_url('/admin/tool/policy/editpolicydoc.php', [
-                    'moveup' => $policy->id,
-                    'sesskey' => sesskey(),
-                ]))->out(false),
-                'movedownurl' => (new moodle_url('/admin/tool/policy/editpolicydoc.php', [
-                    'movedown' => $policy->id,
-                    'sesskey' => sesskey(),
-                ]))->out(false),
-                'name' => $policy->name,
-                'description' => $policy->description,
-            ];
-            if ($data->canviewacceptances && isset($policy->acceptancescount)) {
-                $cnt = api::count_total_users();
-                $a = (object)['agreedcount' => $policy->acceptancescount, 'userscount' => $cnt,
-                    'percent' => round($policy->acceptancescount*100/max($cnt, 1))];
-                $datapolicy->usersaccepted = get_string('useracceptancecount', 'tool_policy', $a);
+        foreach (api::list_policies() as $policy) {
+            $editbaseurl = new moodle_url('/admin/tool/policy/editpolicydoc.php', [
+                'sesskey' => sesskey(),
+                'policyid' => $policy->id,
+            ]);
+
+            $viewbaseurl = new moodle_url('/admin/tool/policy/view.php', [
+                'policyid' => $policy->id,
+                'manage' => 1,
+                'returnurl' => (new moodle_url('/admin/tool/policy/managedocs.php'))->out(false),
+            ]);
+
+            if (empty($policy->currentversion) && empty($policy->draftversions)) {
+                // A policy with only archived versions - what TODO?
+                continue;
+
+            } else if (empty($policy->currentversion) && !empty($policy->draftversions)) {
+                // Use the first draft version as if it was the current one.
+                $policy->currentversion = array_shift($policy->draftversions);
+                $policy->currentversion->statustext = get_string('status0', 'tool_policy');
+
+            } else {
+                $policy->currentversion->statustext = get_string('status1', 'tool_policy');
             }
 
-            if ($policy->currentversionid) {
-                $current = $policy->versions[$policy->currentversionid];
-                $datapolicy->currentrevision = $current->revision;
-                $datapolicy->viewcurrenturl = (new moodle_url('/admin/tool/policy/view.php', [
-                    'policyid' => $policy->id,
-                    'versionid' => $policy->currentversionid,
-                    'manage' => 1,
-                    'returnurl' => (new moodle_url('/admin/tool/policy/managedocs.php'))->out(false),
-                ]))->out(false);
+            $actionmenu = new action_menu();
+            $actionmenu->set_menu_trigger(get_string('actions', 'tool_policy'));
+            $actionmenu->set_alignment(action_menu::TL, action_menu::BL);
+            $actionmenu->add(new action_menu_link(
+                new moodle_url($editbaseurl, ['moveup' => $policy->id]),
+                new pix_icon('t/up', get_string('moveup', 'tool_policy')),
+                get_string('moveup', 'tool_policy'),
+                true
+            ));
+            $actionmenu->add(new action_menu_link(
+                new moodle_url($editbaseurl, ['movedown' => $policy->id]),
+                new pix_icon('t/down', get_string('movedown', 'tool_policy')),
+                get_string('movedown', 'tool_policy'),
+                true
+            ));
+            $actionmenu->add(new action_menu_link(
+                new moodle_url($viewbaseurl, ['versionid' => $policy->currentversion->id]),
+                null,
+                get_string('view'),
+                false
+            ));
+
+            $policy->currentversion->actionmenu = $actionmenu->export_for_template($output);
+
+            foreach ($policy->draftversions as $draft) {
+                $draft->statustext = get_string('status0', 'tool_policy');
+                $draft->actions = [
+                    (object) [
+                        'name' => get_string('view'),
+                        'url' => (new moodle_url($viewbaseurl, ['versionid' => $draft->id]))->out(false),
+                    ],
+                ];
             }
 
-            $data->policies[] = $datapolicy;
+            if ($data->canviewacceptances) {
+                $policy->acceptancescount = null;
+                $policy->acceptancescounttext = null;
+            }
+
+            $data->policies[] = $policy;
         }
 
         return $data;

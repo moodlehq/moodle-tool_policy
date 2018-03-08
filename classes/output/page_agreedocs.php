@@ -36,6 +36,7 @@ use renderer_base;
 use single_button;
 use templatable;
 use tool_policy\api;
+use tool_policy\policy_version;
 
 /**
  * Represents a page for showing all the policy documents which a user has to agree to.
@@ -87,7 +88,7 @@ class page_agreedocs implements renderable, templatable {
             }
         }
 
-        $this->policies = api::list_policies(null, true, api::AUDIENCE_LOGGEDIN);
+        $this->policies = api::list_policies(null, true, policy_version::AUDIENCE_LOGGEDIN);
 
         $this->accept_and_revoke_policies();
         $this->prepare_global_page_access();
@@ -180,7 +181,7 @@ class page_agreedocs implements renderable, templatable {
         global $USER;
 
         if (empty($policies)) {
-            $policies = \tool_policy\api::list_policies(null, true, \tool_policy\api::AUDIENCE_LOGGEDIN);
+            $policies = \tool_policy\api::list_policies(null, true, policy_version::AUDIENCE_LOGGEDIN);
         }
         $lang = current_language();
         $acceptances = \tool_policy\api::get_user_acceptances($userid);

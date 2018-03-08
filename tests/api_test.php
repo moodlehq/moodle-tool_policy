@@ -24,6 +24,7 @@
  */
 
 use tool_policy\api;
+use tool_policy\policy_version;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -44,176 +45,140 @@ class tool_policy_api_testcase extends advanced_testcase {
         $this->resetAfterTest();
         $this->setAdminUser();
 
-        // Pre-load the form for adding a new policy document.
-        $formdata = api::form_policydoc_data();
-
-        // Pre-load the form for adding a new policy document based on a template.
-        $formdata = api::form_policydoc_data(null, null, 'site');
-        $this->assertNotNull($formdata->name);
-        $this->assertNotNull($formdata->summary_editor['text']);
-        $this->assertNotNull($formdata->summary_editor['format']);
-        $this->assertNotNull($formdata->content_editor['text']);
-        $this->assertNotNull($formdata->content_editor['format']);
+        // Prepare the form data for adding a new policy document.
+        $formdata = api::form_policydoc_data(new policy_version(0));
+        $this->assertObjectHasAttribute('name', $formdata);
+        $this->assertArrayHasKey('text', $formdata->summary_editor);
+        $this->assertArrayHasKey('format', $formdata->content_editor);
 
         // Save the form.
+        $formdata->name = 'Test terms & conditions';
+        $formdata->type = policy_version::TYPE_OTHER;
         $policy = api::form_policydoc_add($formdata);
-        $this->assertNotEmpty($policy->policyid);
-        $this->assertNotEmpty($policy->versionid);
-        $this->assertNull($policy->currentversionid);
-        $this->assertNotNull($policy->summary);
-        $this->assertNotNull($policy->summaryformat);
-        $this->assertNotNull($policy->content);
-        $this->assertNotNull($policy->contentformat);
+        $record = $policy->to_record();
+
+        $this->assertNotEmpty($record->id);
+        $this->assertNotEmpty($record->policyid);
+        $this->assertNotEmpty($record->timecreated);
+        $this->assertNotEmpty($record->timemodified);
+        $this->assertNotNull($record->name);
+        $this->assertNotNull($record->summary);
+        $this->assertNotNull($record->summaryformat);
+        $this->assertNotNull($record->content);
+        $this->assertNotNull($record->contentformat);
 
         // Update the policy document version.
-        $formdata = api::form_policydoc_data($policy->policyid, $policy->versionid);
+        $formdata = api::form_policydoc_data($policy);
         $formdata->revision = '*** Unit test ***';
         $formdata->summary_editor['text'] = '__Just a summary__';
         $formdata->summary_editor['format'] = FORMAT_MARKDOWN;
         $formdata->content_editor['text'] = '### Just a test ###';
         $formdata->content_editor['format'] = FORMAT_MARKDOWN;
-        $updated = api::form_policydoc_update_overwrite($policy->policyid, $policy->versionid, $formdata);
-        $this->assertEquals($policy->policyid, $updated->policyid);
-        $this->assertEquals($policy->versionid, $updated->versionid);
+        $updated = api::form_policydoc_update_overwrite($formdata);
+        $this->assertEquals($policy->get('id'), $updated->get('id'));
+        $this->assertEquals($policy->get('policyid'), $updated->get('policyid'));
 
         // Save form as a new version.
-        $formdata = api::form_policydoc_data($policy->policyid, $policy->versionid);
+        $formdata = api::form_policydoc_data($policy);
+        $formdata->name = 'New terms & conditions';
         $formdata->revision = '*** Unit test 2 ***';
         $formdata->summary_editor['text'] = '<strong>Yet another summary</strong>';
         $formdata->summary_editor['format'] = FORMAT_MOODLE;
         $formdata->content_editor['text'] = '<h3>Yet another test</h3>';
         $formdata->content_editor['format'] = FORMAT_HTML;
-        $new = api::form_policydoc_update_new($policy->policyid, $formdata);
-        $this->assertEquals($policy->policyid, $new->policyid);
-        $this->assertNotEquals($policy->versionid, $new->versionid);
+        $new = api::form_policydoc_update_new($formdata);
+        $this->assertNotEquals($policy->get('id'), $new->get('id'));
+        $this->assertEquals($policy->get('policyid'), $new->get('policyid'));
 
         // Add yet another policy document.
-        $formdata = api::form_policydoc_data(null, null, 'privacy');
+        $formdata = api::form_policydoc_data(new policy_version(0));
+        $formdata->name = 'Privacy terms';
+        $formdata->type = policy_version::TYPE_PRIVACY;
         $another = api::form_policydoc_add($formdata);
 
         // Get the list of all policies and their versions.
         $docs = api::list_policies();
         $this->assertEquals(2, count($docs));
-        $this->assertEquals(2, count($docs[$policy->policyid]->versions));
-        $this->assertEquals('*** Unit test ***', $docs[$policy->policyid]->versions[$policy->versionid]->revision);
-        $this->assertEquals('*** Unit test 2 ***', $docs[$policy->policyid]->versions[$new->versionid]->revision);
-        $this->assertEquals($another->name, $docs[$another->policyid]->name);
 
         // Get just one policy and all its versions.
-        $docs = api::list_policies($another->policyid);
+        $docs = api::list_policies($another->get('policyid'));
         $this->assertEquals(1, count($docs));
-        $this->assertEquals(1, count($docs[$another->policyid]->versions));
 
         // Activate a policy.
-        $this->assertNull($policy->currentversionid);
-        api::make_current($policy->policyid, $updated->versionid);
-        $policy = api::get_policy($policy->policyid);
-        $this->assertEquals($policy->currentversionid, $updated->versionid);
-
-        // Get just the activated policies.
-        $docs = api::list_policies(null, true);
-        $this->assertEquals(1, count($docs));
-        $this->assertEquals($docs[$policy->policyid]->currentversionid, $updated->versionid);
+        $this->assertEquals(0, count(api::list_current_versions()));
+        api::make_current($updated->get('id'));
+        $current = api::list_current_versions();
+        $this->assertEquals(1, count($current));
+        $this->assertEquals('Test terms &amp; conditions', $current[0]->name);
 
         // Activate another policy version.
-        api::make_current($policy->policyid, $new->versionid);
-        $policy = api::get_policy($policy->policyid);
-        $this->assertEquals($policy->currentversionid, $new->versionid);
+        api::make_current($new->get('id'));
+        $current = api::list_current_versions();
+        $this->assertEquals(1, count($current));
+        $this->assertEquals('New terms &amp; conditions', $current[0]->name);
 
         // Inactivate the policy.
-        api::inactivate($policy->policyid);
-        $policy = api::get_policy($policy->policyid);
-        $this->assertNull($policy->currentversionid);
-
-        // Load the policy version using both policyid and versionid.
-        $loaded = api::get_policy_version($another->policyid, $another->versionid);
-        $this->assertEquals($loaded->policyid, $another->policyid);
-        $this->assertEquals($loaded->versionid, $another->versionid);
-
-        // Load the policy version using versionid only.
-        $loaded = api::get_policy_version(null, $another->versionid);
-        $this->assertEquals($loaded->policyid, $another->policyid);
-        $this->assertEquals($loaded->versionid, $another->versionid);
-
-        // Save form as a new version with an empty revision.
-        $formdata = api::form_policydoc_data($policy->policyid, $new->versionid);
-        $formdata->revision = '';
-        $formdata->summary_editor['text'] = '<strong>And one more summary</strong>';
-        $formdata->summary_editor['format'] = FORMAT_MOODLE;
-        $formdata->content_editor['text'] = '<h3>And one more test</h3>';
-        $formdata->content_editor['format'] = FORMAT_HTML;
-        $new2 = api::form_policydoc_update_new($policy->policyid, $formdata);
-        $this->assertEquals($policy->policyid, $new2->policyid);
-        $this->assertNotEquals($new->versionid, $new2->versionid);
-        $this->assertEquals('', $new2->revision);
-
-        // Save form as a new version with an existing revision.
-        $formdata = api::form_policydoc_data($policy->policyid, $new->versionid);
-        $formdata->revision = $new->revision;
-        $formdata->summary_editor['text'] = '<strong>And one more summary with non unique revision</strong>';
-        $formdata->summary_editor['format'] = FORMAT_MOODLE;
-        $formdata->content_editor['text'] = '<h3>And one more test with non unique revision</h3>';
-        $formdata->content_editor['format'] = FORMAT_HTML;
-        $new3 = api::form_policydoc_update_new($policy->policyid, $formdata);
-        $this->assertEquals($policy->policyid, $new3->policyid);
-        $this->assertNotEquals($new->versionid, $new3->versionid);
-        $this->assertEquals('', $new3->revision);
-        // All versions created the same day with empty revision, have the same default revision name.
-        $defaultrevision2 = api::get_default_policy_revision_value($new2->policyid, $new2->versionid);
-        $defaultrevision3 = api::get_default_policy_revision_value($new3->policyid, $new3->versionid);
-        $this->assertEquals($defaultrevision2, $defaultrevision3);
+        api::inactivate($new->get('policyid'));
+        $this->assertEmpty(api::list_current_versions());
     }
 
     /**
      * Test changing the sort order of the policy documents.
      */
     public function test_policy_sortorder() {
+        global $DB;
         $this->resetAfterTest();
         $this->setAdminUser();
 
-        $formdata = api::form_policydoc_data();
+        $formdata = api::form_policydoc_data(new policy_version(0));
         $formdata->name = 'Policy1';
         $formdata->summary_editor = ['text' => 'P1 summary', 'format' => FORMAT_HTML, 'itemid' => 0];
         $formdata->content_editor = ['text' => 'P1 content', 'format' => FORMAT_HTML, 'itemid' => 0];
         $policy1 = api::form_policydoc_add($formdata);
+        $policy1sortorder = $DB->get_field('tool_policy', 'sortorder', ['id' => $policy1->get('policyid')]);
 
-        $formdata = api::form_policydoc_data();
+        $formdata = api::form_policydoc_data(new policy_version(0));
         $formdata->name = 'Policy2';
         $formdata->summary_editor = ['text' => 'P2 summary', 'format' => FORMAT_HTML, 'itemid' => 0];
         $formdata->content_editor = ['text' => 'P2 content', 'format' => FORMAT_HTML, 'itemid' => 0];
         $policy2 = api::form_policydoc_add($formdata);
+        $policy2sortorder = $DB->get_field('tool_policy', 'sortorder', ['id' => $policy2->get('policyid')]);
 
-        $this->assertTrue($policy1->sortorder < $policy2->sortorder);
+        $this->assertTrue($policy1sortorder < $policy2sortorder);
 
-        $formdata = api::form_policydoc_data();
+        $formdata = api::form_policydoc_data(new policy_version(0));
         $formdata->name = 'Policy3';
         $formdata->summary_editor = ['text' => 'P3 summary', 'format' => FORMAT_HTML, 'itemid' => 0];
         $formdata->content_editor = ['text' => 'P3 content', 'format' => FORMAT_HTML, 'itemid' => 0];
         $policy3 = api::form_policydoc_add($formdata);
+        $policy3sortorder = $DB->get_field('tool_policy', 'sortorder', ['id' => $policy3->get('policyid')]);
 
-        $this->assertTrue($policy1->sortorder < $policy2->sortorder);
-        $this->assertTrue($policy2->sortorder < $policy3->sortorder);
+        $this->assertTrue($policy1sortorder < $policy2sortorder);
+        $this->assertTrue($policy2sortorder < $policy3sortorder);
 
-        api::move_up($policy3->policyid);
+        api::move_up($policy3->get('policyid'));
 
-        $policy1 = api::get_policy($policy1->policyid);
-        $policy2 = api::get_policy($policy2->policyid);
-        $policy3 = api::get_policy($policy3->policyid);
+        $policy1sortorder = $DB->get_field('tool_policy', 'sortorder', ['id' => $policy1->get('policyid')]);
+        $policy2sortorder = $DB->get_field('tool_policy', 'sortorder', ['id' => $policy2->get('policyid')]);
+        $policy3sortorder = $DB->get_field('tool_policy', 'sortorder', ['id' => $policy3->get('policyid')]);
 
-        $this->assertTrue($policy1->sortorder < $policy3->sortorder);
-        $this->assertTrue($policy3->sortorder < $policy2->sortorder);
+        $this->assertTrue($policy1sortorder < $policy3sortorder);
+        $this->assertTrue($policy3sortorder < $policy2sortorder);
 
-        api::move_down($policy1->policyid);
+        api::move_down($policy1->get('policyid'));
 
-        $policy1 = api::get_policy($policy1->policyid);
-        $policy2 = api::get_policy($policy2->policyid);
-        $policy3 = api::get_policy($policy3->policyid);
+        $policy1sortorder = $DB->get_field('tool_policy', 'sortorder', ['id' => $policy1->get('policyid')]);
+        $policy2sortorder = $DB->get_field('tool_policy', 'sortorder', ['id' => $policy2->get('policyid')]);
+        $policy3sortorder = $DB->get_field('tool_policy', 'sortorder', ['id' => $policy3->get('policyid')]);
 
-        $this->assertTrue($policy3->sortorder < $policy1->sortorder);
-        $this->assertTrue($policy1->sortorder < $policy2->sortorder);
+        $this->assertTrue($policy3sortorder < $policy1sortorder);
+        $this->assertTrue($policy1sortorder < $policy2sortorder);
 
-        $orderedlist = api::list_policies();
-        $this->assertEquals([$policy3->policyid, $policy1->policyid, $policy2->policyid], array_keys($orderedlist));
+        $orderedlist = [];
+        foreach (api::list_policies() as $policy) {
+            $orderedlist[] = $policy->id;
+        }
+        $this->assertEquals([$policy3->get('policyid'), $policy1->get('policyid'), $policy2->get('policyid')], $orderedlist);
     }
 
     /**
@@ -223,28 +188,35 @@ class tool_policy_api_testcase extends advanced_testcase {
         $this->resetAfterTest();
         $this->setAdminUser();
 
-        $policy1 = $this->add_policy(['audience' => api::AUDIENCE_LOGGEDIN]);
-        $policy2 = $this->add_policy(['audience' => api::AUDIENCE_GUESTS]);
+        $policy1 = $this->add_policy(['audience' => policy_version::AUDIENCE_LOGGEDIN]);
+        $policy2 = $this->add_policy(['audience' => policy_version::AUDIENCE_GUESTS]);
         $policy3 = $this->add_policy();
 
-        $list = api::list_policies();
-        $this->assertEquals([$policy1->policyid, $policy2->policyid, $policy3->policyid], array_keys($list));
+        api::make_current($policy1->get('id'));
+        api::make_current($policy2->get('id'));
+        api::make_current($policy3->get('id'));
 
-        $list = api::list_policies(null, false, api::AUDIENCE_LOGGEDIN);
-        $this->assertEquals([$policy1->policyid, $policy3->policyid], array_keys($list));
+        $list = array_map(function ($version) {
+            return $version->policyid;
+        }, api::list_current_versions());
+        $this->assertEquals([$policy1->get('policyid'), $policy2->get('policyid'), $policy3->get('policyid')], $list);
 
-        $list = api::list_policies([$policy1->policyid, $policy2->policyid], false, api::AUDIENCE_LOGGEDIN);
-        $this->assertEquals([$policy1->policyid], array_keys($list));
+        $list = array_map(function ($version) {
+            return $version->policyid;
+        }, api::list_current_versions(policy_version::AUDIENCE_LOGGEDIN));
+        $this->assertEquals([$policy1->get('policyid'), $policy3->get('policyid')], $list);
 
-        $list = api::list_policies(null, false, api::AUDIENCE_GUESTS);
-        $this->assertEquals([$policy2->policyid, $policy3->policyid], array_keys($list));
+        $list = array_map(function ($version) {
+            return $version->policyid;
+        }, api::list_current_versions(policy_version::AUDIENCE_GUESTS));
+        $this->assertEquals([$policy2->get('policyid'), $policy3->get('policyid')], $list);
     }
 
     /**
      * Helper method that creates a new policy for testing
      *
      * @param array $params
-     * @return stdClass
+     * @return policy_version
      */
     protected function add_policy($params = []) {
         static $counter = 0;
@@ -254,11 +226,10 @@ class tool_policy_api_testcase extends advanced_testcase {
             'name' => 'Policy '.$counter,
             'summary_editor' => ['text' => "P$counter summary", 'format' => FORMAT_HTML, 'itemid' => 0],
             'content_editor' => ['text' => "P$counter content", 'format' => FORMAT_HTML, 'itemid' => 0],
-            'audience' => api::AUDIENCE_ALL,
         ];
 
         $params = (array)$params + $defaults;
-        $formdata = api::form_policydoc_data();
+        $formdata = api::form_policydoc_data(new policy_version(0));
         foreach ($params as $key => $value) {
             $formdata->$key = $value;
         }
@@ -274,42 +245,20 @@ class tool_policy_api_testcase extends advanced_testcase {
     protected function create_versions($numversions = 2) {
         $policyversions = [];
         // Prepare a policy document with some versions.
-        $formdata = api::form_policydoc_data();
-        $formdata->name = 'Test policy';
-        $formdata->revision = 'v1';
-        $formdata->summary_editor = ['text' => 'summary', 'format' => FORMAT_HTML, 'itemid' => 0];
-        $formdata->content_editor = ['text' => 'content', 'format' => FORMAT_HTML, 'itemid' => 0];
-        $policy1 = api::form_policydoc_add($formdata);
-        $policyversions[] = $policy1;
+        $policy = self::add_policy([
+            'name' => 'Test policy',
+            'revision' => 'v1',
+        ]);
 
         for ($i = 2; $i <= $numversions; $i++) {
-            $formdata = api::form_policydoc_data($policy1->policyid, $policy1->versionid);
+            $formdata = api::form_policydoc_data($policy);
             $formdata->revision = 'v'.$i;
-            $policyversions[] = api::form_policydoc_update_new($policy1->policyid, $formdata);
+            api::form_policydoc_update_new($formdata);
         }
 
-        return $policyversions;
-    }
+        $list = api::list_policies($policy->get('policyid'));
 
-    /**
-     * Test behaviour of the {@link api::is_public()} method.
-     */
-    public function test_is_public() {
-        $this->resetAfterTest();
-        $this->setAdminUser();
-
-        // Prepare a policy document with some versions.
-        list($policy1, $policy2, $policy3) = $this->create_versions(3);
-
-        api::make_current($policy2->policyid, $policy2->versionid);
-
-        $policy1 = api::get_policy_version($policy1->policyid, $policy1->versionid);
-        $policy2 = api::get_policy_version($policy2->policyid, $policy2->versionid);
-        $policy3 = api::get_policy_version($policy3->policyid, $policy3->versionid);
-
-        $this->assertFalse(api::is_public($policy1));
-        $this->assertTrue(api::is_public($policy2));
-        $this->assertFalse(api::is_public($policy3));
+        return $list[0]->draftversions;
     }
 
     /**
@@ -360,10 +309,10 @@ class tool_policy_api_testcase extends advanced_testcase {
         $this->assertTrue(api::can_user_view_policy_version($policy3, null, $manager->id));
 
         // Current versions are public so that users can decide whether to even register on such a site.
-        api::make_current($policy2->policyid, $policy2->versionid);
-        $policy1 = api::get_policy_version($policy1->policyid, $policy1->versionid);
-        $policy2 = api::get_policy_version($policy2->policyid, $policy2->versionid);
-        $policy3 = api::get_policy_version($policy3->policyid, $policy3->versionid);
+        api::make_current($policy2->id);
+        $policy1 = api::get_policy_version($policy1->id);
+        $policy2 = api::get_policy_version($policy2->id);
+        $policy3 = api::get_policy_version($policy3->id);
 
         $this->assertFalse(api::can_user_view_policy_version($policy1, null, $child->id));
         $this->assertTrue(api::can_user_view_policy_version($policy2, null, $child->id));
@@ -372,13 +321,13 @@ class tool_policy_api_testcase extends advanced_testcase {
 
         // Let the parent accept the policy on behalf of her child.
         $this->setUser($parent);
-        api::accept_policies($policy2->versionid, $child->id);
+        api::accept_policies($policy2->id, $child->id);
 
         // Release a new version of the policy.
-        api::make_current($policy3->policyid, $policy3->versionid);
-        $policy1 = api::get_policy_version($policy1->policyid, $policy1->versionid);
-        $policy2 = api::get_policy_version($policy2->policyid, $policy2->versionid);
-        $policy3 = api::get_policy_version($policy3->policyid, $policy3->versionid);
+        api::make_current($policy3->policyid, $policy3->id);
+        $policy1 = api::get_policy_version($policy1->id);
+        $policy2 = api::get_policy_version($policy2->id);
+        $policy3 = api::get_policy_version($policy3->id);
 
         api::get_user_minors($parent->id);
         // They should now have access to the archived version (because they agreed) and the current one.
@@ -391,6 +340,31 @@ class tool_policy_api_testcase extends advanced_testcase {
     }
 
     /**
+     * Test {@link api::fix_revision_values()} behaviour.
+     */
+    public function test_fix_revision_values() {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $versions = [
+            (object) ['id' => 80, 'timecreated' => mktime(1, 1, 1, 12, 28, 2018), 'revision' => '', 'e' => '28 December 2018'],
+            (object) ['id' => 70, 'timecreated' => mktime(1, 1, 1, 12, 27, 2018), 'revision' => '', 'e' => '27 December 2018 - v2'],
+            (object) ['id' => 60, 'timecreated' => mktime(1, 1, 1, 12, 27, 2018), 'revision' => '', 'e' => '27 December 2018 - v1'],
+            (object) ['id' => 50, 'timecreated' => mktime(0, 0, 0, 12, 26, 2018), 'revision' => '0', 'e' => '0'],
+            (object) ['id' => 40, 'timecreated' => mktime(0, 0, 0, 12, 26, 2018), 'revision' => '1.1', 'e' => '1.1 - v2'],
+            (object) ['id' => 30, 'timecreated' => mktime(0, 0, 0, 12, 26, 2018), 'revision' => '1.1', 'e' => '1.1 - v1'],
+            (object) ['id' => 20, 'timecreated' => mktime(0, 0, 0, 12, 26, 2018), 'revision' => '', 'e' => '26 December 2018'],
+            (object) ['id' => 10, 'timecreated' => mktime(17, 57, 00, 12, 25, 2018), 'revision' => '1.0', 'e' => '1.0'],
+        ];
+
+        api::fix_revision_values($versions);
+
+        foreach ($versions as $version) {
+            $this->assertSame($version->revision, $version->e);
+        }
+    }
+
+    /**
      * Test that accepting policy updates 'policyagreed'
      */
     public function test_accept_policies() {
@@ -399,19 +373,19 @@ class tool_policy_api_testcase extends advanced_testcase {
         $this->setAdminUser();
 
         $policy1 = $this->add_policy();
-        api::make_current($policy1->policyid, $policy1->versionid);
+        api::make_current($policy1->get('id'));
         $policy2 = $this->add_policy();
-        api::make_current($policy2->policyid, $policy2->versionid);
+        api::make_current($policy2->get('id'));
 
         // Accept policy on behalf of somebody else.
         $user1 = $this->getDataGenerator()->create_user();
         $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
 
-        api::accept_policies([$policy1->versionid, $policy2->versionid], $user1->id);
+        api::accept_policies([$policy1->id, $policy2->id], $user1->id);
         $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
 
         // Now revoke.
-        api::revoke_acceptance($policy1->versionid, $user1->id);
+        api::revoke_acceptance($policy1->id, $user1->id);
         $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
 
         // Accept policies for oneself.
@@ -420,10 +394,10 @@ class tool_policy_api_testcase extends advanced_testcase {
 
         $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user2->id]));
 
-        api::accept_policies([$policy1->versionid]);
+        api::accept_policies([$policy1->id]);
         $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user2->id]));
 
-        api::accept_policies([$policy2->versionid]);
+        api::accept_policies([$policy2->id]);
         $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user2->id]));
     }
 
@@ -474,22 +448,5 @@ class tool_policy_api_testcase extends advanced_testcase {
         $this->assertTrue(property_exists($extradata[$child1->id], 'deleted'));
         $this->assertTrue(property_exists($extradata[$child2->id], 'policyagreed'));
         $this->assertTrue(property_exists($extradata[$child2->id], 'deleted'));
-    }
-
-    /**
-     * Test behaviour of the {@link api::policy_revision_exists()} method.
-     */
-    public function test_policy_revision_exists() {
-        $this->resetAfterTest();
-        $this->setAdminUser();
-
-        list($policy1, $policy2) = $this->create_versions(2);
-
-        $this->assertTrue(api::policy_revision_exists($policy1->revision, $policy1->policyid));
-        $this->assertTrue(api::policy_revision_exists($policy2->revision, $policy2->policyid));
-
-        // Check that the function excludes the specified version.
-        $this->assertFalse(api::policy_revision_exists($policy1->revision, $policy1->policyid, $policy1->versionid));
-        $this->assertTrue(api::policy_revision_exists($policy2->revision, $policy1->policyid, $policy1->versionid));
     }
 }

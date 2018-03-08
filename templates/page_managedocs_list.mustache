@@ -31,28 +31,18 @@
 {{#canmanage}}
 <div>
 	<div class="btn-group">
-		<button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            {{#str}} newpolicy, tool_policy {{/str}}
-            <span class="caret"></span>
-		</button>
-		<ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{{pluginbaseurl}}/editpolicydoc.php?template=site">{{#str}} newpolicysite, tool_policy {{/str}}</a></li>
-            <li><a class="dropdown-item" href="{{pluginbaseurl}}/editpolicydoc.php?template=privacy">{{#str}} newpolicyprivacy, tool_policy {{/str}}</a></li>
-            <li><a class="dropdown-item" href="{{pluginbaseurl}}/editpolicydoc.php?template=thirdparties">{{#str}} newpolicythirdparties, tool_policy {{/str}}</a></li>
-            <li class="dropdown-divider divider"></li>
-            <li><a class="dropdown-item" href="{{pluginbaseurl}}/editpolicydoc.php">{{#str}} newpolicyother, tool_policy {{/str}}</a></li>
-		</ul>
+        <a href="{{pluginbaseurl}}/editpolicydoc.php" type="button" class="btn btn-primary">{{#str}} newpolicy, tool_policy {{/str}}</a>
 	</div>
 </div>
 {{/canmanage}}
-<p style="clear:both"></p>
-{{#haspolicies}}
+
 <table class="generaltable fullwidth listpolicydocuments">
     <thead>
         <tr>
             <th scope="col">{{#str}} policydocname, tool_policy {{/str}}</th>
-            <th scope="col">{{#str}} policydocrevisioncurrent, tool_policy {{/str}}</th>
-            <th scope="col">{{#str}} policydocdesc, tool_policy {{/str}}</th>
+            <th scope="col">{{#str}} status, tool_policy {{/str}}</th>
+            <th scope="col">{{#str}} policydocrevision, tool_policy {{/str}}</th>
+            <th scope="col">{{#str}} lastmodified, core {{/str}}</th>
             {{#canviewacceptances}}
             <th scope="col">{{#str}} usersaccepted, tool_policy {{/str}}</th>
             {{/canviewacceptances}}
@@ -63,30 +53,35 @@
     </thead>
     <tbody>
         {{#policies}}
+        {{#currentversion}}
         <tr>
             <td>
-                <a href="{{manageurl}}">{{name}}</a>
+                <div>{{{name}}}</div>
+                <div class="text-muted, muted"><small>{{{typetext}}}, {{{audiencetext}}}</small></div>
             </td>
             <td>
-                {{#currentrevision}}<a href="{{viewcurrenturl}}">{{currentrevision}}</a>{{/currentrevision}}
-                {{^currentrevision}}{{#str}} inactive, tool_policy {{/str}}{{/currentrevision}}
+                {{{statustext}}}
             </td>
             <td>
-                {{description}}
+                {{revision}}
+            </td>
+            <td>
+                {{#userdate}} {{timemodified}}, {{#str}} strftimedatetime, core_langconfig {{/str}} {{/userdate}}
             </td>
             {{#canviewacceptances}}
             <td>
-                <a href="{{pluginbaseurl}}/acceptances.php?policyid={{id}}">{{usersaccepted}}</a>
+                <a href="{{pluginbaseurl}}/acceptances.php?policyid={{policyid}}&versionid={{id}}">{{acceptancescounttext}}</a>
             </td>
             {{/canviewacceptances}}
             {{#canmanage}}
             <td>
-                <a class="actionicon moveup" href="{{moveupurl}}">{{#pix}} t/up, core, {{#str}} moveup {{/str}} {{/pix}}</a>
-                <a class="actionicon movedown" href="{{movedownurl}}">{{#pix}} t/down, core, {{#str}} movedown {{/str}} {{/pix}}</a>
+                {{#actionmenu}}
+                {{>core/action_menu}}
+                {{/actionmenu}}
             </td>
             {{/canmanage}}
         </tr>
+        {{/currentversion}}
         {{/policies}}
     </tbody>
 </table>
-{{/haspolicies}}
