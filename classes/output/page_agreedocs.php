@@ -102,6 +102,10 @@ class page_agreedocs implements renderable, templatable {
     protected function accept_and_revoke_policies() {
         global $USER, $SESSION;
 
+        if (!isset($SESSION->tool_policy)) {
+            $SESSION->tool_policy = new \stdClass();
+        }
+
         if (!empty($this->agreedocs) && confirm_sesskey()) {
             if (!empty($USER->id)) {
                 // Existing user.
