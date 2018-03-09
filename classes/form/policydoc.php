@@ -120,10 +120,12 @@ class policydoc extends moodleform {
 
         $formdata = $this->_customdata['formdata'];
         // If it's a new version, versionid will be different. So we must to ignore it.
-        $versionid = $data['saveasnew']? null : $formdata->versionid;
-        if (api::policy_revision_exists($data['revision'], $formdata->policyid, $versionid)) {
-            // Validate that revision is unique for this policy.
-            $errors['revision'] = get_string('revisionunique', 'tool_policy');
+        if (!empty($formdata->versionid)) {
+            $versionid = $data['saveasnew']? null : $formdata->versionid;
+            if (api::policy_revision_exists($data['revision'], $formdata->policyid, $versionid)) {
+                // Validate that revision is unique for this policy.
+                $errors['revision'] = get_string('revisionunique', 'tool_policy');
+            }
         }
 
         return $errors;
