@@ -100,11 +100,7 @@ class page_agreedocs implements renderable, templatable {
      *
      */
     protected function accept_and_revoke_policies() {
-        global $USER, $SESSION;
-
-        if (!isset($SESSION->tool_policy)) {
-            $SESSION->tool_policy = new \stdClass();
-        }
+        global $USER;
 
         if (!empty($this->agreedocs) && confirm_sesskey()) {
             if (!empty($USER->id)) {
@@ -143,9 +139,11 @@ class page_agreedocs implements renderable, templatable {
                 foreach ($this->policies as $policy) {
                     $currentpolicyversionids[] = $policy->currentversionid;
                 }
-                $SESSION->tool_policy->userpolicyagreed = empty(array_diff($currentpolicyversionids, $this->agreedocs));
+                $userpolicyagreed = empty(array_diff($currentpolicyversionids, $this->agreedocs));
+                \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed',
+                    $userpolicyagreed);
 
-                if (!$SESSION->tool_policy->userpolicyagreed) {
+                if ($userpolicyagreed) {
                     // Show a message to let know the user he/she must agree all the policies if he/she wants to create a user.
                     $message = (object) [
                         'type' => 'error',
@@ -165,7 +163,7 @@ class page_agreedocs implements renderable, templatable {
                 }
             } else {
                 // New user.
-                $SESSION->tool_policy->userpolicyagreed = 1;
+                \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed', 1);
             }
         }
     }
@@ -179,7 +177,7 @@ class page_agreedocs implements renderable, templatable {
      * @param url $returnurl URL to return after shown the policy docs.
      */
     protected function redirect_to_policies($userid, $policies = null, $returnurl = null) {
-        global $SESSION;
+        global $USER;
 
         if (empty($policies)) {
             $policies = \tool_policy\api::list_policies(null, true, \tool_policy\api::AUDIENCE_LOGGEDIN);
@@ -200,16 +198,29 @@ class page_agreedocs implements renderable, templatable {
             foreach ($policies as $policy) {
                 $currentpolicyversionids[] = $policy->currentversionid;
             }
-            if (!empty($SESSION->tool_policy->viewedpolicies)) {
+
+            if (!empty($USER->id)) {
+                // Existing user.
+                $cache = \cache::make('tool_policy', 'toolpolicy');
+                $cachekey = 'viewedpolicies';
+            } else {
+                // New user.
+                $cache = \cache::make('core', 'presignup');
+                $cachekey = 'tool_policy_viewedpolicies';
+            }
+
+            $viewedpolicies = $cache->get($cachekey);
+            if (!empty($viewedpolicies)) {
                 // Get the list of the policies docs which the user haven't viewed during this session.
-                $pendingpolicies = array_diff($currentpolicyversionids, $SESSION->tool_policy->viewedpolicies);
+                $pendingpolicies = array_diff($currentpolicyversionids, $viewedpolicies);
             } else {
                 $pendingpolicies = $currentpolicyversionids;
             }
             if (sizeof($pendingpolicies) > 0) {
                 // Still is needed to show some policies docs. Save in the session and redirect.
                 $policyversionid = array_pop($pendingpolicies);
-                $SESSION->tool_policy->viewedpolicies[] = $policyversionid;
+                $viewedpolicies[] = $policyversionid;
+                $cache->set($cachekey, $viewedpolicies);
                 if (empty($returnurl)) {
                     $returnurl = new moodle_url('/admin/tool/policy/index.php');
                 }
@@ -267,9 +278,10 @@ class page_agreedocs implements renderable, templatable {
             }
         }
 
-        // If the current user has the $USER->policyagreed = 1 or $SESSION->tool_policy->userpolicyagreed = 1
+        // If the current user has the $USER->policyagreed = 1 or $userpolicyagreed = 1
         // and $SESSION->wantsurl is defined, redirect to the return page.
-        $hasagreedsignupuser = empty($USER->id) && !empty($SESSION->tool_policy->userpolicyagreed);
+        $userpolicyagreed = \cache::make('core', 'presignup')->get('tool_policy_userpolicyagreed');
+        $hasagreedsignupuser = empty($USER->id) && $userpolicyagreed;
         $hasagreedloggeduser = $USER->id == $this->behalfid && !empty($USER->policyagreed);
         if (!is_siteadmin() && ($hasagreedsignupuser || ($hasagreedloggeduser && !empty($SESSION->wantsurl)))) {
             $this->redirect_to_previous_url();
