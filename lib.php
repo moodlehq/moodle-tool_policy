@@ -196,7 +196,7 @@ function tool_policy_site_policy_handler($action = 'redirect') {
             $policies = api::list_current_versions(policy_version::AUDIENCE_LOGGEDIN);
             $policyversionid = array();
             foreach ($policies as $policy) {
-                $policyversionid[] = $policy->currentversionid;
+                $policyversionid[] = $policy->id;
             }
             api::accept_policies($policyversionid);
         } else if ($action === 'checkcanaccept') {

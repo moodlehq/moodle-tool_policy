@@ -52,22 +52,22 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
         $this->setAdminUser();
 
         // Prepare a policy document with some versions.
-        $formdata = api::form_policydoc_data();
+        $formdata = api::form_policydoc_data(new \tool_policy\policy_version(0));
         $formdata->name = 'Test policy';
         $formdata->revision = 'v1';
         $formdata->summary_editor = ['text' => 'summary', 'format' => FORMAT_HTML, 'itemid' => 0];
         $formdata->content_editor = ['text' => 'content', 'format' => FORMAT_HTML, 'itemid' => 0];
         $this->policy1 = api::form_policydoc_add($formdata);
 
-        $formdata = api::form_policydoc_data($this->policy1->policyid, $this->policy1->versionid);
+        $formdata = api::form_policydoc_data($this->policy1);
         $formdata->revision = 'v2';
-        $this->policy2 = api::form_policydoc_update_new($this->policy1->policyid, $formdata);
+        $this->policy2 = api::form_policydoc_update_new($formdata);
 
-        $formdata = api::form_policydoc_data($this->policy1->policyid, $this->policy1->versionid);
+        $formdata = api::form_policydoc_data($this->policy1);
         $formdata->revision = 'v3';
-        $this->policy3 = api::form_policydoc_update_new($this->policy1->policyid, $formdata);
+        $this->policy3 = api::form_policydoc_update_new($formdata);
 
-        api::make_current($this->policy2->policyid, $this->policy2->versionid);
+        api::make_current($this->policy2->get('id'));
 
         // Create users.
         $this->child = $this->getDataGenerator()->create_user();
@@ -94,14 +94,14 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
         $this->setUser($this->adult);
 
         // View current policy version.
-        $result = external::get_policy_version($this->policy2->versionid);
+        $result = external::get_policy_version($this->policy2->get('id'));
         $result = external_api::clean_returnvalue(external::get_policy_version_returns(), $result);
         $this->assertCount(1, $result['result']);
-        $this->assertEquals($this->policy1->name, $result['result']['policy']['name']);
-        $this->assertEquals($this->policy1->content, $result['result']['policy']['content']);
+        $this->assertEquals($this->policy1->get('name'), $result['result']['policy']['name']);
+        $this->assertEquals($this->policy1->get('content'), $result['result']['policy']['content']);
 
         // View draft policy version.
-        $result = external::get_policy_version($this->policy3->versionid);
+        $result = external::get_policy_version($this->policy3->get('id'));
         $result = external_api::clean_returnvalue(external::get_policy_version_returns(), $result);
         $this->assertCount(0, $result['result']);
         $this->assertCount(1, $result['warnings']);
@@ -116,23 +116,23 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
 
         // View previous non-accepted version in behalf of a child.
         $this->setUser($this->parent);
-        $result = external::get_policy_version($this->policy1->versionid, $this->child->id);
+        $result = external::get_policy_version($this->policy1->get('id'), $this->child->id);
         $result = external_api::clean_returnvalue(external::get_policy_version_returns(), $result);
         $this->assertCount(0, $result['result']);
         $this->assertCount(1, $result['warnings']);
         $this->assertEquals(array_pop($result['warnings'])['warningcode'], 'errorusercantviewpolicyversion');
 
         // Let the parent accept the policy on behalf of her child and view it again.
-        api::accept_policies($this->policy1->versionid, $this->child->id);
-        $result = external::get_policy_version($this->policy1->versionid, $this->child->id);
+        api::accept_policies($this->policy1->get('id'), $this->child->id);
+        $result = external::get_policy_version($this->policy1->get('id'), $this->child->id);
         $result = external_api::clean_returnvalue(external::get_policy_version_returns(), $result);
         $this->assertCount(1, $result['result']);
-        $this->assertEquals($this->policy1->name, $result['result']['policy']['name']);
-        $this->assertEquals($this->policy1->content, $result['result']['policy']['content']);
+        $this->assertEquals($this->policy1->get('name'), $result['result']['policy']['name']);
+        $this->assertEquals($this->policy1->get('content'), $result['result']['policy']['content']);
 
         // Only parent is able to view the child policy version accepted by her child.
         $this->setUser($this->adult);
-        $result = external::get_policy_version($this->policy1->versionid, $this->child->id);
+        $result = external::get_policy_version($this->policy1->get('id'), $this->child->id);
         $result = external_api::clean_returnvalue(external::get_policy_version_returns(), $result);
         $this->assertCount(0, $result['result']);
         $this->assertCount(1, $result['warnings']);

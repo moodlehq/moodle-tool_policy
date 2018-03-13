@@ -324,7 +324,7 @@ class tool_policy_api_testcase extends advanced_testcase {
         api::accept_policies($policy2->id, $child->id);
 
         // Release a new version of the policy.
-        api::make_current($policy3->policyid, $policy3->id);
+        api::make_current($policy3->id);
         $policy1 = api::get_policy_version($policy1->id);
         $policy2 = api::get_policy_version($policy2->id);
         $policy3 = api::get_policy_version($policy3->id);
@@ -372,10 +372,10 @@ class tool_policy_api_testcase extends advanced_testcase {
         $this->resetAfterTest();
         $this->setAdminUser();
 
-        $policy1 = $this->add_policy();
-        api::make_current($policy1->get('id'));
-        $policy2 = $this->add_policy();
-        api::make_current($policy2->get('id'));
+        $policy1 = $this->add_policy()->to_record();
+        api::make_current($policy1->id);
+        $policy2 = $this->add_policy()->to_record();
+        api::make_current($policy2->id);
 
         // Accept policy on behalf of somebody else.
         $user1 = $this->getDataGenerator()->create_user();

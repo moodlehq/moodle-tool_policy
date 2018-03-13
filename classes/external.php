@@ -92,7 +92,7 @@ class external extends external_api {
         $policyversionexists = policy_version::record_exists($versionid);
         if ($policyversionexists) {
             // Validate if the user has access to the policy version.
-            $version = api::get_policy_version(null, $versionid);
+            $version = api::get_policy_version($versionid);
             if (!api::can_user_view_policy_version($version, $behalfid)) {
                 $warnings[] = [
                     'item' => $versionid,
@@ -100,11 +100,11 @@ class external extends external_api {
                     'message' => get_string('errorusercantviewpolicyversion', 'tool_policy')
                 ];
             } else if (!empty($version)) {
-                $version = api::get_policy_version(null, $versionid);
+                $version = api::get_policy_version($versionid);
                 $policy['name'] = $version->name;
                 $policy['versionid'] = $versionid;
                 list($policy['content'], $notusedformat) = external_format_text($version->content, $version->contentformat, SYSCONTEXTID,
-                    'tool_policy', 'policydocumentcontent', $version->versionid);
+                    'tool_policy', 'policydocumentcontent', $version->id);
                 $result['policy'] = $policy;
             }
         } else {

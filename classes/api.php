@@ -417,6 +417,7 @@ class api {
     public static function form_policydoc_update_overwrite(stdClass $form) {
 
         $form = clone($form);
+        unset($form->timecreated);
 
         $summaryfieldoptions = static::policy_summary_field_options();
         $form = file_postupdate_standard_editor($form, 'summary', $summaryfieldoptions, $summaryfieldoptions['context'],
@@ -772,7 +773,7 @@ class api {
                   FROM {tool_policy} d
                   INNER JOIN {tool_policy_versions} v ON v.policyid = d.id AND v.id = d.currentversionid
                   LEFT JOIN {tool_policy_acceptances} a ON a.userid = :userid AND a.policyversionid = v.id
-                  WHERE (d.audience = :audience OR d.audience = :audienceall)";
+                  WHERE (v.audience = :audience OR v.audience = :audienceall)";
         $params = ['audience' => policy_version::AUDIENCE_LOGGEDIN, 'audienceall' => policy_version::AUDIENCE_ALL, 'userid' => $user->id];
         $policies = $DB->get_records_sql_menu($sql, $params);
         $acceptedpolicies = array_filter($policies);
