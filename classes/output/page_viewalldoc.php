@@ -109,12 +109,6 @@ class page_viewalldoc implements renderable, templatable {
         ];
 
         $data->policies = array_values($this->policies);
-        foreach ($data->policies as $policy) {
-            $policy->currentversion->summary = file_rewrite_pluginfile_urls($policy->currentversion->summary, 'pluginfile.php', SYSCONTEXTID,
-                'tool_policy', 'policydocumentsummary', $policy->currentversion->versionid);
-            $policy->currentversion->content = file_rewrite_pluginfile_urls($policy->currentversion->content, 'pluginfile.php', SYSCONTEXTID,
-                'tool_policy', 'policydocumentcontent', $policy->currentversion->versionid);
-        }
 
         return $data;
     }

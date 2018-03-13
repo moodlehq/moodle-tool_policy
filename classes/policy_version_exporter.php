@@ -128,4 +128,30 @@ class policy_version_exporter extends exporter {
 
         return $othervalues;
     }
+
+    /**
+     * Get the formatting parameters for the summary field.
+     *
+     * @return array
+     */
+    protected function get_format_parameters_for_summary() {
+        return [
+            'component' => 'tool_policy',
+            'filearea' => 'policydocumentsummary',
+            'itemid' => $this->data->id
+        ];
+    }
+
+    /**
+     * Get the formatting parameters for the content field.
+     *
+     * @return array
+     */
+    protected function get_format_parameters_for_content() {
+        return [
+            'component' => 'tool_policy',
+            'filearea' => 'policydocumentcontent',
+            'itemid' => $this->data->id
+        ];
+    }
 }

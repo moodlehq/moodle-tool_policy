@@ -387,10 +387,6 @@ class page_agreedocs implements renderable, templatable {
         }
 
         $data->policies = array_values($this->policies);
-        foreach ($data->policies as $policy) {
-            $policy->summary = file_rewrite_pluginfile_urls($policy->summary, 'pluginfile.php', SYSCONTEXTID,
-                'tool_policy', 'policydocumentsummary', $policy->id);
-        }
         $data->privacyofficer = get_config('tool_policy', 'privacyofficer');
 
         // If viewing docs in behalf of other user, get his/her full name and profile link.
