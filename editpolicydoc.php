@@ -33,6 +33,7 @@ $policyid = optional_param('policyid', null, PARAM_INT);
 $versionid = optional_param('versionid', null, PARAM_INT);
 $makecurrent = optional_param('makecurrent', null, PARAM_INT);
 $inactivate = optional_param('inactivate', null, PARAM_INT);
+$delete = optional_param('delete', null, PARAM_INT);
 $confirm = optional_param('confirm', false, PARAM_BOOL);
 $moveup = optional_param('moveup', null, PARAM_INT);
 $movedown = optional_param('movedown', null, PARAM_INT);
@@ -45,20 +46,20 @@ $output = $PAGE->get_renderer('tool_policy');
 $PAGE->navbar->add(get_string('editingpolicydocument', 'tool_policy'));
 
 if ($makecurrent) {
-    $policy = api::get_policy_version($policyid, $makecurrent);
+    $version = api::get_policy_version($makecurrent);
 
     if ($confirm) {
         require_sesskey();
-        api::make_current($policyid, $makecurrent);
+        api::make_current($makecurrent);
         redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
     }
 
     echo $output->header();
-    echo $output->heading(get_string('makingcurrent', 'tool_policy'));
+    echo $output->heading(get_string('activating', 'tool_policy'));
     echo $output->confirm(
-        get_string('makingcurrentconfirm', 'tool_policy', [
-            'name' => format_string($policy->name),
-            'revision' => format_string($policy->revision),
+        get_string('activateconfirm', 'tool_policy', [
+            'name' => format_string($version->name),
+            'revision' => format_string($version->revision),
         ]),
         new moodle_url($PAGE->url, ['makecurrent' => $makecurrent, 'confirm' => 1]),
         new moodle_url('/admin/tool/policy/managedocs.php')
@@ -68,15 +69,15 @@ if ($makecurrent) {
 }
 
 if ($inactivate) {
-    $policy = api::get_policy_version($policyid, $inactivate);
+    $policies = api::list_policies([$inactivate]);
 
-    if ($policy->currentversionid != $policy->versionid) {
+    if (empty($policies[0]->currentversionid)) {
         redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
     }
 
     if ($confirm) {
         require_sesskey();
-        api::inactivate($policyid);
+        api::inactivate($inactivate);
         redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
     }
 
@@ -84,10 +85,33 @@ if ($inactivate) {
     echo $output->heading(get_string('inactivating', 'tool_policy'));
     echo $output->confirm(
         get_string('inactivatingconfirm', 'tool_policy', [
-            'name' => format_string($policy->name),
-            'revision' => format_string($policy->revision),
+            'name' => format_string($policies[0]->currentversion->name),
+            'revision' => format_string($policies[0]->currentversion->revision),
         ]),
         new moodle_url($PAGE->url, ['inactivate' => $inactivate, 'confirm' => 1]),
+        new moodle_url('/admin/tool/policy/managedocs.php')
+    );
+    echo $output->footer();
+    die();
+}
+
+if ($delete) {
+    $version = api::get_policy_version($delete);
+
+    if ($confirm) {
+        require_sesskey();
+        api::delete($delete);
+        redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
+    }
+
+    echo $output->header();
+    echo $output->heading(get_string('deleting', 'tool_policy'));
+    echo $output->confirm(
+        get_string('deleteconfirm', 'tool_policy', [
+            'name' => format_string($version->name),
+            'revision' => format_string($version->revision),
+        ]),
+        new moodle_url($PAGE->url, ['delete' => $delete, 'confirm' => 1]),
         new moodle_url('/admin/tool/policy/managedocs.php')
     );
     echo $output->footer();
@@ -106,13 +130,27 @@ if ($moveup || $movedown) {
     redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
 }
 
-$policyversion = new policy_version($versionid);
-
-if (empty($versionid)) {
-    $policyversion->set('policyid', $policyid);
+if (!$versionid && $policyid) {
+    if (($policies = api::list_policies([$policyid])) && !empty($policies[0]->currentversionid)) {
+        $policy = $policies[0];
+        $policyversion = new policy_version($policy->currentversionid);
+    } else {
+        redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
+    }
+} else {
+    $policyversion = new policy_version($versionid);
+    if ($policyversion->get('policyid')) {
+        $policy = api::list_policies([$policyversion->get('policyid')])[0];
+    }
+}
+if ($policyversion->get('archived')) {
+    // Can not edit archived version.
+    redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
 }
 
 $formdata = api::form_policydoc_data($policyversion);
+$formdata->status = ($policy && $formdata->id && $policy->currentversionid == $formdata->id) ?
+    policy_version::STATUS_ACTIVE : policy_version::STATUS_DRAFT;
 
 $form = new \tool_policy\form\policydoc($PAGE->url, ['formdata' => $formdata]);
 
@@ -120,13 +158,16 @@ if ($form->is_cancelled()) {
     redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
 
 } else if ($data = $form->get_data()) {
-    if (empty($policyid) && empty($versionid)) {
+
+    if (! $policyversion->get('id')) {
         $policyversion = api::form_policydoc_add($data);
 
-    } else if (empty($versionid)) {
+    } else if (empty($data->minorchange)) {
+        $data->policyid = $policyversion->get('policyid');
         $policyversion = api::form_policydoc_update_new($data);
 
     } else {
+        $data->id = $policyversion->get('id');
         $policyversion = api::form_policydoc_update_overwrite($data);
     }
 

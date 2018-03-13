@@ -35,12 +35,7 @@ admin_externalpage_setup('tool_policy_managedocs', '', ['archived' => $archived]
 
 $output = $PAGE->get_renderer('tool_policy');
 
-if (empty($archived)) {
-    $manpage = new \tool_policy\output\page_managedocs_list();
-
-} else {
-    $manpage = new \tool_policy\output\page_managedocs_document($id);
-}
+$manpage = new \tool_policy\output\page_managedocs_list($archived);
 
 echo $output->header();
 echo $output->render($manpage);

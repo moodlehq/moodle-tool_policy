@@ -431,7 +431,9 @@ class api {
         unset($form->contenttrust);
 
         unset($form->status);
-        unset($form->submitbutton);
+        unset($form->save);
+        unset($form->saveasdraft);
+        unset($form->minorchange);
 
         $policyversion = new policy_version($form->id, $form);
         $policyversion->update();
@@ -448,6 +450,20 @@ class api {
         global $DB;
 
         $policyversion = new policy_version($versionid);
+        if (! $policyversion->get('id') || $policyversion->get('archived')) {
+            throw new coding_exception('Version not found or is archived');
+        }
+
+        // Archive current version of this policy.
+        if ($currentversionid = $DB->get_field('tool_policy', 'currentversionid', ['id' => $policyversion->get('policyid')])) {
+            if ($currentversionid == $versionid) {
+                // Already current.
+                return;
+            }
+            $DB->set_field('tool_policy_versions', 'archived', 1, ['id' => $currentversionid]);
+        }
+
+        // Set given version as current.
         $DB->set_field('tool_policy', 'currentversionid', $policyversion->get('id'), ['id' => $policyversion->get('policyid')]);
     }
 
@@ -459,7 +475,35 @@ class api {
     public static function inactivate($policyid) {
         global $DB;
 
-        $DB->set_field('tool_policy', 'currentversionid', null, ['id' => $policyid]);
+        if ($currentversionid = $DB->get_field('tool_policy', 'currentversionid', ['id' => $policyid])) {
+            // Archive the current version.
+            $DB->set_field('tool_policy_versions', 'archived', 1, ['id' => $currentversionid]);
+            // Unset current version for the policy.
+            $DB->set_field('tool_policy', 'currentversionid', null, ['id' => $policyid]);
+        }
+    }
+
+    /**
+     * Delete the given version (if it is a draft). Also delete policy if this is the only version.
+     * @param $versionid
+     */
+    public static function delete($versionid) {
+        global $DB;
+
+        $version = api::get_policy_version($versionid);
+        $policy = api::list_policies([$version->policyid])[0];
+        if ($version->archived || $policy->currentversionid == $version->id) {
+            // Can not delete archived or current version.
+            // TODO we could delete guest only versions potentially or versions without acceptances.
+            return;
+        }
+
+        $DB->delete_records('tool_policy_versions', ['id' => $versionid]);
+
+        if (!$policy->archivedversions && !$policy->currentversion && count($policy->draftversions) == 1) {
+            // This is a single version in a policy. Delete the policy.
+            $DB->delete_records('tool_policy', ['id' => $version->policyid]);
+        }
     }
 
     /**

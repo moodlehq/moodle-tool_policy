@@ -37,6 +37,7 @@ use renderable;
 use renderer_base;
 use single_button;
 use templatable;
+use tool_policy\policy_version;
 
 /**
  * Represents a management page with the list of policy documents.
@@ -47,6 +48,23 @@ use templatable;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class page_managedocs_list implements renderable, templatable {
+
+    /** @var int  */
+    protected $policyid = null;
+    /** @var moodle_url */
+    protected $returnurl = null;
+
+    /**
+     * page_managedocs_list constructor.
+     * @param int $policyid when specified only archived versions of this policy will be displayed.
+     */
+    public function __construct($policyid = null) {
+        $this->policyid = $policyid;
+        $this->returnurl = new moodle_url('/admin/tool/policy/managedocs.php');
+        if ($this->policyid) {
+            $this->returnurl->param('archived', $this->policyid);
+        }
+    }
 
     /**
      * Export the page data for the mustache template.
@@ -59,76 +77,165 @@ class page_managedocs_list implements renderable, templatable {
         $data = (object) [];
         $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(false);
         $data->canmanage = has_capability('tool/policy:managedocs', \context_system::instance());
+        $data->canaddnew = $data->canmanage && !$this->policyid;
         $data->canviewacceptances = has_capability('tool/policy:viewacceptances', \context_system::instance());
+        $data->title = get_string('policydocs', 'tool_policy');
         $data->policies = [];
 
-        foreach (api::list_policies() as $policy) {
-            $editbaseurl = new moodle_url('/admin/tool/policy/editpolicydoc.php', [
-                'sesskey' => sesskey(),
-                'policyid' => $policy->id,
-            ]);
-
-            $viewbaseurl = new moodle_url('/admin/tool/policy/view.php', [
-                'policyid' => $policy->id,
-                'manage' => 1,
-                'returnurl' => (new moodle_url('/admin/tool/policy/managedocs.php'))->out(false),
-            ]);
-
-            if (empty($policy->currentversion) && empty($policy->draftversions)) {
-                // A policy with only archived versions - what TODO?
-                continue;
-
-            } else if (empty($policy->currentversion) && !empty($policy->draftversions)) {
-                // Use the first draft version as if it was the current one.
-                $policy->currentversion = array_shift($policy->draftversions);
-                $policy->currentversion->statustext = get_string('status0', 'tool_policy');
-
-            } else {
-                $policy->currentversion->statustext = get_string('status1', 'tool_policy');
+        if ($this->policyid) {
+            // We are only interested in the archived versions of the given policy.
+            $data->backurl = (new moodle_url('/admin/tool/policy/managedocs.php'))->out(false);
+            $policy = api::list_policies([$this->policyid], true)[0];
+            if ($firstversion = $policy->currentversion ?: (reset($policy->draftversions) ?: reset($policy->archivedversions))) {
+                $data->title = get_string('previousversions', 'tool_policy', format_string($firstversion->name));
             }
 
-            $actionmenu = new action_menu();
-            $actionmenu->set_menu_trigger(get_string('actions', 'tool_policy'));
-            $actionmenu->set_alignment(action_menu::TL, action_menu::BL);
+            foreach ($policy->archivedversions as $i => $version) {
+                $data->versions[] = $this->export_version_for_template($output, $policy, $version,
+                    policy_version::STATUS_ARCHIVED, false, false, false);
+            }
+            return $data;
+        }
+
+        // List all policies. Display current and all draft versions of each policy in this list (if none found, then only one archived version).
+        $policies = api::list_policies(null, true);
+        foreach ($policies as $i => $policy) {
+
+            if (empty($policy->currentversion) && empty($policy->draftversions)) {
+                // There is no current and no draft versions, display the first archived version.
+                $firstpolicy = array_shift($policy->archivedversions);
+                $data->versions[] = $this->export_version_for_template($output, $policy, $firstpolicy,
+                    policy_version::STATUS_ARCHIVED, false, $i > 0, $i < count($policies) - 1);
+            }
+
+            if (!empty($policy->currentversion)) {
+
+                // Current version of the policy.
+                $data->versions[] = $this->export_version_for_template($output, $policy, $policy->currentversion,
+                    policy_version::STATUS_ACTIVE, false, $i > 0, $i < count($policies) - 1);
+
+            } else if ($policy->draftversions) {
+
+                // There is no current version, display the first draft version as the current.
+                $firstpolicy = array_shift($policy->draftversions);
+                $data->versions[] = $this->export_version_for_template($output, $policy, $firstpolicy,
+                    policy_version::STATUS_DRAFT, false, $i > 0, $i < count($policies) - 1);
+            }
+
+            foreach ($policy->draftversions as $draft) {
+                // Show all [other] draft policies indented.
+                $data->versions[] = $this->export_version_for_template($output, $policy, $draft,
+                    policy_version::STATUS_DRAFT, true, false, false);
+            }
+
+        }
+
+        return $data;
+    }
+
+    /**
+     * Exports one version for the list of policies
+     *
+     * @param \renderer_base $output
+     * @param \stdClass $policy
+     * @param \stdClass $version
+     * @param int $status
+     * @param bool $isindented display indented (normally drafts of the current version)
+     * @param bool $moveup can move up
+     * @param bool $movedown can move down
+     * @return \stdClass
+     */
+    protected function export_version_for_template($output, $policy, $version, $status, $isindented, $moveup, $movedown) {
+        $version->statustext = get_string('status' . $status, 'tool_policy');
+        $version->indented = $isindented;
+
+        $editbaseurl = new moodle_url('/admin/tool/policy/editpolicydoc.php', [
+            'sesskey' => sesskey(),
+            'policyid' => $policy->id,
+            'returnurl' => $this->returnurl->out_as_local_url(false),
+        ]);
+
+        $viewurl = new moodle_url('/admin/tool/policy/view.php', [
+            'policyid' => $policy->id,
+            'versionid' => $version->id,
+            'manage' => 1,
+            'returnurl' => $this->returnurl->out_as_local_url(false),
+        ]);
+
+        $actionmenu = new action_menu();
+        $actionmenu->set_menu_trigger(get_string('actions', 'tool_policy'));
+        $actionmenu->set_alignment(action_menu::TL, action_menu::BL);
+        if ($moveup) {
             $actionmenu->add(new action_menu_link(
                 new moodle_url($editbaseurl, ['moveup' => $policy->id]),
                 new pix_icon('t/up', get_string('moveup', 'tool_policy')),
                 get_string('moveup', 'tool_policy'),
                 true
             ));
+        }
+        if ($movedown) {
             $actionmenu->add(new action_menu_link(
                 new moodle_url($editbaseurl, ['movedown' => $policy->id]),
                 new pix_icon('t/down', get_string('movedown', 'tool_policy')),
                 get_string('movedown', 'tool_policy'),
                 true
             ));
+        }
+        $actionmenu->add(new action_menu_link(
+            $viewurl,
+            null,
+            get_string('view'),
+            false
+        ));
+        if ($status != policy_version::STATUS_ARCHIVED) {
+            // "Edit".
             $actionmenu->add(new action_menu_link(
-                new moodle_url($viewbaseurl, ['versionid' => $policy->currentversion->id]),
+                new moodle_url($editbaseurl, ['versionid' => $version->id]),
                 null,
-                get_string('view'),
+                get_string('edit'),
                 false
             ));
-
-            $policy->currentversion->actionmenu = $actionmenu->export_for_template($output);
-
-            foreach ($policy->draftversions as $draft) {
-                $draft->statustext = get_string('status0', 'tool_policy');
-                $draft->actions = [
-                    (object) [
-                        'name' => get_string('view'),
-                        'url' => (new moodle_url($viewbaseurl, ['versionid' => $draft->id]))->out(false),
-                    ],
-                ];
-            }
-
-            if ($data->canviewacceptances) {
-                $policy->acceptancescount = null;
-                $policy->acceptancescounttext = null;
-            }
-
-            $data->policies[] = $policy;
+        }
+        if ($status == policy_version::STATUS_ACTIVE) {
+            // Set status to "Inactive".
+            $actionmenu->add(new action_menu_link(
+                new moodle_url($editbaseurl, ['inactivate' => $policy->id]),
+                null,
+                get_string('inactivate', 'tool_policy'),
+                false
+            ));
+        }
+        if ($status == policy_version::STATUS_DRAFT) {
+            // "Make current".
+            $actionmenu->add(new action_menu_link(
+                new moodle_url($editbaseurl, ['makecurrent' => $version->id]),
+                null,
+                get_string('activate', 'tool_policy'),
+                false
+            ));
+        }
+        if ($status == policy_version::STATUS_DRAFT) {
+            // TODO can we also delete non-draft version that is guest only or has no acceptances?
+            // "Delete".
+            $actionmenu->add(new action_menu_link(
+                new moodle_url($editbaseurl, ['delete' => $version->id]),
+                null,
+                get_string('delete'),
+                false
+            ));
+        }
+        if (!$this->policyid && !$isindented && $policy->archivedversions &&
+                ($status != policy_version::STATUS_ARCHIVED || count($policy->archivedversions) > 1)) {
+            // "View previous versions".
+            $actionmenu->add(new action_menu_link(
+                new moodle_url('/admin/tool/policy/managedocs.php', ['archived' => $policy->id]),
+                null,
+                get_string('viewarchived', 'tool_policy'),
+                false
+            ));
         }
 
-        return $data;
+        $version->actionmenu = $actionmenu->export_for_template($output);
+        return $version;
     }
 }

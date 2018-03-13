@@ -89,17 +89,71 @@ class policydoc extends moodleform {
             api::policy_content_field_options());
         $mform->addRule('content_editor', null, 'required', null, 'client');
 
-        $statusgrp = [
-            $mform->createElement('radio', 'status', '', get_string('status'.policy_version::STATUS_ACTIVE, 'tool_policy'),
-                policy_version::STATUS_ACTIVE),
-            $mform->createElement('radio', 'status', '', get_string('status'.policy_version::STATUS_DRAFT, 'tool_policy'),
-                policy_version::STATUS_DRAFT),
-            $mform->createElement('static', 'statusinfo', '', html_writer::div(get_string('statusinfo', 'tool_policy'),
-                'muted text-muted')),
-        ];
+        if (!$formdata->id || $formdata->status == policy_version::STATUS_DRAFT) {
+            // Creating a new version or editing a draft.
+            $mform->addElement('hidden', 'minorchange', 1);
+            $mform->setType('minorchange', PARAM_INT);
 
-        $mform->addGroup($statusgrp, null, get_string('status', 'tool_policy'), ['<br>'], false);
+            $statusgrp = [
+                $mform->createElement('radio', 'status', '', get_string('status'.policy_version::STATUS_ACTIVE, 'tool_policy'),
+                    policy_version::STATUS_ACTIVE),
+                $mform->createElement('radio', 'status', '', get_string('status'.policy_version::STATUS_DRAFT, 'tool_policy'),
+                    policy_version::STATUS_DRAFT),
+                $mform->createElement('static', 'statusinfo', '', html_writer::div(get_string('statusinfo', 'tool_policy'),
+                    'muted text-muted')),
+            ];
+            $mform->addGroup($statusgrp, null, get_string('status', 'tool_policy'), ['<br>'], false);
 
-        $this->add_action_buttons();
+        } else {
+            // Editing an active version.
+            $mform->addElement('hidden', 'status', policy_version::STATUS_ACTIVE);
+            $mform->setType('status', PARAM_INT);
+
+            $mform->addElement('checkbox', 'minorchange', 'Policy status', 'Minor change'); // TODO strings, postfix
+        }
+
+        // "Save" button and, optionally, "Save as draft".
+        $buttonarray = [];
+        $buttonarray[] = $mform->createElement('submit', 'save', get_string('save', 'tool_policy'));
+        if ($formdata->id && $formdata->status == policy_version::STATUS_ACTIVE) {
+            $buttonarray[] = $mform->createElement('submit', 'saveasdraft', get_string('saveasdraft', 'tool_policy'));
+        }
+        $buttonarray[] = $mform->createElement('cancel');
+        $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
+        $mform->closeHeaderBefore('buttonar');
+
+        $this->set_data($formdata);
+    }
+
+    /**
+     * Form validation
+     *
+     * @param array $data array of ("fieldname"=>value) of submitted data
+     * @param array $files array of uploaded files "element_name"=>tmp_file_path
+     * @return array of "element_name"=>"error_description" if there are errors,
+     *         or an empty array if everything is OK (true allowed for backwards compatibility too).
+     */
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+        if (!empty($data['minorchange']) && !empty($data['saveasdraft'])) {
+            // If minorchange is checked and "save as draft" is pressed - return error.
+            $errors['minorchange'] = get_string('errorsaveasdraft', 'tool_policy');
+        }
+        return $errors;
+    }
+
+    /**
+     * Return submitted data if properly submitted or returns NULL if validation fails or
+     * if there is no submitted data.
+     *
+     * @return object submitted data; NULL if not valid or not submitted or cancelled
+     */
+    public function get_data() {
+        if ($data = parent::get_data()) {
+            if (!empty($data->saveasdraft)) {
+                $data->status = policy_version::STATUS_DRAFT;
+            }
+        }
+        return $data;
     }
 }

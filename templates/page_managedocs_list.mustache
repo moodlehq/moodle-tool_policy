@@ -27,14 +27,21 @@
     * haspolicies
     * policies
 }}
-<h2>{{#str}} policydocs, tool_policy {{/str}}</h2>
-{{#canmanage}}
-<div>
-	<div class="btn-group">
-        <a href="{{pluginbaseurl}}/editpolicydoc.php" type="button" class="btn btn-primary">{{#str}} newpolicy, tool_policy {{/str}}</a>
-	</div>
-</div>
-{{/canmanage}}
+<h2>{{{title}}}</h2>
+{{#backurl}}
+    <div>
+        <div class="btn-group">
+            <a href="{{backurl}}" type="button" class="btn btn-secondary">{{#str}} back {{/str}}</a>
+        </div>
+    </div>
+{{/backurl}}
+{{#canaddnew}}
+    <div>
+        <div class="btn-group">
+            <a href="{{pluginbaseurl}}/editpolicydoc.php" type="button" class="btn btn-primary">{{#str}} newpolicy, tool_policy {{/str}}</a>
+        </div>
+    </div>
+{{/canaddnew}}
 
 <table class="generaltable fullwidth listpolicydocuments">
     <thead>
@@ -52,11 +59,10 @@
         </tr>
     </thead>
     <tbody>
-        {{#policies}}
-        {{#currentversion}}
+        {{#versions}}
         <tr>
             <td>
-                <div>{{{name}}}</div>
+                <div>{{#indented}}--> {{/indented}}{{{name}}}</div>
                 <div class="text-muted, muted"><small>{{{typetext}}}, {{{audiencetext}}}</small></div>
             </td>
             <td>
@@ -70,7 +76,12 @@
             </td>
             {{#canviewacceptances}}
             <td>
-                <a href="{{pluginbaseurl}}/acceptances.php?policyid={{policyid}}&versionid={{id}}">{{acceptancescounttext}}</a>
+                {{#acceptancescounturl}}
+                    <a href="{{acceptancescounturl}}">{{acceptancescounttext}}</a>
+                {{/acceptancescounturl}}
+                {{^acceptancescounturl}}
+                    {{acceptancescounttext}}
+                {{/acceptancescounturl}}
             </td>
             {{/canviewacceptances}}
             {{#canmanage}}
@@ -81,7 +92,6 @@
             </td>
             {{/canmanage}}
         </tr>
-        {{/currentversion}}
-        {{/policies}}
+        {{/versions}}
     </tbody>
 </table>

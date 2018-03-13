@@ -85,6 +85,10 @@ class policy_version_exporter extends exporter {
             'acceptancescounttext' => [
                 'type' => PARAM_TEXT,
             ],
+            // Link to view acceptances.
+            'acceptancescounturl' => [
+                'type' => PARAM_LOCALURL,
+            ],
         ];
     }
 
@@ -101,6 +105,14 @@ class policy_version_exporter extends exporter {
             'audiencetext' => get_string('policydocaudience'.$this->data->audience, 'tool_policy'),
         ];
 
+        if (!isset($this->data->acceptancescount)) {
+            // Return "N/A" for acceptances count.
+            // TODO the same should happen for drafts but we don't have information about the version status here.
+            $othervalues['acceptancescounttext'] = get_string('useracceptancecountna', 'tool_policy');
+            $othervalues['acceptancescounturl'] = null;
+            return $othervalues;
+        }
+
         $acceptancescount = empty($this->data->acceptancescount) ? 0 : $this->data->acceptancescount;
         $acceptancesexpected = api::count_total_users();
 
@@ -111,6 +123,8 @@ class policy_version_exporter extends exporter {
         ];
 
         $othervalues['acceptancescounttext'] = get_string('useracceptancecount', 'tool_policy', $a);
+        $othervalues['acceptancescounturl'] = (new \moodle_url('/admin/tool/policy/acceptances.php',
+            ['versionid' => $this->data->id]))->out(false);
 
         return $othervalues;
     }
