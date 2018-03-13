@@ -25,6 +25,7 @@
 
 namespace tool_policy\output;
 
+use html_writer;
 use tool_policy\api;
 
 defined('MOODLE_INTERNAL') || die();
@@ -146,7 +147,17 @@ class page_managedocs_list implements renderable, templatable {
      * @return \stdClass
      */
     protected function export_version_for_template($output, $policy, $version, $status, $isindented, $moveup, $movedown) {
+
         $version->statustext = get_string('status' . $status, 'tool_policy');
+
+        if ($status == policy_version::STATUS_ACTIVE) {
+            $version->statustext = html_writer::span($version->statustext, 'label label-success');
+        } else if ($status == policy_version::STATUS_DRAFT) {
+            $version->statustext = html_writer::span($version->statustext, 'label label-warning');
+        } else {
+            $version->statustext = html_writer::span($version->statustext, 'label');
+        }
+
         $version->indented = $isindented;
 
         $editbaseurl = new moodle_url('/admin/tool/policy/editpolicydoc.php', [
