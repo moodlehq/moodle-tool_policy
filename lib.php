@@ -163,7 +163,8 @@ function tool_policy_get_fontawesome_icon_map() {
     return [
         'tool_policy:agreedno' => 'fa-times text-danger',
         'tool_policy:agreedyes' => 'fa-check text-success',
-        'tool_policy:agreedyesonbehalf' => 'fa-check text-info'
+        'tool_policy:agreedyesonbehalf' => 'fa-check text-info',
+        'tool_policy:level' => 'fa-level-up fa-rotate-90 text-muted',
     ];
 }
 
