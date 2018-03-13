@@ -25,14 +25,14 @@
 
 namespace tool_policy\output;
 
-use tool_policy\api;
-
 defined('MOODLE_INTERNAL') || die();
 
 use moodle_url;
 use renderable;
 use renderer_base;
 use templatable;
+use tool_policy\api;
+use tool_policy\policy_version;
 
 /**
  * Renderer for the policies plugin.
@@ -65,7 +65,7 @@ class guestconsent implements renderable, templatable {
         }
         $data->returnurl = urlencode($data->returnurl);
 
-        $policies = \tool_policy\api::list_policies(null, true, api::AUDIENCE_GUESTS);
+        $policies = api::list_current_versions(policy_version::AUDIENCE_GUESTS);
         $data->policies = array_values($policies);
 
         return $data;

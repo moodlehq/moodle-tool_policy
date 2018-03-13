@@ -88,9 +88,10 @@ class external extends external_api {
         $versionid = $params['versionid'];
         $behalfid = $params['behalfid'];
 
-        // Check if the policy version exists (to avoid SQL error).
-        $policyversionexists = policy_version::record_exists($versionid);
-        if ($policyversionexists) {
+        $context = context_system::instance();
+        $PAGE->set_context($context);
+
+        try {
             // Validate if the user has access to the policy version.
             $version = api::get_policy_version($versionid);
             if (!api::can_user_view_policy_version($version, $behalfid)) {
@@ -103,11 +104,17 @@ class external extends external_api {
                 $version = api::get_policy_version($versionid);
                 $policy['name'] = $version->name;
                 $policy['versionid'] = $versionid;
-                list($policy['content'], $notusedformat) = external_format_text($version->content, $version->contentformat, SYSCONTEXTID,
-                    'tool_policy', 'policydocumentcontent', $version->id);
+                list($policy['content'], $notusedformat) = external_format_text(
+                    $version->content,
+                    $version->contentformat,
+                    SYSCONTEXTID,
+                    'tool_policy',
+                    'policydocumentcontent',
+                    $version->id
+                );
                 $result['policy'] = $policy;
             }
-        } else {
+        } catch (coding_exception $e) {
             $warnings[] = [
                 'item' => $versionid,
                 'warningcode' => 'errorpolicyversionnotfound',
