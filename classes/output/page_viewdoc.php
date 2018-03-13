@@ -124,8 +124,6 @@ class page_viewdoc implements renderable, templatable {
                 // Disable notifications for new users, guests or users who haven't agreed to the policies.
                 $PAGE->set_popup_notification_allowed(false);
             }
-            $PAGE->set_context(context_system::instance());
-            $PAGE->set_pagelayout('standard');
             $PAGE->set_url($myurl);
             $PAGE->set_heading($SITE->fullname);
             $PAGE->set_title(get_string('policiesagreements', 'tool_policy'));

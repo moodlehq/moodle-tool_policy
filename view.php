@@ -46,6 +46,9 @@ $manage = optional_param('manage', false, PARAM_BOOL);
 $numpolicy = optional_param('numpolicy', null, PARAM_INT);
 $totalpolicies = optional_param('totalpolicies', null, PARAM_INT);
 
+$PAGE->set_context(context_system::instance());
+$PAGE->set_pagelayout('standard');
+
 $viewpage = new page_viewdoc($policyid, $versionid, $returnurl, $behalfid, $manage, $numpolicy, $totalpolicies);
 
 $output = $PAGE->get_renderer('tool_policy');

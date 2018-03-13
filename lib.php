@@ -111,7 +111,7 @@ function tool_policy_pre_signup_requests() {
  * @return bool false if the file not found, just send the file otherwise and do not return anything
  */
 function tool_policy_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options=array()) {
-    global $CFG;
+    global $CFG, $PAGE;
 
     // Do not allow access to files if we are not set as the site policy handler.
     if (empty($CFG->sitepolicyhandler) || $CFG->sitepolicyhandler !== 'tool_policy') {
@@ -121,6 +121,8 @@ function tool_policy_pluginfile($course, $cm, $context, $filearea, $args, $force
     if ($context->contextlevel != CONTEXT_SYSTEM) {
         return false;
     }
+
+    $PAGE->set_context($context);
 
     if ($filearea !== 'policydocumentsummary' && $filearea !== 'policydocumentcontent') {
         return false;
