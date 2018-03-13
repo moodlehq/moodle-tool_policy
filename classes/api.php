@@ -678,25 +678,28 @@ class api {
     public static function get_policies_with_acceptances($userid) {
         // Get the list of policies and versions that current user is able to see
         // and the respective acceptance records for the selected user.
-        $policies = static::list_policies(null, false, policy_version::AUDIENCE_LOGGEDIN);
+        $policies = static::list_policies();
         $acceptances = static::get_user_acceptances($userid);
-        foreach ($policies as $policyid => $policy) {
-            foreach ($policy->versions as $versionid => $version) {
-                $policytocheck = fullclone($policy);
-                $policytocheck->versionid = $versionid;
-                if (!self::can_user_view_policy_version($policytocheck, $userid)) {
-                    unset($policy->versions[$versionid]);
-                } else if (!empty($acceptances[$versionid]->status)) {
-                    $policy->versions[$versionid]->acceptance = $acceptances[$versionid];
+        $ret = [];
+        foreach ($policies as $i => $policy) {
+            $versions = [];
+            if ($policy->currentversion && $policy->currentversion->audience != policy_version::AUDIENCE_GUESTS) {
+                $policy->currentversion->acceptance = isset($acceptances[$policy->currentversion->id]) ?
+                    $acceptances[$policy->currentversion->id] : 0;
+                $versions[] = $policy->currentversion;
+            }
+            foreach ($policy->archivedversions as $j => $version) {
+                if ($version->audience != policy_version::AUDIENCE_GUESTS && self::can_user_view_policy_version($version, $userid)) {
+                    $version->acceptance = isset($acceptances[$version->id]) ? $acceptances[$version->id] : 0;
+                    $versions[] = $version;
                 }
             }
-            if (empty($policy->versions)) {
-                // User can not view any version for this policy.
-                unset($policies[$policyid]);
+            if ($versions) {
+                $ret[] = (object)['id' => $policy->id, 'versions' => $versions];
             }
         }
 
-        return $policies;
+        return $ret;
     }
 
     /**

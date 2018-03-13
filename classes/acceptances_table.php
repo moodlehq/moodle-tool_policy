@@ -65,16 +65,15 @@ class acceptances_table extends \table_sql {
         $this->output = $output;
 
         $this->versionids = [];
-        $policies = $acceptancesfilter->get_policies();
-        if (count($policies) > 1) {
-            foreach ($policies as $policy) {
-                $this->versionids[$policy->currentversionid] = format_string($policy->name);
+        $versions = $acceptancesfilter->get_versions();
+        if (count($versions) > 1) {
+            foreach ($versions as $version) {
+                $this->versionids[$version->id] = format_string($version->name);
             }
         } else {
-            $policy = reset($policies);
-            $version = reset($policy->versions);
-            $this->versionids[$version->id] = format_string($policy->name);
-            if ($version->id != $policy->currentversionid) {
+            $version = reset($versions);
+            $this->versionids[$version->id] = format_string($version->name);
+            if ($version->status != policy_version::STATUS_ACTIVE) {
                 $this->versionids[$version->id] .= '<br>' . format_string($version->revision); // TODO think about it
             }
         }

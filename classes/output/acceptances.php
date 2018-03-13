@@ -34,6 +34,7 @@ use renderable;
 use renderer_base;
 use single_button;
 use templatable;
+use tool_policy\policy_version;
 
 /**
  * List of users and their acceptances
@@ -67,11 +68,12 @@ class acceptances implements renderable, templatable {
 
         $canviewfullnames = has_capability('moodle/site:viewfullnames', \context_system::instance());
         foreach ($policies as $policy) {
-            $policy->name = format_string($policy->name);
-            unset($policy->description); // If description is needed later don't forget to apply format_text().
 
             foreach ($policy->versions as $version) {
-                $version->iscurrent = ($version->id == $policy->currentversionid);
+                unset($version->summary);
+                unset($version->content);
+                $version->iscurrent = ($version->status == policy_version::STATUS_ACTIVE);
+                $version->name = format_string($version->name);
                 $version->revision = format_string($version->revision);
                 $returnurl = new moodle_url('/admin/tool/policy/user.php', ['userid' => $this->userid]);
                 $version->viewurl = (new moodle_url('/admin/tool/policy/view.php', [
@@ -101,14 +103,9 @@ class acceptances implements renderable, templatable {
                 }
             }
 
-            if (empty($policy->versions[$policy->currentversionid])) {
+            if ($policy->versions[0]->status != policy_version::STATUS_ACTIVE) {
                 // Add an empty "currentversion" on top.
                 $policy->versions = [0 => (object)[]] + $policy->versions;
-            } else if (array_search($policy->currentversionid, array_keys($policy->versions)) > 0) {
-                // Move current version to the top.
-                $currentversion = $policy->versions[$policy->currentversionid];
-                unset($policy->versions[$policy->currentversionid]);
-                $policy->versions = [$currentversion->id => $currentversion] + $policy->versions;
             }
 
             $policy->versioncount = count($policy->versions);
@@ -117,7 +114,6 @@ class acceptances implements renderable, templatable {
         }
 
         $data->policies = array_values($policies);
-        // TODO remove fields we don't need!
         return $data;
     }
 }

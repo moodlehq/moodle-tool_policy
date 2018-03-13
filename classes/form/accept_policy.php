@@ -25,6 +25,8 @@
 namespace tool_policy\form;
 
 global $CFG;
+use tool_policy\policy_version;
+
 require_once($CFG->dirroot.'/lib/formslib.php');
 
 /**
@@ -39,17 +41,17 @@ class accept_policy extends \moodleform {
         $mform = $this->_form;
 
         $users = $this->_customdata['users'];
-        $policies = $this->_customdata['policies'];
+        $versions = $this->_customdata['versions'];
         $usernames = [];
         foreach ($users as $user) {
             $usernames[] = fullname($user);
         }
         $policiesnames = [];
-        foreach ($policies as $policy) {
-            $url = new \moodle_url('/admin/tool/policy/view.php', ['versionid' => $policy->versionid]);
-            $policyname = format_string($policy->name);
-            if ($policy->currentversionid != $policy->versionid) {
-                $policyname .= ' ' . format_string($policy->revision);
+        foreach ($versions as $version) {
+            $url = new \moodle_url('/admin/tool/policy/view.php', ['versionid' => $version->id]);
+            $policyname = format_string($version->name);
+            if ($version->status != policy_version::STATUS_ACTIVE) {
+                $policyname .= ' ' . format_string($version->revision);
             }
             $policiesnames[] = \html_writer::link($url, $policyname);
         }
@@ -74,6 +76,6 @@ class accept_policy extends \moodleform {
 
         $this->add_action_buttons(true, get_string('iagreetothepolicy', 'tool_policy'));
 
-        $this->set_data(['userid' => $user->id, 'acceptforversion' => $policy->versionid]);
+        $this->set_data(['userid' => $user->id, 'acceptforversion' => $version->id]);
     }
 }

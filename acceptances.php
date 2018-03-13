@@ -40,11 +40,11 @@ admin_externalpage_setup('tool_policy_managedocs', '', $urlparams,
     new moodle_url('/admin/tool/policy/acceptances.php'));
 require_capability('tool/policy:viewacceptances', context_system::instance());
 
-if (!$acceptancesfilter->get_policies()) {
+if (!$acceptancesfilter->get_versions()) {
     throw new \moodle_exception('No policies found'); // TODO string
 }
 
-if ($singlepolicy = $acceptancesfilter->get_single_policy()) {
+if ($singlepolicy = $acceptancesfilter->get_single_version()) {
     $PAGE->navbar->add(format_string($singlepolicy->name),
         new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
 }

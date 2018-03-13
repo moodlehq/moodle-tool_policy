@@ -53,14 +53,14 @@ $PAGE->set_url(new moodle_url('/admin/tool/policy/user.php', ['userid' => $useri
 if ($acceptforversion) {
     $user = $DB->get_record('user', ['id' => $userid], 'id,'.get_all_user_name_fields(true), MUST_EXIST);
     $returnurl = $returnurl ? new moodle_url($returnurl) : new moodle_url('/admin/tool/policy/user.php', ['userid' => $user->id]);
-    $policy = tool_policy\api::get_policy_version(null, $acceptforversion);
-    $form = new \tool_policy\form\accept_policy(null, ['policies' => [$policy], 'users' => [$user]]);
+    $version = tool_policy\api::get_policy_version($acceptforversion);
+    $form = new \tool_policy\form\accept_policy(null, ['versions' => [$version], 'users' => [$user]]);
     $form->set_data(['returnurl' => $returnurl]);
 
     if ($form->is_cancelled()) {
         redirect($returnurl);
     } else if ($data = $form->get_data()) {
-        \tool_policy\api::accept_policies([$policy->versionid], $user->id, $data->note);
+        \tool_policy\api::accept_policies([$acceptforversion], $user->id, $data->note);
         redirect($returnurl);
     }
 }

@@ -27,6 +27,7 @@ namespace tool_policy\output;
 
 
 use tool_policy\api;
+use tool_policy\policy_version;
 
 class acceptances_filter implements \templatable, \renderable {
 
@@ -36,8 +37,8 @@ class acceptances_filter implements \templatable, \renderable {
     /** @var string $searchstring */
     protected $searchstrings;
 
-    /** @var array list of available policies */
-    protected $policies = null;
+    /** @var array list of available versions */
+    protected $versions = null;
 
     /** @var array list of available roles for the filter */
     protected $roles;
@@ -200,23 +201,33 @@ class acceptances_filter implements \templatable, \renderable {
      *
      * @return array|null|\stdClass
      */
-    public function get_policies() {
-        if ($this->policies === null) {
+    public function get_versions() {
+        if ($this->versions === null) {
             $policyid = $this->get_policy_id_filter();
             $versionid = $this->get_version_id_filter();
-            $this->policies = \tool_policy\api::list_policies($policyid ? [$policyid] : null, !$versionid, \tool_policy\api::AUDIENCE_LOGGEDIN);
-            if ($versionid) {
-                // If versionid is specified leave only the policy where this version is present and remove all other versions.
-                $this->policies = array_filter($this->policies, function ($policy) use ($versionid) {
-                    $policy->versions = array_intersect_key($policy->versions, [$versionid => true]);
-                    return !empty($policy->versions);
-                });
-            }
-            if ($policyid && !$versionid && empty($this->policies)) {
-                $this->policies = \tool_policy\api::list_policies([$policyid], false, \tool_policy\api::AUDIENCE_LOGGEDIN);
+            $validateversion = function($version) use ($versionid) {
+                return (!$versionid || ($versionid == $version->id)) && $version->audience != policy_version::AUDIENCE_GUESTS;
+            };
+            // Find versions that are not guest-only and match policyid and versionid filter.
+            // When versionid is not specified only look at current versions. Always ignore drafts.
+            $this->versions = [];
+            $policies = \tool_policy\api::list_policies($policyid ? [$policyid] : null);
+            foreach ($policies as $policy) {
+                if ($policy->currentversion && $validateversion($policy->currentversion)) {
+                    $policy->currentversion->status = policy_version::STATUS_ACTIVE;
+                    $this->versions[] = $policy->currentversion;
+                }
+
+                if ($versionid) {
+                    if ($versions = array_filter($policy->archivedversions, $validateversion)) {
+                        $version = reset($versions);
+                        $version->status = policy_version::STATUS_ARCHIVED;
+                        $this->versions[] = $version;
+                    }
+                }
             }
         }
-        return $this->policies;
+        return $this->versions;
     }
 
     /**
@@ -226,10 +237,10 @@ class acceptances_filter implements \templatable, \renderable {
      *
      * @return mixed|null
      */
-    public function get_single_policy() {
+    public function get_single_version() {
         if ($this->get_version_id_filter() || $this->get_policy_id_filter()) {
-            $policies = $this->get_policies();
-            return reset($policies);
+            $versions = $this->get_versions();
+            return reset($versions);
         }
         return null;
     }
@@ -263,17 +274,15 @@ class acceptances_filter implements \templatable, \renderable {
     /**
      * Creates an option name for the smart select for the version
      *
-     * @param \stdClass $policy
-     * @param int $versionid
+     * @param \stdClass $version
      * @return string
      */
-    protected function get_version_option_for_filter($policy, $versionid) {
-        if ($policy->currentversionid == $versionid) {
-            $a = (object)['name' => format_string($policy->versions[$versionid]->revision),
-            'status' => get_string('statuscurrent', 'tool_policy')];
+    protected function get_version_option_for_filter($version) {
+        if ($version->status == policy_version::STATUS_ACTIVE) {
+            $a = (object)['name' => format_string($version->revision), 'status' => get_string('status'.policy_version::STATUS_ACTIVE, 'tool_policy')];
             return get_string('filterrevisionstatus', 'tool_policy', $a);
         } else {
-            return get_string('filterrevision', 'tool_policy', format_string($policy->versions[$versionid]->revision));
+            return get_string('filterrevision', 'tool_policy', format_string($version->revision));
         }
     }
 
@@ -287,24 +296,21 @@ class acceptances_filter implements \templatable, \renderable {
         $availablefilters = [];
 
         // Policies.
-        if ($singlepolicy = $this->get_single_policy()) {
-            $selectedoptions[] = $key = self::FILTER_POLICYID . ':' . $singlepolicy->id;
-            $availablefilters[$key] = get_string('filterpolicy', 'tool_policy', format_string($singlepolicy->name));
-            if ($versionid = $this->get_version_id_filter()) {
-                $selectedoptions[] = $key = self::FILTER_VERSIONID . ':' . $versionid;
-                $availablefilters[$key] = $this->get_version_option_for_filter($singlepolicy, $versionid);
-            } else {
-                $policies = api::list_policies([$singlepolicy->id], false, api::AUDIENCE_LOGGEDIN);
-                foreach ($policies[$singlepolicy->id]->versions as $version) {
-                    $key = self::FILTER_VERSIONID . ':' . $version->id;
-                    $availablefilters[$key] = $this->get_version_option_for_filter($policies[$singlepolicy->id], $version->id);
-                }
+        if ($singleversion = $this->get_single_version()) {
+            $selectedoptions[] = $key = self::FILTER_POLICYID . ':' . $singleversion->policyid;
+            $availablefilters[$key] = get_string('filterpolicy', 'tool_policy', format_string($singleversion->name));
+            $key = self::FILTER_VERSIONID . ':' . $singleversion->id;
+            $availablefilters[$key] = $this->get_version_option_for_filter($singleversion);
+            if ($this->get_version_id_filter()) {
+                $selectedoptions[] = $key;
             }
         } else {
-            $policies = api::list_policies(null, true, api::AUDIENCE_LOGGEDIN);
+            $policies = api::list_policies();
             foreach ($policies as $policy) {
-                $key = self::FILTER_POLICYID . ':' . $policy->id;
-                $availablefilters[$key] = get_string('filterpolicy', 'tool_policy', format_string($policy->name));
+                if ($policy->currentversion && $policy->currentversion->audience != policy_version::AUDIENCE_GUESTS) {
+                    $key = self::FILTER_POLICYID . ':' . $policy->id;
+                    $availablefilters[$key] = get_string('filterpolicy', 'tool_policy', format_string($policy->currentversion->name));
+                }
             }
         }
 
