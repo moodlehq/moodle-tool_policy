@@ -71,9 +71,11 @@
         </div>
         <div class="agreedoc-form m-t-1">
             <div class="agreedoc-checkbox">
-                <i class="icon fa fa-exclamation-circle text-danger fa-fw" title="{{# str }} required {{/ str }}" ></i>
-                <input value="{{id}}" name="agreedoc[]" {{#versionagreed}}checked="{{.}}"{{/versionagreed}} type="checkbox">
-                <label><strong>{{# str }}iagree, tool_policy, {{{name}}} {{/ str }}</strong></label>
+                <label>
+                    <input value="{{id}}" name="agreedoc[]" {{#versionagreed}}checked="{{.}}"{{/versionagreed}} type="checkbox">
+                    <strong>{{# str }}iagree, tool_policy, {{{name}}} {{/ str }}</strong>
+                    <i class="icon fa fa-exclamation-circle text-danger fa-fw" title="{{# str }} required {{/ str }}" ></i>
+                </label>
             </div>
             <small>
             <ul class="agreedoc-msg list-unstyled">
