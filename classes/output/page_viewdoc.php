@@ -90,8 +90,17 @@ class page_viewdoc implements renderable, templatable {
             $this->policy = api::get_policy_version($versionid);
 
         } else {
-            $list = api::list_policies($policyid);
-            $this->policy = $list[0]->currentversion;
+            $this->policy = array_reduce(api::list_current_versions(), function ($carry, $current) use ($policyid) {
+                if ($current->policyid == $policyid) {
+                    return $current;
+                }
+                return $carry;
+            });
+        }
+
+        if (empty($this->policy)) {
+            // TODO Make this nicer error message.
+            throw new \moodle_exception('err_no_active_version', 'tool_policy');
         }
     }
 
@@ -103,7 +112,7 @@ class page_viewdoc implements renderable, templatable {
 
         $myurl = new moodle_url('/admin/tool/policy/view.php', [
             'policyid' => $this->policy->policyid,
-            'versionid' => $this->policy->versionid,
+            'versionid' => $this->policy->id,
             'returnurl' => $this->returnurl,
             'behalfid' => $this->behalfid,
             'manage' => $this->manage,
