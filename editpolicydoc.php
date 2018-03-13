@@ -141,6 +141,8 @@ if (!$versionid && $policyid) {
     $policyversion = new policy_version($versionid);
     if ($policyversion->get('policyid')) {
         $policy = api::list_policies([$policyversion->get('policyid')])[0];
+    } else {
+        $policy = null;
     }
 }
 if ($policyversion->get('archived')) {
