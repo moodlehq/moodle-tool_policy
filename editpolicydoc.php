@@ -24,6 +24,7 @@
  */
 
 use tool_policy\api;
+use tool_policy\policy_version;
 
 require(__DIR__.'/../../../config.php');
 require_once($CFG->libdir.'/adminlib.php');
@@ -33,7 +34,6 @@ $versionid = optional_param('versionid', null, PARAM_INT);
 $makecurrent = optional_param('makecurrent', null, PARAM_INT);
 $inactivate = optional_param('inactivate', null, PARAM_INT);
 $confirm = optional_param('confirm', false, PARAM_BOOL);
-$template = optional_param('template', '', PARAM_ALPHA);
 $moveup = optional_param('moveup', null, PARAM_INT);
 $movedown = optional_param('movedown', null, PARAM_INT);
 
@@ -50,7 +50,7 @@ if ($makecurrent) {
     if ($confirm) {
         require_sesskey();
         api::make_current($policyid, $makecurrent);
-        redirect(new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
+        redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
     }
 
     echo $output->header();
@@ -61,7 +61,7 @@ if ($makecurrent) {
             'revision' => format_string($policy->revision),
         ]),
         new moodle_url($PAGE->url, ['makecurrent' => $makecurrent, 'confirm' => 1]),
-        new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid])
+        new moodle_url('/admin/tool/policy/managedocs.php')
     );
     echo $output->footer();
     die();
@@ -71,13 +71,13 @@ if ($inactivate) {
     $policy = api::get_policy_version($policyid, $inactivate);
 
     if ($policy->currentversionid != $policy->versionid) {
-        redirect(new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
+        redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
     }
 
     if ($confirm) {
         require_sesskey();
         api::inactivate($policyid);
-        redirect(new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
+        redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
     }
 
     echo $output->header();
@@ -88,7 +88,7 @@ if ($inactivate) {
             'revision' => format_string($policy->revision),
         ]),
         new moodle_url($PAGE->url, ['inactivate' => $inactivate, 'confirm' => 1]),
-        new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid])
+        new moodle_url('/admin/tool/policy/managedocs.php')
     );
     echo $output->footer();
     die();
@@ -106,29 +106,37 @@ if ($moveup || $movedown) {
     redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
 }
 
-$formdata = api::form_policydoc_data($policyid, $versionid, $template);
+$policyversion = new policy_version($versionid);
+
+if (empty($versionid)) {
+    $policyversion->set('policyid', $policyid);
+}
+
+$formdata = api::form_policydoc_data($policyversion);
+
 $form = new \tool_policy\form\policydoc($PAGE->url, ['formdata' => $formdata]);
 
 if ($form->is_cancelled()) {
-    redirect(new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
+    redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
 
 } else if ($data = $form->get_data()) {
-    if (empty($policyid)) {
-        $policy = api::form_policydoc_add($data);
-        $policyid = $policy->policyid;
+    if (empty($policyid) && empty($versionid)) {
+        $policyversion = api::form_policydoc_add($data);
 
-    } else if (empty($versionid) || !empty($data->saveasnew)) {
-        api::form_policydoc_update_new($policyid, $data);
+    } else if (empty($versionid)) {
+        $policyversion = api::form_policydoc_update_new($data);
 
     } else {
-        api::form_policydoc_update_overwrite($policyid, $versionid, $data);
+        $policyversion = api::form_policydoc_update_overwrite($data);
     }
 
-    redirect(new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
+    if ($data->status == policy_version::STATUS_ACTIVE) {
+        api::make_current($policyversion->get('id'));
+    }
+
+    redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
 
 } else {
-    $form->set_data($formdata);
-
     echo $output->header();
     echo $output->heading(get_string('editingpolicydocument', 'tool_policy'));
     echo $form->render();

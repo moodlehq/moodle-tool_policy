@@ -17,6 +17,9 @@
 /**
  * Manage policy documents used on the site.
  *
+ * Script arguments:
+ * - archived=<int> Show only archived versions of the given policy document
+ *
  * @package     tool_policy
  * @category    admin
  * @copyright   2018 David Mudrák <david@moodle.com>
@@ -26,13 +29,13 @@
 require(__DIR__.'/../../../config.php');
 require_once($CFG->libdir.'/adminlib.php');
 
-$id = optional_param('id', 0, PARAM_INT);
+$archived = optional_param('archived', 0, PARAM_INT);
 
-admin_externalpage_setup('tool_policy_managedocs', '', ['id' => $id]);
+admin_externalpage_setup('tool_policy_managedocs', '', ['archived' => $archived]);
 
 $output = $PAGE->get_renderer('tool_policy');
 
-if (empty($id)) {
+if (empty($archived)) {
     $manpage = new \tool_policy\output\page_managedocs_list();
 
 } else {

@@ -25,6 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 use tool_policy\api;
+use tool_policy\policy_version;
 
 /**
  * Extends the user preferences page
@@ -50,10 +51,10 @@ function tool_policy_extend_navigation_user_settings(navigation_node $usersettin
     $userpolicysettings->add(get_string('policiesagreements', 'tool_policy'),
         new moodle_url('/admin/tool/policy/user.php', ['userid' => $user->id]));
 
-    foreach (api::list_policies(null, true, api::AUDIENCE_LOGGEDIN) as $policy) {
-        $userpolicysettings->add(format_string($policy->name), new moodle_url('/admin/tool/policy/view.php', [
-            'policyid' => $policy->id,
-            'versionid' => $policy->currentversionid,
+    foreach (api::list_current_versions() as $policyversion) {
+        $userpolicysettings->add($policyversion->name, new moodle_url('/admin/tool/policy/view.php', [
+            'policyid' => $policyversion->policyid,
+            'versionid' => $policyversion->id,
             'returnurl' => $PAGE->url,
         ]));
     }
@@ -127,9 +128,9 @@ function tool_policy_pluginfile($course, $cm, $context, $filearea, $args, $force
 
     $itemid = array_shift($args);
 
-    $policy = api::get_policy_version(null, $itemid);
+    $policy = api::get_policy_version($itemid);
 
-    if (!api::is_public($policy)) {
+    if ($policy->status != policy_version::STATUS_ACTIVE) {
         require_login();
     }
 
@@ -192,7 +193,7 @@ function tool_policy_site_policy_handler($action = 'redirect') {
             return (new \moodle_url('/admin/tool/policy/viewall.php'))->out();
         } else if ($action === 'acceptall') {
             // Accepts all policies with a current version for logged users on behalf of the current user.
-            $policies = api::list_policies(null, true, api::AUDIENCE_LOGGEDIN);
+            $policies = api::list_current_versions(policy_version::AUDIENCE_LOGGEDIN);
             $policyversionid = array();
             foreach ($policies as $policy) {
                 $policyversionid[] = $policy->currentversionid;
