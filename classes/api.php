@@ -61,7 +61,7 @@ class api {
             if ($audience && !in_array($policy->currentversion->audience, [policy_version::AUDIENCE_ALL, $audience])) {
                 continue;
             }
-            $current[] = $policy->currentversion;
+            $current[$policy->id] = $policy->currentversion;
         }
 
         return $current;

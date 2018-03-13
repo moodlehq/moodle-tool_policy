@@ -150,7 +150,7 @@ class page_viewdoc implements renderable, templatable {
             'pluginbaseurl' => (new moodle_url('/admin/tool/policy'))->out(false),
             'returnurl' => $this->returnurl ? (new moodle_url($this->returnurl))->out(false) : null,
             'editurl' => $this->manage ? (new moodle_url('/admin/tool/policy/editpolicydoc.php',
-                ['policyid' => $this->policy->policyid, 'versionid' => $this->policy->versionid]))->out(false) : null,
+                ['policyid' => $this->policy->policyid, 'versionid' => $this->policy->id]))->out(false) : null,
             'numpolicy' => $this->numpolicy ? : null,
             'totalpolicies' => $this->totalpolicies ? : null,
         ];
@@ -158,10 +158,10 @@ class page_viewdoc implements renderable, templatable {
         $data->policy = clone($this->policy);
 
         $data->policy->summary = file_rewrite_pluginfile_urls($data->policy->summary, 'pluginfile.php', SYSCONTEXTID,
-            'tool_policy', 'policydocumentsummary', $data->policy->versionid);
+            'tool_policy', 'policydocumentsummary', $data->policy->id);
 
         $data->policy->content = file_rewrite_pluginfile_urls($data->policy->content, 'pluginfile.php', SYSCONTEXTID,
-            'tool_policy', 'policydocumentcontent', $data->policy->versionid);
+            'tool_policy', 'policydocumentcontent', $data->policy->id);
 
         return $data;
     }

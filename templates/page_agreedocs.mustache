@@ -63,7 +63,7 @@
         <h3>{{{name}}}</h3>
         <div class="agreedoc-content">
             <div class="agreedoc-summary">
-              {{{currentversion.summary}}}
+              {{{summary}}}
             </div>
             <div class="agreedoc-msg">
                 {{# str }}refertofullpolicytext, tool_policy, {{{policymodal}}} {{/ str }}
@@ -72,7 +72,7 @@
         <div class="agreedoc-form m-t-1">
             <div class="agreedoc-checkbox">
                 <i class="icon fa fa-exclamation-circle text-danger fa-fw" title="{{# str }} required {{/ str }}" ></i>
-                <input value="{{currentversionid}}" name="agreedoc[]" {{#versionagreed}}checked="{{.}}"{{/versionagreed}} type="checkbox">
+                <input value="{{id}}" name="agreedoc[]" {{#versionagreed}}checked="{{.}}"{{/versionagreed}} type="checkbox">
                 <label><strong>{{# str }}iagree, tool_policy, {{{name}}} {{/ str }}</strong></label>
             </div>
             <small>
