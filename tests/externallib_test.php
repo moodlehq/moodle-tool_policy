@@ -149,7 +149,7 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
 
         // Set the handler for the site policy, make sure it substitutes link to the sitepolicy.
         $CFG->sitepolicyhandler = 'tool_policy';
-        $sitepolicymanager = new core_privacy\sitepolicy\manager();
+        $sitepolicymanager = new core_privacy\local\sitepolicy\manager();
         $result = external_mobile::get_config();
         $result = external_api::clean_returnvalue(external_mobile::get_config_returns(), $result);
         $toolsitepolicy = $sitepolicymanager->get_embed_url();
@@ -174,7 +174,7 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
         // Set mock site policy handler. See function tool_phpunit_site_policy_handler() below.
         $CFG->sitepolicyhandler = 'tool_policy';
         $this->assertEquals(0, $USER->policyagreed);
-        $sitepolicymanager = new core_privacy\sitepolicy\manager();
+        $sitepolicymanager = new core_privacy\local\sitepolicy\manager();
 
         // Make sure user can not login.
         try {
@@ -210,7 +210,7 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
         $this->resetAfterTest(true);
         $CFG->sitepolicyhandler = 'tool_policy';
         $syscontext = context_system::instance();
-        $sitepolicymanager = new core_privacy\sitepolicy\manager();
+        $sitepolicymanager = new core_privacy\local\sitepolicy\manager();
 
         $adult = $this->getDataGenerator()->create_user();
 

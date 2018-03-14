@@ -22,7 +22,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace tool_policy\privacy\sitepolicy;
+namespace tool_policy\privacy\local\sitepolicy;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -36,7 +36,7 @@ use tool_policy\policy_version;
  * @copyright  2018 Sara Arjona <sara@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class handler extends \core_privacy\sitepolicy\handler {
+class handler extends \core_privacy\local\sitepolicy\handler {
 
     /**
      * Returns URL to redirect user to when user needs to agree to site policy
@@ -47,7 +47,7 @@ class handler extends \core_privacy\sitepolicy\handler {
      * @param bool $forguests
      * @return moodle_url|null (returns null if site policy is not defined)
      */
-    public function get_redirect_url($forguests = false) {
+    public static function get_redirect_url($forguests = false) {
         // There is no redirect for guests, policies are shown in the popup, only return redirect url for the logged in users.
         if (!$forguests && api::list_current_versions(policy_version::AUDIENCE_LOGGEDIN)) {
             return new \moodle_url('/admin/tool/policy/index.php');
@@ -64,7 +64,7 @@ class handler extends \core_privacy\sitepolicy\handler {
      * @param bool $forguests
      * @return moodle_url|null
      */
-    public function get_embed_url($forguests = false) {
+    public static function get_embed_url($forguests = false) {
         if (api::list_current_versions($forguests ? policy_version::AUDIENCE_GUESTS : policy_version::AUDIENCE_LOGGEDIN)) {
             return new \moodle_url('/admin/tool/policy/viewall.php');
         }
@@ -77,7 +77,7 @@ class handler extends \core_privacy\sitepolicy\handler {
      * @return bool - false if sitepolicy not defined, user is not logged in or user has already agreed to site policy;
      *     true - if we have successfully marked the user as agreed to the site policy
      */
-    public function accept() {
+    public static function accept() {
         global $USER, $DB;
         if (!isloggedin()) {
             return false;
