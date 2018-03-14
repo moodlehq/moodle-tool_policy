@@ -22,9 +22,12 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+namespace tool_policy\privacy\sitepolicy;
+
 defined('MOODLE_INTERNAL') || die();
 
 use tool_policy\api;
+use tool_policy\policy_version;
 
 /**
  * Class implementation for a site policy handler.
@@ -33,7 +36,7 @@ use tool_policy\api;
  * @copyright  2018 Sara Arjona <sara@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class tool_policy_privacy_sitepolicy_handler extends \core_privacy\sitepolicy\handler {
+class handler extends \core_privacy\sitepolicy\handler {
 
     /**
      * Returns URL to redirect user to when user needs to agree to site policy
@@ -45,8 +48,9 @@ class tool_policy_privacy_sitepolicy_handler extends \core_privacy\sitepolicy\ha
      * @return moodle_url|null (returns null if site policy is not defined)
      */
     public function get_redirect_url($forguests = false) {
-        if (!$forguests) {
-            return (new \moodle_url('/admin/tool/policy/index.php'))->out();
+        // There is no redirect for guests, policies are shown in the popup, only return redirect url for the logged in users.
+        if (!$forguests && api::list_current_versions(policy_version::AUDIENCE_LOGGEDIN)) {
+            return new \moodle_url('/admin/tool/policy/index.php');
         }
         return null;
     }
@@ -61,8 +65,8 @@ class tool_policy_privacy_sitepolicy_handler extends \core_privacy\sitepolicy\ha
      * @return moodle_url|null
      */
     public function get_embed_url($forguests = false) {
-        if (!$forguests) {
-            return (new \moodle_url('/admin/tool/policy/viewall.php'))->out();
+        if (api::list_current_versions($forguests ? policy_version::AUDIENCE_GUESTS : policy_version::AUDIENCE_LOGGEDIN)) {
+            return new \moodle_url('/admin/tool/policy/viewall.php');
         }
         return null;
     }
@@ -74,17 +78,27 @@ class tool_policy_privacy_sitepolicy_handler extends \core_privacy\sitepolicy\ha
      *     true - if we have successfully marked the user as agreed to the site policy
      */
     public function accept() {
-       if (!isguestuser()) {
-            // TODO: Review + false if user has already agreed to site policy.
-            // Accepts all policies with a current version for logged users on behalf of the current user.
-            $policies = api::list_current_versions(policy_version::AUDIENCE_LOGGEDIN);
-            $policyversionid = array();
-            foreach ($policies as $policy) {
-                $policyversionid[] = $policy->id;
-            }
-            api::accept_policies($policyversionid);
-            return true;
+        global $USER, $DB;
+        if (!isloggedin()) {
+            return false;
         }
-        return false;
+        if ($USER->policyagreed) {
+            return false;
+        }
+
+        if (!isguestuser()) {
+            // Accepts all policies with a current version for logged users on behalf of the current user.
+            if (!$policies = api::list_current_versions(policy_version::AUDIENCE_LOGGEDIN)) {
+                return false;
+            }
+            api::accept_policies(array_keys($policies));
+        }
+
+        if (!isguestuser()) {
+            // For the guests agreement in stored in session only, for other users - in DB.
+            $DB->set_field('user', 'policyagreed', 1, array('id' => $USER->id));
+        }
+        $USER->policyagreed = 1;
+        return true;
     }
 }

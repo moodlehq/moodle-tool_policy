@@ -109,13 +109,15 @@ class tool_policy_api_testcase extends advanced_testcase {
         api::make_current($updated->get('id'));
         $current = api::list_current_versions();
         $this->assertEquals(1, count($current));
-        $this->assertEquals('Test terms &amp; conditions', $current[0]->name);
+        $first = reset($current);
+        $this->assertEquals('Test terms &amp; conditions', $first->name);
 
         // Activate another policy version.
         api::make_current($new->get('id'));
         $current = api::list_current_versions();
         $this->assertEquals(1, count($current));
-        $this->assertEquals('New terms &amp; conditions', $current[0]->name);
+        $first = reset($current);
+        $this->assertEquals('New terms &amp; conditions', $first->name);
 
         // Inactivate the policy.
         api::inactivate($new->get('policyid'));
@@ -199,17 +201,18 @@ class tool_policy_api_testcase extends advanced_testcase {
         $list = array_map(function ($version) {
             return $version->policyid;
         }, api::list_current_versions());
-        $this->assertEquals([$policy1->get('policyid'), $policy2->get('policyid'), $policy3->get('policyid')], $list);
+        $this->assertEquals([$policy1->get('policyid'), $policy2->get('policyid'), $policy3->get('policyid')],
+            array_values($list));
 
         $list = array_map(function ($version) {
             return $version->policyid;
         }, api::list_current_versions(policy_version::AUDIENCE_LOGGEDIN));
-        $this->assertEquals([$policy1->get('policyid'), $policy3->get('policyid')], $list);
+        $this->assertEquals([$policy1->get('policyid'), $policy3->get('policyid')], array_values($list));
 
         $list = array_map(function ($version) {
             return $version->policyid;
         }, api::list_current_versions(policy_version::AUDIENCE_GUESTS));
-        $this->assertEquals([$policy2->get('policyid'), $policy3->get('policyid')], $list);
+        $this->assertEquals([$policy2->get('policyid'), $policy3->get('policyid')], array_values($list));
     }
 
     /**

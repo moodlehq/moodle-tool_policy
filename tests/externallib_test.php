@@ -149,9 +149,10 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
 
         // Set the handler for the site policy, make sure it substitutes link to the sitepolicy.
         $CFG->sitepolicyhandler = 'tool_policy';
+        $sitepolicymanager = new core_privacy\sitepolicy\manager();
         $result = external_mobile::get_config();
         $result = external_api::clean_returnvalue(external_mobile::get_config_returns(), $result);
-        $toolsitepolicy = tool_policy_site_policy_handler('viewall');
+        $toolsitepolicy = $sitepolicymanager->get_embed_url();
         foreach (array_values($result['settings']) as $r) {
             if ($r['name'] == 'sitepolicy') {
                 $configsitepolicy = $r['value'];
@@ -161,7 +162,7 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
     }
 
     /**
-     * Test for agree_site_policy() when site policy handler is set.
+     * Test for core_privacy\sitepolicy\manager::accept() when site policy handler is set.
      */
     public function test_agree_site_policy_with_handler() {
         global $CFG, $DB, $USER;
@@ -173,17 +174,18 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
         // Set mock site policy handler. See function tool_phpunit_site_policy_handler() below.
         $CFG->sitepolicyhandler = 'tool_policy';
         $this->assertEquals(0, $USER->policyagreed);
+        $sitepolicymanager = new core_privacy\sitepolicy\manager();
 
         // Make sure user can not login.
         try {
             core_user_external::validate_context(context_system::instance());
             $this->fail('Expected exception policy not agreed');
         } catch (moodle_exception $e) {
-            $toolconsentpage = tool_policy_site_policy_handler('redirect');
-            $this->assertEquals(get_string('sitepolicynotagreed', 'error', $toolconsentpage), $e->getMessage());
+            $toolconsentpage = $sitepolicymanager->get_redirect_url();
+            $this->assertEquals(get_string('sitepolicynotagreed', 'error', $toolconsentpage->out()), $e->getMessage());
         }
 
-        // Call WS to agree to the site policy. It will call tool_policy_site_policy_handler().
+        // Call WS to agree to the site policy. It will call tool_policy handler.
         $result = core_user_external::agree_site_policy();
         $result = external_api::clean_returnvalue(core_user_external::agree_site_policy_returns(), $result);
         $this->assertTrue($result['status']);
@@ -200,7 +202,7 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
     }
 
     /**
-     * Test for action='checkcanaccept' when site policy handler is set.
+     * Test for core_privacy\sitepolicy\manager::accept() when site policy handler is set.
      */
     public function test_checkcanaccept_with_handler() {
         global $CFG;
@@ -208,6 +210,7 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
         $this->resetAfterTest(true);
         $CFG->sitepolicyhandler = 'tool_policy';
         $syscontext = context_system::instance();
+        $sitepolicymanager = new core_privacy\sitepolicy\manager();
 
         $adult = $this->getDataGenerator()->create_user();
 
@@ -220,14 +223,18 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
         $this->setUser($adult);
         $result = external_mobile::get_config();
         $result = external_api::clean_returnvalue(external_mobile::get_config_returns(), $result);
-        $toolsitepolicy = tool_policy_site_policy_handler('checkcanaccept');
+        $toolsitepolicy = $sitepolicymanager->accept();
         $this->assertTrue($toolsitepolicy);
 
         // Child user can not accept policies.
         $this->setUser($child);
         $result = external_mobile::get_config();
         $result = external_api::clean_returnvalue(external_mobile::get_config_returns(), $result);
-        $toolsitepolicy = tool_policy_site_policy_handler('checkcanaccept');
-        $this->assertFalse($toolsitepolicy);
+        try {
+            $sitepolicymanager->accept();
+            $this->fail('Expected capability exception');
+        } catch (required_capability_exception $e) {
+
+        }
     }
 }

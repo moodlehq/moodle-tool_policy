@@ -214,14 +214,12 @@ class acceptances_filter implements \templatable, \renderable {
             $policies = \tool_policy\api::list_policies($policyid ? [$policyid] : null);
             foreach ($policies as $policy) {
                 if ($policy->currentversion && $validateversion($policy->currentversion)) {
-                    $policy->currentversion->status = policy_version::STATUS_ACTIVE;
                     $this->versions[] = $policy->currentversion;
                 }
 
                 if ($versionid) {
                     if ($versions = array_filter($policy->archivedversions, $validateversion)) {
                         $version = reset($versions);
-                        $version->status = policy_version::STATUS_ARCHIVED;
                         $this->versions[] = $version;
                     }
                 }
