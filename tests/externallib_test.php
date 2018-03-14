@@ -177,13 +177,10 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
         $sitepolicymanager = new core_privacy\local\sitepolicy\manager();
 
         // Make sure user can not login.
-        try {
-            core_user_external::validate_context(context_system::instance());
-            $this->fail('Expected exception policy not agreed');
-        } catch (moodle_exception $e) {
-            $toolconsentpage = $sitepolicymanager->get_redirect_url();
-            $this->assertEquals(get_string('sitepolicynotagreed', 'error', $toolconsentpage->out()), $e->getMessage());
-        }
+        $toolconsentpage = $sitepolicymanager->get_redirect_url();
+        $this->expectException('moodle_exception');
+        $this->expectExceptionMessage(get_string('sitepolicynotagreed', 'error', $toolconsentpage->out()));
+        core_user_external::validate_context(context_system::instance());
 
         // Call WS to agree to the site policy. It will call tool_policy handler.
         $result = core_user_external::agree_site_policy();
@@ -230,11 +227,7 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
         $this->setUser($child);
         $result = external_mobile::get_config();
         $result = external_api::clean_returnvalue(external_mobile::get_config_returns(), $result);
-        try {
-            $sitepolicymanager->accept();
-            $this->fail('Expected capability exception');
-        } catch (required_capability_exception $e) {
-
-        }
+        $this->expectException('required_capability_exception');
+        $sitepolicymanager->accept();
     }
 }
