@@ -183,8 +183,8 @@ class page_agreedocs implements renderable, templatable {
 
         $lang = current_language();
         $acceptances = api::get_user_acceptances($userid);
+        $allpolicies = $this->policies;
         if (!empty($userid)) {
-            $allpolicies = $this->policies;
             foreach($allpolicies as $policy) {
                 if (api::is_user_version_accepted($userid, $policy->id, $acceptances)) {
                     // If this version is accepted by the user, remove from the pending policies list.
