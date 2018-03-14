@@ -86,7 +86,6 @@ class page_agreedocs implements renderable, templatable {
         }
 
         $this->policies = api::list_current_versions(policy_version::AUDIENCE_LOGGEDIN);
-
         if (empty($this->behalfid)) {
             $userid = $USER->id;
         } else {
@@ -146,7 +145,7 @@ class page_agreedocs implements renderable, templatable {
                 \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed',
                     $userpolicyagreed);
 
-                if ($userpolicyagreed) {
+                if (!$userpolicyagreed) {
                     // Show a message to let know the user he/she must agree all the policies if he/she wants to create a user.
                     $message = (object) [
                         'type' => 'error',
@@ -188,7 +187,7 @@ class page_agreedocs implements renderable, templatable {
             foreach($allpolicies as $policy) {
                 if (api::is_user_version_accepted($userid, $policy->id, $acceptances)) {
                     // If this version is accepted by the user, remove from the pending policies list.
-                    unset($allpolicies[$policy->id]);
+                    unset($allpolicies[array_search($policy, $allpolicies)]);
                 }
             }
         }
@@ -218,7 +217,7 @@ class page_agreedocs implements renderable, templatable {
             }
             if (sizeof($pendingpolicies) > 0) {
                 // Still is needed to show some policies docs. Save in the session and redirect.
-                $policyversionid = array_pop($pendingpolicies);
+                $policyversionid = array_shift($pendingpolicies);
                 $viewedpolicies[] = $policyversionid;
                 $cache->set($cachekey, $viewedpolicies);
                 if (empty($returnurl)) {
@@ -282,7 +281,7 @@ class page_agreedocs implements renderable, templatable {
         // and $SESSION->wantsurl is defined, redirect to the return page.
         $userpolicyagreed = \cache::make('core', 'presignup')->get('tool_policy_userpolicyagreed');
         $hasagreedsignupuser = empty($USER->id) && $userpolicyagreed;
-        $hasagreedloggeduser = $USER->id == $this->behalfid && !empty($USER->policyagreed);
+        $hasagreedloggeduser = $USER->id == $userid && !empty($USER->policyagreed);
         if (!is_siteadmin() && ($hasagreedsignupuser || ($hasagreedloggeduser && !empty($SESSION->wantsurl)))) {
             $this->redirect_to_previous_url();
         }
@@ -309,6 +308,8 @@ class page_agreedocs implements renderable, templatable {
      * Prepare user acceptances.
      */
     protected function prepare_user_acceptances($userid) {
+        global $USER;
+
         // Get all the policy version acceptances for this user.
         $acceptances = api::get_user_acceptances($userid);
         $lang = current_language();
@@ -333,7 +334,7 @@ class page_agreedocs implements renderable, templatable {
                             // Add a message because this version has been accepted in a different language than the current one.
                             $policy->versionlangsagreed = get_string('policyversionacceptedinotherlang', 'tool_policy');
                         }
-                        if ($policy->versionacceptance->usermodified != $userid) {
+                        if ($policy->versionacceptance->usermodified != $userid && $USER->id == $userid) {
                             // Add a message because this version has been accepted in behalf of current user.
                             $policy->versionbehalfsagreed = get_string('policyversionacceptedinbehalf', 'tool_policy');
                         }
