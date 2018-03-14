@@ -38,6 +38,7 @@ use renderer_base;
 use single_button;
 use templatable;
 use tool_policy\api;
+use tool_policy\policy_version;
 
 /**
  * Represents a page for showing all the policy documents with a current version.
@@ -65,15 +66,11 @@ class page_viewalldoc implements renderable, templatable {
         global $USER;
 
         if (isguestuser() || empty($USER->id)) {
-            $audience = api::AUDIENCE_GUESTS;
+            $audience = policy_version::AUDIENCE_GUESTS;
         } else {
-            $audience = api::AUDIENCE_LOGGEDIN;
+            $audience = policy_version::AUDIENCE_LOGGEDIN;
         }
-        $this->policies = api::list_policies(null, true, $audience);
-        foreach ($this->policies as $policy) {
-            $this->policies[$policy->id]->currentversion = api::get_policy_version($policy->id, $policy->currentversionid);
-            unset($this->policies[$policy->id]->versions);
-        }
+        $this->policies = api::list_current_versions($audience);
     }
 
     /**
