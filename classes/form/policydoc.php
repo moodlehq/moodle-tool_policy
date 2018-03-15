@@ -109,7 +109,13 @@ class policydoc extends moodleform {
             $mform->addElement('hidden', 'status', policy_version::STATUS_ACTIVE);
             $mform->setType('status', PARAM_INT);
 
-            $mform->addElement('checkbox', 'minorchange', 'Policy status', 'Minor change'); // TODO strings, postfix
+            $statusgrp = [
+                $mform->createElement('checkbox', 'minorchange', get_string('status', 'tool_policy'),
+                    get_string('minorchange', 'tool_policy')),
+                $mform->createElement('static', 'minorchangeinfo', '',
+                    html_writer::div(get_string('minorchangeinfo', 'tool_policy'), 'muted text-muted')),
+            ];
+            $mform->addGroup($statusgrp, null, get_string('status', 'tool_policy'), ['<br>'], false);
         }
 
         // "Save" button and, optionally, "Save as draft".
