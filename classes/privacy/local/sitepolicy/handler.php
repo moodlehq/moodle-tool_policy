@@ -101,4 +101,18 @@ class handler extends \core_privacy\local\sitepolicy\handler {
         $USER->policyagreed = 1;
         return true;
     }
+
+    /**
+     * Adds "Agree to site policy" checkbox to the signup form.
+     *
+     * @param \MoodleQuickForm $mform
+     */
+    public static function signup_form($mform) {
+        if (static::is_defined()) {
+            // This plugin displays policies to the user who is signing up before the signup form is shown.
+            // By the time user has access to signup form they have already agreed to the policies.
+            $mform->addElement('hidden', 'policyagreed', 1);
+            $mform->setType('policyagreed', PARAM_INT);
+        }
+    }
 }
