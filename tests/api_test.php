@@ -415,6 +415,46 @@ class tool_policy_api_testcase extends advanced_testcase {
     }
 
     /**
+     * Test that activating a new policy resets everybody's policyagreed flag in the database.
+     */
+    public function test_reset_policyagreed() {
+        global $DB;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $user1 = $this->getDataGenerator()->create_user();
+
+        // Introducing a new policy.
+        list($policy1v1, $policy1v2) = $this->create_versions(2);
+        api::make_current($policy1v1->id);
+        $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+        api::accept_policies([$policy1v1->id], $user1->id);
+        $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+
+        // Introducing another policy.
+        $policy2v1 = $this->add_policy()->to_record();
+        api::make_current($policy2v1->id);
+        $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+        api::accept_policies([$policy2v1->id], $user1->id);
+        $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+
+        // Updating an existing policy (major update).
+        api::make_current($policy1v2->id);
+        $this->assertEquals(0, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+        api::accept_policies([$policy1v2->id], $user1->id);
+        $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+
+        // Do not touch the flag if there is no new version (e.g. a minor update).
+        api::make_current($policy2v1->id);
+        api::make_current($policy1v2->id);
+        $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+
+        // Do not touch the flag if inactivating a policy.
+        api::inactivate($policy1v2->policyid);
+        $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+    }
+
+    /**
      * Test behaviour of the {@link api::get_user_minors()} method.
      */
     public function test_get_user_minors() {

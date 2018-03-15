@@ -478,7 +478,7 @@ class api {
         // Archive current version of this policy.
         if ($currentversionid = $DB->get_field('tool_policy', 'currentversionid', ['id' => $policyversion->get('policyid')])) {
             if ($currentversionid == $versionid) {
-                // Already current.
+                // Already current, do not change anything.
                 return;
             }
             $DB->set_field('tool_policy_versions', 'archived', 1, ['id' => $currentversionid]);
@@ -486,6 +486,9 @@ class api {
 
         // Set given version as current.
         $DB->set_field('tool_policy', 'currentversionid', $policyversion->get('id'), ['id' => $policyversion->get('policyid')]);
+
+        // Reset the policyagreed flag to force everybody re-accept the policies.
+        $DB->set_field('user', 'policyagreed', 0);
     }
 
     /**
