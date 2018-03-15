@@ -132,6 +132,13 @@ class page_nopermission implements renderable, templatable {
     public function export_for_template(renderer_base $output) {
         global $CFG, $PAGE;
 
+        $data = (object) [
+            'pluginbaseurl' => (new moodle_url('/admin/tool/policy'))->out(false),
+            'haspermissionagreedocs' => $this->haspermissionagreedocs,
+            'supportname' => $CFG->supportname,
+            'supportemail' => $CFG->supportemail,
+        ];
+
         // Get the messages to display.
         $messagetitle = null;
         $messagedesc = null;
@@ -149,6 +156,8 @@ class page_nopermission implements renderable, templatable {
                 $messagedesc = get_string('nopermissiontoagreedocs_desc', 'tool_policy');
             }
         }
+        $data->messagetitle = $messagetitle;
+        $data->messagedesc = $messagedesc;
 
         // Add policies list.
         $policieslinks = array();
@@ -160,16 +169,7 @@ class page_nopermission implements renderable, templatable {
                                       'data-behalfid' => $this->behalfid);
             $policieslinks[] = html_writer::link($policyurl, $policyversion->name, $policyattributes);
         }
-
-        $data = (object) [
-            'pluginbaseurl' => (new moodle_url('/admin/tool/policy'))->out(false),
-            'haspermissionagreedocs' => $this->haspermissionagreedocs,
-            'supportname' => $CFG->supportname,
-            'supportemail' => $CFG->supportemail,
-            'messagetitle' => $messagetitle,
-            'messagedesc' => $messagedesc,
-            'policies' => $policieslinks,
-        ];
+        $data->policies = $policieslinks;
 
         return $data;
     }
