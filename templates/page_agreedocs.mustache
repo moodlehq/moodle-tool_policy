@@ -30,108 +30,84 @@
     * policies - policy array
     * privacyofficer - string with the privacy officer information
     * behalfuser - If behalfid is defined and valid, full name of the behalf user with a link to his/her profile; null otherwise
-    * haspermissionagreedocs - status of the capability of the user to accept policy documents
-    * supportname - name of the support contact; displayed when the user does not have permission to accept policy documents
-    * supportemail - email of the support contact; displayed when the user does not have permission to accept policy documents
-    * homelink - link to the homepage; displayed when the user does not have permission to accept policy documents
 }}
 
-{{^haspermissionagreedocs}}
-    {{^behalfuser}}
-        <h3>{{#str}}nopermissiontoagreedocs, tool_policy{{/str}}</h3>
-            <p class="m-t-1 m-b-1">{{#str}}nopermissiontoagreedocs_desc, tool_policy{{/str}}</p>
-    {{/behalfuser}}
-    {{#behalfuser}}
-        <h3>{{#str}}nopermissiontoagreedocsbehalf, tool_policy{{/str}}</h3>
-            <p class="m-t-1 m-b-1">{{#str}}nopermissiontoagreedocsbehalf_desc, tool_policy, {{{behalfuser}}}{{/str}}</p>
-    {{/behalfuser}}
-    <p class="m-b-0">{{#str}}nopermissiontoagreedocscontact, tool_policy{{/str}}</p>
-    <div class="p-t-1 p-b-1">
-        <p class="m-b-0">{{{supportname}}}</p>
-        <p class="m-b-0">{{{supportemail}}}</p>
-    </div>
-    <div class="backlink">
-        <a href="{{homelink}}">{{#str}}backtohome{{/str}}</a>
-    </div>
-{{/haspermissionagreedocs}}
-{{#haspermissionagreedocs}}
-    {{#messages}}{{{.}}}{{/messages}}
+{{#messages}}{{{.}}}{{/messages}}
 
-    <form id="agreedocsform" method="post" action="{{myurl}}">
-        <input type="hidden" name="sesskey" value="{{sesskey}}">
+<form id="agreedocsform" method="post" action="{{myurl}}">
+    <input type="hidden" name="sesskey" value="{{sesskey}}">
 
-    {{#behalfuser}}
-    <div class="clearfix">
-        <div class="pull-right m-b-2">
-            {{# str }} viewconsentpageforuser, tool_policy, {{{ . }}} {{/ str }}
+{{#behalfuser}}
+<div class="clearfix">
+    <div class="pull-right m-b-2">
+        {{# str }} viewconsentpageforuser, tool_policy, {{{ . }}} {{/ str }}
+    </div>
+</div>
+{{/behalfuser}}
+
+<div class="clearfix">
+    <div class="pull-left">
+        <h2>{{# str }}consentpagetitle, tool_policy{{/ str }}</h2>
+    </div>
+</div>
+
+<div class="clearfix m-t-2">
+    <h3>{{# str }}agreepolicies, tool_policy {{/ str }}</h3>
+</div>
+<hr>
+
+
+{{#policies}}
+
+<div class="agreedoc-policy clearfix m-t-2 m-b-1">
+    <h3>{{{name}}}</h3>
+    <div class="agreedoc-content">
+        <div class="agreedoc-summary m-b-2">
+          {{{summary}}}
+        </div>
+        <div class="agreedoc-msg">
+            {{# str }}refertofullpolicytext, tool_policy, {{{policymodal}}} {{/ str }}
+        </div>
+        <div class="agreedoc-form m-t-1">
+            <div class="agreedoc-checkbox">
+                <label>
+                    <input value="{{id}}" name="agreedoc[]" {{#versionagreed}}checked="{{.}}"{{/versionagreed}} type="checkbox">
+                    <strong>{{# str }}iagree, tool_policy, {{{name}}} {{/ str }}</strong>
+                    <i class="icon fa fa-exclamation-circle text-danger fa-fw" title="{{# str }} required {{/ str }}" ></i>
+                </label>
+            </div>
+            <small>
+            <ul class="agreedoc-msg list-unstyled">
+                    {{#versionlangsagreed}}
+                        <li>{{{.}}}</li>
+                    {{/versionlangsagreed}}
+                    {{#versionbehalfsagreed}}
+                        <li>{{{.}}}</li>
+                    {{/versionbehalfsagreed}}
+            </ul>
+            </small>
         </div>
     </div>
-    {{/behalfuser}}
 
-    <div class="clearfix">
-        <div class="pull-left">
-            <h2>{{# str }}consentpagetitle, tool_policy{{/ str }}</h2>
-        </div>
-    </div>
+{{/policies}}
 
-    <div class="clearfix m-t-2">
-        <h3>{{# str }}agreepolicies, tool_policy {{/ str }}</h3>
-    </div>
-    <hr>
+{{#privacyofficer}}
+  <div class="agreedoc-officer well">
+    {{{.}}}
+  </div>
+{{/privacyofficer}}
 
+{{# str }}somefieldsrequired, form, <i class="icon fa fa-exclamation-circle text-danger fa-fw" title="{{# str }} required {{/ str }}" ></i>{{/ str }}
+<hr>
 
-    {{#policies}}
+<input type="submit" class="btn btn-primary" value={{#quote}}{{#str}} next {{/str}}{{/quote}}>
+<input type="reset" class="btn btn-secondary" value={{#quote}}{{#str}} cancel {{/str}}{{/quote}}>
 
-    <div class="agreedoc-policy clearfix m-t-2 m-b-1">
-        <h3>{{{name}}}</h3>
-        <div class="agreedoc-content">
-            <div class="agreedoc-summary m-b-2">
-              {{{summary}}}
-            </div>
-            <div class="agreedoc-msg">
-                {{# str }}refertofullpolicytext, tool_policy, {{{policymodal}}} {{/ str }}
-            </div>
-            <div class="agreedoc-form m-t-1">
-                <div class="agreedoc-checkbox">
-                    <label>
-                        <input value="{{id}}" name="agreedoc[]" {{#versionagreed}}checked="{{.}}"{{/versionagreed}} type="checkbox">
-                        <strong>{{# str }}iagree, tool_policy, {{{name}}} {{/ str }}</strong>
-                        <i class="icon fa fa-exclamation-circle text-danger fa-fw" title="{{# str }} required {{/ str }}" ></i>
-                    </label>
-                </div>
-                <small>
-                <ul class="agreedoc-msg list-unstyled">
-                        {{#versionlangsagreed}}
-                            <li>{{{.}}}</li>
-                        {{/versionlangsagreed}}
-                        {{#versionbehalfsagreed}}
-                            <li>{{{.}}}</li>
-                        {{/versionbehalfsagreed}}
-                </ul>
-                </small>
-            </div>
-        </div>
+</form>
 
-    {{/policies}}
-
-    {{#privacyofficer}}
-      <div class="agreedoc-officer well">
-        {{{.}}}
-      </div>
-    {{/privacyofficer}}
-
-    {{# str }}somefieldsrequired, form, <i class="icon fa fa-exclamation-circle text-danger fa-fw" title="{{# str }} required {{/ str }}" ></i>{{/ str }}
-    <hr>
-
-    <input type="submit" class="btn btn-primary" value={{#quote}}{{#str}} next {{/str}}{{/quote}}>
-    <input type="reset" class="btn btn-secondary" value={{#quote}}{{#str}} cancel {{/str}}{{/quote}}>
-
-    </form>
-
-    {{#js}}
-    // Initialise the JS for the modal window which displays the policy versions.
-    require(['tool_policy/policyactions'], function(ActionsMod) {
-        var policyActions = new ActionsMod();
-    });
-    {{/js}}
-{{/haspermissionagreedocs}}
+{{#js}}
+// Initialise the JS for the modal window which displays the policy versions.
+require(['tool_policy/policyactions'], function(ActionsMod) {
+    var policyActions = new ActionsMod();
+});
+{{/js}}

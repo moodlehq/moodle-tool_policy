@@ -42,10 +42,28 @@ $PAGE->set_context(context_system::instance());
 $PAGE->set_url('/admin/tool/policy/index.php');
 $PAGE->set_popup_notification_allowed(false);
 
-$consentpage = new \tool_policy\output\page_agreedocs($agreedocs, $behalfid);
+$haspermissionagreedocs = false;
+if (!empty($USER->id)) {
+	// Existing user.
+	if (empty($behalfid) || $behalfid == $USER->id) {
+	    $haspermissionagreedocs = has_capability('tool/policy:accept', context_system::instance());
+	} else {
+	    $usercontext = \context_user::instance($behalfid);
+	    $haspermissionagreedocs = has_capability('tool/policy:acceptbehalf', $usercontext);
+	}
+} else {
+	// New user.
+	$haspermissionagreedocs = true;
+}
+
+if (!$haspermissionagreedocs) {
+	$outputpage = new \tool_policy\output\page_nopermission($behalfid);
+} else {
+	$outputpage = new \tool_policy\output\page_agreedocs($agreedocs, $behalfid);
+}
 
 $output = $PAGE->get_renderer('tool_policy');
 
 echo $output->header();
-echo $output->render($consentpage);
+echo $output->render($outputpage);
 echo $output->footer();

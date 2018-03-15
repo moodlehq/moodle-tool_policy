@@ -61,9 +61,6 @@ class page_agreedocs implements renderable, templatable {
     /** @var array Info or error messages to show. */
     protected $messages = [];
 
-    /** @var bool User has permission to accept policy documents */
-    protected $haspermissionagreedocs = true;
-
     /**
      * Prepare the page for rendering.
      *
@@ -161,7 +158,7 @@ class page_agreedocs implements renderable, templatable {
             // There are no policies to agree to. Update the policyagreed value to avoid show empty consent page.
             if (!empty($USER->id)) {
                 // Existing user.
-                $currentuser = (!empty($behalfuser)) ? $behalfuser : $USER;
+                $currentuser = (!empty($this->behalfuser)) ? $behalfuser : $USER;
                 // Check for updating when the user policyagreed is false.
                 if (!$currentuser->policyagreed) {
                     api::update_policyagreed($currentuser);
@@ -268,14 +265,10 @@ class page_agreedocs implements renderable, templatable {
         if (!empty($USER->id)) {
             // For existing users, it's needed to check if they have the capability for accepting policies.
             if (empty($this->behalfid) || $this->behalfid == $USER->id) {
-                //require_capability('tool/policy:accept', context_system::instance());
-                $this->haspermissionagreedocs = !has_capability('tool/policy:accept',
-                    context_system::instance()) ? true : false;
+                require_capability('tool/policy:accept', context_system::instance());
             } else {
                 $usercontext = \context_user::instance($this->behalfid);
-                //require_capability('tool/policy:acceptbehalf', $usercontext);
-                $this->haspermissionagreedocs = has_capability('tool/policy:acceptbehalf',
-                    $usercontext) ? true : false;
+                require_capability('tool/policy:acceptbehalf', $usercontext);
             }
         } else {
             // For new users, the behalfid parameter is ignored.
@@ -374,7 +367,6 @@ class page_agreedocs implements renderable, templatable {
             'pluginbaseurl' => (new moodle_url('/admin/tool/policy'))->out(false),
             'myurl' => (new moodle_url('/admin/tool/policy/index.php', $myparams))->out(false),
             'sesskey' => sesskey(),
-            'haspermissionagreedocs' => $this->haspermissionagreedocs,
         ];
 
         if (!empty($this->messages)) {
@@ -404,11 +396,6 @@ class page_agreedocs implements renderable, templatable {
                         has_capability('moodle/site:viewfullnames', \context_user::instance($this->behalfid)));
             $data->behalfuser = html_writer::link(\context_user::instance($this->behalfid)->get_url(), $userfullname);
         }
-
-        // Display support contact details if user does not have permission to accept policy documents.
-        $data->supportname = $CFG->supportname;
-        $data->supportemail = $CFG->supportemail;
-        $data->homelink = new \moodle_url('/');
 
         return $data;
     }
