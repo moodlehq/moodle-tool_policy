@@ -24,40 +24,48 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+use core_user\output\myprofile\tree;
 use tool_policy\api;
 use tool_policy\policy_version;
 
 /**
- * Extends the user preferences page
+ * Add nodes to myprofile page.
  *
- * @param navigation_node $usersetting
- * @param stdClass $user
- * @param context_user $usercontext
- * @param stdClass $course
- * @param context_course $coursecontext
+ * @param tree $tree Tree object
+ * @param stdClass $user User object
+ * @param bool $iscurrentuser
+ * @param stdClass $course Course object
+ * @return bool
+ * @throws coding_exception
+ * @throws dml_exception
+ * @throws moodle_exception
  */
-function tool_policy_extend_navigation_user_settings(navigation_node $usersetting, $user, context_user $usercontext,
-        $course, context_course $coursecontext) {
-    global $CFG, $PAGE;
+function tool_policy_myprofile_navigation(tree $tree, $user, $iscurrentuser, $course) {
+    global $CFG;
 
     // Do nothing if we are not set as the site policies handler.
     if (empty($CFG->sitepolicyhandler) || $CFG->sitepolicyhandler !== 'tool_policy') {
         return;
     }
 
-    $userpolicysettings = $usersetting->add(get_string('userpolicysettings', 'tool_policy'), null,
-        navigation_node::TYPE_CONTAINER, null, 'tool_policy-userpolicysettings');
-
-    $userpolicysettings->add(get_string('policiesagreements', 'tool_policy'),
-        new moodle_url('/admin/tool/policy/user.php', ['userid' => $user->id]));
-
-    foreach (api::list_current_versions() as $policyversion) {
-        $userpolicysettings->add($policyversion->name, new moodle_url('/admin/tool/policy/view.php', [
-            'policyid' => $policyversion->policyid,
-            'versionid' => $policyversion->id,
-            'returnurl' => $PAGE->url,
-        ]));
+    // Get the Privacy and policies category.
+    if (!array_key_exists('privacyandpolicies', $tree->__get('categories'))) {
+        // Create the category.
+        $categoryname = get_string('privacyandpolicies', 'admin');
+        $category = new core_user\output\myprofile\category('privacyandpolicies', $categoryname, 'contact');
+        $tree->add_category($category);
+    } else {
+        // Get the existing category.
+        $category = $tree->__get('categories')['privacyandpolicies'];
     }
+
+    // Add Policies and agreements node.
+    $url = new moodle_url('/admin/tool/policy/user.php', ['userid' => $user->id]);
+    $node = new core_user\output\myprofile\node('privacyandpolicies', 'tool_policy',
+        get_string('policiesagreements', 'tool_policy'), null, $url);
+    $category->add_node($node);
+
+    return true;
 }
 
 /**
