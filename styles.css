@@ -51,7 +51,8 @@
 }
 
 .eupopup-body ul {
-    margin-bottom: 3px;
+    padding: 0;
+    margin: 0 0 3px;
 }
 
 .eupopup-buttons {
@@ -64,8 +65,7 @@
 }
 
 .eupopup-button_2 {
-    font-weight: normal;
-    font-size: 12px;
+    display: none;
 }
 
 .eupopup-button {
