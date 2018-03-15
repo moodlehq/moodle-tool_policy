@@ -49,7 +49,7 @@ class handler extends \core_privacy\local\sitepolicy\handler {
      */
     public static function get_redirect_url($forguests = false) {
         // There is no redirect for guests, policies are shown in the popup, only return redirect url for the logged in users.
-        if (!$forguests && api::list_current_versions(policy_version::AUDIENCE_LOGGEDIN)) {
+        if (!$forguests && api::get_current_versions_ids(policy_version::AUDIENCE_LOGGEDIN)) {
             return new \moodle_url('/admin/tool/policy/index.php');
         }
         return null;
@@ -65,7 +65,7 @@ class handler extends \core_privacy\local\sitepolicy\handler {
      * @return moodle_url|null
      */
     public static function get_embed_url($forguests = false) {
-        if (api::list_current_versions($forguests ? policy_version::AUDIENCE_GUESTS : policy_version::AUDIENCE_LOGGEDIN)) {
+        if (api::get_current_versions_ids($forguests ? policy_version::AUDIENCE_GUESTS : policy_version::AUDIENCE_LOGGEDIN)) {
             return new \moodle_url('/admin/tool/policy/viewall.php');
         }
         return null;
@@ -88,10 +88,10 @@ class handler extends \core_privacy\local\sitepolicy\handler {
 
         if (!isguestuser()) {
             // Accepts all policies with a current version for logged users on behalf of the current user.
-            if (!$policies = api::list_current_versions(policy_version::AUDIENCE_LOGGEDIN)) {
+            if (!$versions = api::get_current_versions_ids(policy_version::AUDIENCE_LOGGEDIN)) {
                 return false;
             }
-            api::accept_policies(array_keys($policies));
+            api::accept_policies(array_values($versions));
         }
 
         if (!isguestuser()) {

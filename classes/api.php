@@ -68,6 +68,26 @@ class api {
     }
 
     /**
+     * Checks if there are any current policies defined and returns their ids only
+     *
+     * @param array $audience If defined, filter against the given audience (AUDIENCE_ALL always included)
+     * @return array of version ids indexed by policies ids
+     */
+    public static function get_current_versions_ids($audience = null) {
+        global $DB;
+        $sql = "SELECT v.policyid, v.id
+             FROM {tool_policy} d
+             LEFT JOIN {tool_policy_versions} v ON v.policyid = d.id
+             WHERE d.currentversionid = v.id";
+        $params = [];
+        if ($audience) {
+            $sql .= " AND v.audience IN (?, ?)";
+            $params = [$audience, policy_version::AUDIENCE_ALL];
+        }
+        return $DB->get_records_sql_menu($sql . " ORDER BY d.sortorder", $params);
+    }
+
+    /**
      * Returns a list of all policy documents and their versions.
      *
      * @param array|int|null $ids Load only the given policies, defaults to all.

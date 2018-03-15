@@ -203,16 +203,26 @@ class tool_policy_api_testcase extends advanced_testcase {
         }, api::list_current_versions());
         $this->assertEquals([$policy1->get('policyid'), $policy2->get('policyid'), $policy3->get('policyid')],
             array_values($list));
+        $ids = api::get_current_versions_ids();
+        $this->assertEquals([$policy1->get('policyid') => $policy1->get('id'),
+            $policy2->get('policyid') => $policy2->get('id'),
+            $policy3->get('policyid') => $policy3->get('id')], $ids);
 
         $list = array_map(function ($version) {
             return $version->policyid;
         }, api::list_current_versions(policy_version::AUDIENCE_LOGGEDIN));
         $this->assertEquals([$policy1->get('policyid'), $policy3->get('policyid')], array_values($list));
+        $ids = api::get_current_versions_ids(policy_version::AUDIENCE_LOGGEDIN);
+        $this->assertEquals([$policy1->get('policyid') => $policy1->get('id'),
+            $policy3->get('policyid') => $policy3->get('id')], $ids);
 
         $list = array_map(function ($version) {
             return $version->policyid;
         }, api::list_current_versions(policy_version::AUDIENCE_GUESTS));
         $this->assertEquals([$policy2->get('policyid'), $policy3->get('policyid')], array_values($list));
+        $ids = api::get_current_versions_ids(policy_version::AUDIENCE_GUESTS);
+        $this->assertEquals([$policy2->get('policyid') => $policy2->get('id'),
+            $policy3->get('policyid') => $policy3->get('id')], $ids);
     }
 
     /**
