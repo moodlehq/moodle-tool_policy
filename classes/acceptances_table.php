@@ -83,7 +83,7 @@ class acceptances_table extends \table_sql {
 
         $this->set_sql("$userfields",
             "{user} u",
-            'u.id <> :siteguestid',
+            'u.id <> :siteguestid AND u.deleted = 0',
             ['siteguestid' => $CFG->siteguest]);
         $this->add_column_header('fullname', '');
         foreach ($extrafields as $field) {
