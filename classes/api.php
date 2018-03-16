@@ -850,4 +850,33 @@ class api {
 
         self::update_policyagreed($userid);
     }
+
+    /**
+     * Create user policy acceptances when the user is created.
+     *
+     * @param \core\event\user_created $event
+     */
+    public static function create_acceptances_user_created(\core\event\user_created $event) {
+        global $DB;
+
+        $userid = $event->objectid;
+        $lang = current_language();
+
+        $userpolicyagreed = \cache::make('core', 'presignup')->get('tool_policy_userpolicyagreed');
+        if ($userpolicyagreed !== false) {
+            $acceptances = array();
+            foreach($userpolicyagreed as $policyid) {
+                $acceptances[] = array(
+                    'policyversionid' => $policyid,
+                    'userid' => $userid,
+                    'status' => 1,
+                    'lang' => $lang,
+                    'usermodified' => 0,
+                    'timecreated' => time(),
+                    'timemodified' => time()
+                );
+            }
+            $DB->insert_records('tool_policy_acceptances', $acceptances);
+        }
+    }
 }

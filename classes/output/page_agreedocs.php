@@ -143,7 +143,7 @@ class page_agreedocs implements renderable, templatable {
                 }
                 $userpolicyagreed = empty(array_diff($currentpolicyversionids, $this->agreedocs));
                 \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed',
-                    $userpolicyagreed);
+                    $this->agreedocs);
 
                 if (!$userpolicyagreed) {
                     // Show a message to let know the user he/she must agree all the policies if he/she wants to create a user.
@@ -165,7 +165,7 @@ class page_agreedocs implements renderable, templatable {
                 }
             } else {
                 // New user.
-                \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed', 1);
+                \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed', []);
             }
         }
     }

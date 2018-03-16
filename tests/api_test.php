@@ -502,4 +502,36 @@ class tool_policy_api_testcase extends advanced_testcase {
         $this->assertTrue(property_exists($extradata[$child2->id], 'policyagreed'));
         $this->assertTrue(property_exists($extradata[$child2->id], 'deleted'));
     }
+
+    /**
+     * Test behaviour of the {@link api::create_acceptances_user_created()} method.
+     */
+    public function test_create_acceptances_user_created() {
+        global $DB;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $policy = $this->add_policy()->to_record();
+        api::make_current($policy->id);
+
+        // User has not accepted any policies.
+        $user1 = $this->getDataGenerator()->create_user();
+        \core\event\user_created::create_from_userid($user1->id)->trigger();
+
+        $this->assertEquals(0, $DB->count_records('tool_policy_acceptances',
+            ['userid' => $user1->id, 'policyversionid' => $policy->id]));
+
+        // User has accepted policies.
+        $acceptedpolicies = [
+            $policy->id,
+        ];
+        \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed',
+                $acceptedpolicies);
+
+        $user2 = $this->getDataGenerator()->create_user();
+        \core\event\user_created::create_from_userid($user2->id)->trigger();
+
+        $this->assertEquals(1, $DB->count_records('tool_policy_acceptances',
+            ['userid' => $user2->id, 'policyversionid' => $policy->id]));
+    }
 }
