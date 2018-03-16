@@ -36,9 +36,8 @@ $versionid = $acceptancesfilter->get_version_id_filter();
 
 // Set up the page as an admin page 'tool_policy_managedocs'.
 $urlparams = ($policyid ? ['policyid' => $policyid] : []) + ($versionid ? ['versionid' => $versionid] : []);
-admin_externalpage_setup('tool_policy_managedocs', '', $urlparams,
+admin_externalpage_setup('tool_policy_acceptances', '', $urlparams,
     new moodle_url('/admin/tool/policy/acceptances.php'));
-require_capability('tool/policy:viewacceptances', context_system::instance());
 
 if (!$acceptancesfilter->get_versions()) {
     throw new \moodle_exception('No policies found'); // TODO string

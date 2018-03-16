@@ -44,6 +44,12 @@ if ($hassiteconfig || has_any_capability($managecaps, context_system::instance()
         new moodle_url('/admin/tool/policy/managedocs.php'),
         ['tool/policy:managedocs', 'tool/policy:viewacceptances']
     ));
+    $ADMIN->add('privacy', new admin_externalpage(
+        'tool_policy_acceptances',
+        new lang_string('useracceptances', 'tool_policy'),
+        new moodle_url('/admin/tool/policy/acceptances.php'),
+        ['tool/policy:viewacceptances']
+    ));
 
     if ($ADMIN->fulltree) {
         // TODO: Decide whether to maintain or not this field for displaying information about the officer in the consent page.
