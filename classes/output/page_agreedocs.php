@@ -28,6 +28,7 @@ namespace tool_policy\output;
 defined('MOODLE_INTERNAL') || die();
 
 use context_system;
+use core\output\notification;
 use core_user;
 use html_writer;
 use moodle_url;
@@ -373,15 +374,15 @@ class page_agreedocs implements renderable, templatable {
             foreach ($this->messages as $message) {
                 switch ($message->type) {
                     case 'error':
-                        $data->messages[] = $output->notify_problem($message->text);
+                        $data->messages[] = $output->notification($message->text, notification::NOTIFY_ERROR);
                         break;
 
                     case 'success':
-                        $data->messages[] = $output->notify_success($message->text);
+                        $data->messages[] = $output->notification($message->text, notification::NOTIFY_SUCCESS);
                         break;
 
                     default:
-                        $data->messages[] = $output->notify_message($message->text);
+                        $data->messages[] = $output->notification($message->text, notification::NOTIFY_INFO);
                         break;
                 }
             }
