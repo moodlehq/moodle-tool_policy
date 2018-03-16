@@ -40,7 +40,7 @@ if ($hassiteconfig || has_any_capability($managecaps, context_system::instance()
 
     $ADMIN->add('privacy', new admin_externalpage(
         'tool_policy_managedocs',
-        new lang_string('policydocs', 'tool_policy'),
+        new lang_string('managepolicies', 'tool_policy'),
         new moodle_url('/admin/tool/policy/managedocs.php'),
         ['tool/policy:managedocs', 'tool/policy:viewacceptances']
     ));

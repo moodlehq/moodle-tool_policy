@@ -80,7 +80,7 @@ class page_managedocs_list implements renderable, templatable {
         $data->canmanage = has_capability('tool/policy:managedocs', \context_system::instance());
         $data->canaddnew = $data->canmanage && !$this->policyid;
         $data->canviewacceptances = has_capability('tool/policy:viewacceptances', \context_system::instance());
-        $data->title = get_string('policydocs', 'tool_policy');
+        $data->title = get_string('policiesagreements', 'tool_policy');
         $data->policies = [];
 
         if ($this->policyid) {

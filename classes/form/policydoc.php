@@ -110,8 +110,7 @@ class policydoc extends moodleform {
             $mform->setType('status', PARAM_INT);
 
             $statusgrp = [
-                $mform->createElement('checkbox', 'minorchange', get_string('status', 'tool_policy'),
-                    get_string('minorchange', 'tool_policy')),
+                $mform->createElement('checkbox', 'minorchange', '', get_string('minorchange', 'tool_policy')),
                 $mform->createElement('static', 'minorchangeinfo', '',
                     html_writer::div(get_string('minorchangeinfo', 'tool_policy'), 'muted text-muted')),
             ];
