@@ -98,8 +98,9 @@ function tool_policy_pre_signup_requests() {
         return;
     }
 
+    $policies = api::get_current_versions_ids(policy_version::AUDIENCE_LOGGEDIN);
     $userpolicyagreed = cache::make('core', 'presignup')->get('tool_policy_userpolicyagreed');
-    if (!$userpolicyagreed) {
+    if (!empty($policies) && !$userpolicyagreed) {
         // Redirect to "Policy" pages for consenting before creating the user.
         $SESSION->wantsurl = (new \moodle_url('/login/signup.php'))->out();
         redirect(new \moodle_url('/admin/tool/policy/index.php'));
