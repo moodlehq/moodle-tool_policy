@@ -114,7 +114,7 @@ $string['policyversionacceptedinotherlang'] = 'This policy version has been agre
 $string['previousversions'] = '{$a} previous versions';
 $string['privacyofficer'] = 'Privacy officer';
 // TODO: Review the list of places where the privacyofficer will be shown.
-$string['privacyofficer_desc'] = 'Information and contact details of the privacy officer, such as the address, email and  phone number. This information will be shown to the users on the consent page./';
+$string['privacyofficer_desc'] = 'Information and contact details of the privacy officer, such as the address, email and  phone number. This information will be shown to the users on the consent page.';
 $string['privacysettings'] = 'Privacy settings';
 $string['readpolicy'] = 'Please read our {$a}';
 $string['refertofullpolicytext'] = 'Please refer to the full {$a} text if you would like to review.';
