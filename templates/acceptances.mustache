@@ -32,8 +32,10 @@
     <th>{{#str}} policydocrevision, tool_policy {{/str}}</th>
     <th>{{#str}} agreed, tool_policy {{/str}}</th>
     <th>{{#str}} agreedon, tool_policy {{/str}}</th>
+    {{#hasonbehalfagreements}}
     <th>{{#str}} agreedby, tool_policy {{/str}}</th>
     <th>{{#str}} acceptancenote, tool_policy {{/str}}</th>
+    {{/hasonbehalfagreements}}
     </thead>
     <tbody>
         {{#policies}}
@@ -53,8 +55,10 @@
 
                     </td>
                     <td>{{timeaccepted}}</td>
+                    {{#hasonbehalfagreements}}
                     <td>{{{acceptedby}}}</td>
                     <td>{{{note}}}</td>
+                    {{/hasonbehalfagreements}}
                 </tr>
             {{/versions}}
         {{/policies}}

@@ -60,6 +60,7 @@ class acceptances implements renderable, templatable {
         global $USER;
 
         $data = (object)[];
+        $data->hasonbehalfagreements = false;
         $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(false);
 
         // Get the list of policies and versions that current user is able to see
@@ -93,6 +94,7 @@ class acceptances implements renderable, templatable {
                         $version->acceptedby = fullname($usermodified, $canviewfullnames ||
                             has_capability('moodle/site:viewfullnames', \context_user::instance($acceptance->usermodified)));
                         // TODO link to profile.
+                        $data->hasonbehalfagreements = true;
                     }
                     $version->note = format_text($acceptance->note);
                 } else if ($version->iscurrent) {

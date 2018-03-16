@@ -30,21 +30,23 @@ $acceptforversion = optional_param('acceptforversion', null, PARAM_INT);
 $returnurl = optional_param('returnurl', null, PARAM_LOCALURL);
 
 require_login();
-if (isguestuser()) {
+$userid = $userid ?: $USER->id;
+if (isguestuser() || isguestuser($userid)) {
     print_error('noguest');
 }
-$context = context_user::instance($userid ?: $USER->id);
+$context = context_user::instance($userid);
 if ($acceptforversion) {
-    if ($context->instanceid == $USER->id || $context->instanceid == $CFG->siteguest) {
-        throw new moodle_exception('Cannot accept policy'); // TODO string?
+    // Check capability to accept the policy for oneself or on behalf of another user.
+    if ($userid == $USER->id) {
+        require_capability('tool/policy:accept', context_system::instance());
+    } else {
+        require_capability('tool/policy:acceptbehalf', $context);
     }
-    require_capability('tool/policy:acceptbehalf', $context);
-} else if ($userid && $USER->id != $userid) {
+} else if ($userid != $USER->id) {
+    // Check capability to view acceptances. No capability is needed to view your own acceptances.
     if (!has_capability('tool/policy:acceptbehalf', $context)) {
-        require_capability('tool/policy:viewacceptances', context_system::instance());
+        require_capability('tool/policy:viewacceptances', $context);
     }
-} else {
-    $userid = $USER->id;
 }
 
 $PAGE->set_context($context);
