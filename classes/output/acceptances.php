@@ -91,9 +91,9 @@ class acceptances implements renderable, templatable {
                     if ($onbehalf) {
                         $usermodified = (object)['id' => $acceptance->usermodified];
                         username_load_fields_from_object($usermodified, $acceptance, 'mod');
-                        $version->acceptedby = fullname($usermodified, $canviewfullnames ||
-                            has_capability('moodle/site:viewfullnames', \context_user::instance($acceptance->usermodified)));
-                        // TODO link to profile.
+                        $profileurl = new \moodle_url('/user/profile.php', array('id' => $usermodified->id));
+                        $version->acceptedby = \html_writer::link($profileurl, fullname($usermodified, $canviewfullnames ||
+                            has_capability('moodle/site:viewfullnames', \context_user::instance($acceptance->usermodified))));
                         $data->hasonbehalfagreements = true;
                     }
                     $version->note = format_text($acceptance->note);
@@ -113,6 +113,7 @@ class acceptances implements renderable, templatable {
             $policy->versioncount = count($policy->versions);
             $policy->versions = array_values($policy->versions);
             $policy->versions[0]->isfirst = 1;
+            $policy->versions[0]->hasarchived = (count($policy->versions) > 1);
         }
 
         $data->policies = array_values($policies);
