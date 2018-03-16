@@ -108,15 +108,12 @@ class policy_exporter extends exporter {
             $data = $exporter->export($output);
 
             if ($data->id == $this->data->currentversionid) {
-                $data->status = policy_version::STATUS_ACTIVE;
                 $othervalues['currentversion'] = $data;
 
             } else if ($data->archived) {
-                $data->status = policy_version::STATUS_ARCHIVED;
                 $othervalues['archivedversions'][] = $data;
 
             } else {
-                $data->status = policy_version::STATUS_DRAFT;
                 $othervalues['draftversions'][] = $data;
             }
         }

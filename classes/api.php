@@ -163,8 +163,15 @@ class api {
         foreach ($policies as $policyid => $policydata) {
             $versionexporters = [];
             foreach ($versions[$policyid] as $versiondata) {
+                if ($policydata->currentversionid == $versiondata->id) {
+                    $versiondata->status = policy_version::STATUS_ACTIVE;
+                } else if ($versiondata->archived) {
+                    $versiondata->status = policy_version::STATUS_ARCHIVED;
+                } else {
+                    $versiondata->status = policy_version::STATUS_DRAFT;
+                }
                 $versionexporters[] = new policy_version_exporter($versiondata, [
-                    'context' => context_system::instance(),
+                    'context' => $context,
                 ]);
             }
             $policyexporter = new policy_exporter($policydata, [
