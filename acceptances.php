@@ -25,6 +25,8 @@
 require(__DIR__.'/../../../config.php');
 require_once($CFG->libdir.'/adminlib.php');
 
+use core\output\notification;
+
 $policyid = optional_param('policyid', null, PARAM_INT);
 $versionid = optional_param('versionid', null, PARAM_INT);
 $versionid = optional_param('versionid', null, PARAM_INT);
@@ -39,24 +41,27 @@ $urlparams = ($policyid ? ['policyid' => $policyid] : []) + ($versionid ? ['vers
 admin_externalpage_setup('tool_policy_acceptances', '', $urlparams,
     new moodle_url('/admin/tool/policy/acceptances.php'));
 
-if (!$acceptancesfilter->get_versions()) {
-    throw new \moodle_exception('No policies found'); // TODO string
-}
-
-if ($singlepolicy = $acceptancesfilter->get_single_version()) {
-    $PAGE->navbar->add(format_string($singlepolicy->name),
-        new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
-}
-$PAGE->navbar->add(get_string('useracceptances', 'tool_policy'));
-
 $output = $PAGE->get_renderer('tool_policy');
-$acceptances = new \tool_policy\acceptances_table('tool_policy_user_acceptances', $acceptancesfilter, $output);
-if ($acceptances->is_downloading()) {
-    $acceptances->download();
+if (!$acceptancesfilter->get_versions()) {
+    $acceptancesfilter = null;
+} else {
+    if ($singlepolicy = $acceptancesfilter->get_single_version()) {
+        $PAGE->navbar->add(format_string($singlepolicy->name),
+            new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
+    }
+    $PAGE->navbar->add(get_string('useracceptances', 'tool_policy'));
+    $acceptances = new \tool_policy\acceptances_table('tool_policy_user_acceptances', $acceptancesfilter, $output);
+    if ($acceptances->is_downloading()) {
+        $acceptances->download();
+    }
 }
 
 echo $output->header();
 echo $output->heading(get_string('useracceptances', 'tool_policy'));
-echo $output->render($acceptancesfilter);
-$acceptances->display();
+if (!empty($acceptancesfilter)) {
+    echo $output->render($acceptancesfilter);
+    $acceptances->display();
+} else {
+    echo $output->notification(get_string('nopolicies', 'tool_policy'), notification::NOTIFY_INFO);
+}
 echo $output->footer();
