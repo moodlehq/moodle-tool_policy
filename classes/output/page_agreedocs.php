@@ -148,15 +148,6 @@ class page_agreedocs implements renderable, templatable {
                 $this->signupuserpolicyagreed = empty(array_diff($currentpolicyversionids, $this->agreedocs));
                 \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed',
                     $this->agreedocs);
-
-                if (!$this->signupuserpolicyagreed) {
-                    // Show a message to let know the user he/she must agree all the policies if he/she wants to create a user.
-                    $message = (object) [
-                        'type' => 'error',
-                        'text' => get_string('mustagreetocontinue', 'tool_policy')
-                    ];
-                    $this->messages[] = $message;
-                }
             }
         } else if (empty($this->policies)) {
             // There are no policies to agree to. Update the policyagreed value to avoid show empty consent page.
@@ -171,6 +162,15 @@ class page_agreedocs implements renderable, templatable {
                 // New user.
                 \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed', []);
             }
+        }
+
+        // During signup process, show a message to let know the user he/she must agree all the policies before accessing to the signup form.
+        if (!empty($this->policies) && empty($USER->id) && !$this->signupuserpolicyagreed) {
+            $message = (object) [
+                'type' => 'error',
+                'text' => get_string('mustagreetocontinue', 'tool_policy')
+            ];
+            $this->messages[] = $message;
         }
     }
 
