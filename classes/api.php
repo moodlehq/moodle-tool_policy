@@ -857,17 +857,28 @@ class api {
      * @param \core\event\user_created $event
      */
     public static function create_acceptances_user_created(\core\event\user_created $event) {
-        global $DB;
+        global $CFG, $DB;
+
+        // Do nothing if not set as the site policies handler.
+        if (empty($CFG->sitepolicyhandler) || $CFG->sitepolicyhandler !== 'tool_policy') {
+            return;
+        }
 
         $userid = $event->objectid;
         $lang = current_language();
-
-        $userpolicyagreed = \cache::make('core', 'presignup')->get('tool_policy_userpolicyagreed');
-        if ($userpolicyagreed !== false) {
+        $user = $event->get_record_snapshot('user', $userid);
+        // Do nothing if the user has not accepted the current policies.
+        if (!$user->policyagreed) {
+            return;
+        }
+        // Get all active policies.
+        $currentpolicyversions = self::list_current_versions(policy_version::AUDIENCE_LOGGEDIN);
+        // Save active policies as accepted by the user.
+        if (!empty($currentpolicyversions)) {
             $acceptances = array();
-            foreach($userpolicyagreed as $policyid) {
+            foreach($currentpolicyversions as $policy) {
                 $acceptances[] = array(
-                    'policyversionid' => $policyid,
+                    'policyversionid' => $policy->id,
                     'userid' => $userid,
                     'status' => 1,
                     'lang' => $lang,

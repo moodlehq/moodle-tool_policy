@@ -507,9 +507,11 @@ class tool_policy_api_testcase extends advanced_testcase {
      * Test behaviour of the {@link api::create_acceptances_user_created()} method.
      */
     public function test_create_acceptances_user_created() {
-        global $DB;
+        global $CFG, $DB;
         $this->resetAfterTest();
         $this->setAdminUser();
+
+        $CFG->sitepolicyhandler = 'tool_policy';
 
         $policy = $this->add_policy()->to_record();
         api::make_current($policy->id);
@@ -522,13 +524,8 @@ class tool_policy_api_testcase extends advanced_testcase {
             ['userid' => $user1->id, 'policyversionid' => $policy->id]));
 
         // User has accepted policies.
-        $acceptedpolicies = [
-            $policy->id,
-        ];
-        \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed',
-                $acceptedpolicies);
-
         $user2 = $this->getDataGenerator()->create_user();
+        $DB->set_field('user', 'policyagreed', 1, ['id' => $user2->id]);
         \core\event\user_created::create_from_userid($user2->id)->trigger();
 
         $this->assertEquals(1, $DB->count_records('tool_policy_acceptances',
