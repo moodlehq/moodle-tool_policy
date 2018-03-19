@@ -86,6 +86,7 @@ $string['nopermissiontoagreedocsbehalf_desc'] = 'Sorry, you do not have the requ
 $string['nopermissiontoagreedocscontact'] = 'For further assistance, please contact the following person:';
 $string['nopermissiontoviewpolicyversion'] = 'You do not have permissions to view this policy version.';
 $string['nopolicies'] = 'There are no policies for registered users with an active version.';
+$string['selectpolicyandversion'] = 'Use the filter above to select policy and/or version';
 $string['steppolicies'] = 'Policy {$a->numpolicy} out of {$a->totalpolicies}';
 $string['pluginname'] = 'Policies';
 $string['policiesagreements'] = 'Policies and agreements';

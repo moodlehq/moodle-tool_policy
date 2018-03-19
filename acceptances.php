@@ -41,15 +41,9 @@ $urlparams = ($policyid ? ['policyid' => $policyid] : []) + ($versionid ? ['vers
 admin_externalpage_setup('tool_policy_acceptances', '', $urlparams,
     new moodle_url('/admin/tool/policy/acceptances.php'));
 
+$acceptancesfilter->validate_ids();
 $output = $PAGE->get_renderer('tool_policy');
-if (!$acceptancesfilter->get_versions()) {
-    $acceptancesfilter = null;
-} else {
-    if ($singlepolicy = $acceptancesfilter->get_single_version()) {
-        $PAGE->navbar->add(format_string($singlepolicy->name),
-            new moodle_url('/admin/tool/policy/managedocs.php', ['id' => $policyid]));
-    }
-    $PAGE->navbar->add(get_string('useracceptances', 'tool_policy'));
+if ($acceptancesfilter->get_versions()) {
     $acceptances = new \tool_policy\acceptances_table('tool_policy_user_acceptances', $acceptancesfilter, $output);
     if ($acceptances->is_downloading()) {
         $acceptances->download();
@@ -58,10 +52,14 @@ if (!$acceptancesfilter->get_versions()) {
 
 echo $output->header();
 echo $output->heading(get_string('useracceptances', 'tool_policy'));
-if (!empty($acceptancesfilter)) {
-    echo $output->render($acceptancesfilter);
+echo $output->render($acceptancesfilter);
+if (!empty($acceptances)) {
     $acceptances->display();
+} else if ($acceptancesfilter->get_avaliable_policies()) {
+    // There are no non-guest policies.
+    echo $output->notification(get_string('selectpolicyandversion', 'tool_policy'), notification::NOTIFY_INFO);
 } else {
+    // There are no non-guest policies.
     echo $output->notification(get_string('nopolicies', 'tool_policy'), notification::NOTIFY_INFO);
 }
 echo $output->footer();
