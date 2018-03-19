@@ -41,16 +41,13 @@ define(['jquery', 'core/form-autocomplete', 'core/str', 'core/notification'],
          * @private
          */
         var init = function() {
-            var stringkeys = [
-                {
-                    key: 'filterplaceholder',
-                    component: 'tool_policy'
-                },
-                {
-                    key: 'nofiltersapplied',
-                    component: 'tool_policy'
-                }
-            ];
+            var stringkeys = [{
+                key: 'filterplaceholder',
+                component: 'tool_policy'
+            }, {
+                key: 'nofiltersapplied',
+                component: 'tool_policy'
+            }];
 
             M.util.js_pending('acceptances_filter_datasource');
             Str.get_strings(stringkeys).done(function(langstrings) {

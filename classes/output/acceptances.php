@@ -44,8 +44,14 @@ use tool_policy\policy_version;
  */
 class acceptances implements renderable, templatable {
 
+    /** @var id */
     protected $userid;
 
+    /**
+     * Contructor.
+     *
+     * @param int $userid
+     */
     public function __construct($userid) {
         $this->userid = $userid;
     }

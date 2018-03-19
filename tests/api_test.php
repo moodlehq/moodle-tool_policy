@@ -252,7 +252,7 @@ class tool_policy_api_testcase extends advanced_testcase {
     /**
      * Helper method that prepare a policy document with some versions.
      *
-     * @param int $numbersions The number of policy versions to create.
+     * @param int $numversions The number of policy versions to create.
      * @return array Array with all the policy versions created.
      */
     protected function create_versions($numversions = 2) {

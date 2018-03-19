@@ -40,8 +40,9 @@ use tool_policy\api;
 use tool_policy\policy_version;
 
 /**
- * Represents a page for showing the error messages when a user has no permission to
- * agree to policies or accept policies on behalf of defined behalfid.
+ * Represents a page for showing the error messages.
+ *
+ * This is used when a user has no permission to agree to policies or accept policies on behalf of defined behalfid.
  *
  * @copyright 2018 Sara Arjona <sara@moodle.com>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -78,13 +79,13 @@ class page_nopermission implements renderable, templatable {
         }
 
         if (!empty($USER->id)) {
-             // For existing users, it's needed to check if they have the capability for accepting policies.
-             if (empty($this->behalfid) || $this->behalfid == $USER->id) {
+            // For existing users, it's needed to check if they have the capability for accepting policies.
+            if (empty($this->behalfid) || $this->behalfid == $USER->id) {
                 $this->haspermissionagreedocs = has_capability('tool/policy:accept', context_system::instance());
-             } else {
-                 $usercontext = \context_user::instance($this->behalfid);
+            } else {
+                $usercontext = \context_user::instance($this->behalfid);
                 $this->haspermissionagreedocs = has_capability('tool/policy:acceptbehalf', $usercontext);
-             }
+            }
         }
 
         $this->policies = api::list_current_versions(policy_version::AUDIENCE_LOGGEDIN);
@@ -145,8 +146,8 @@ class page_nopermission implements renderable, templatable {
         if (!$this->haspermissionagreedocs) {
             if (!empty($this->behalfuser)) {
                 // If viewing docs in behalf of other user, get his/her full name and profile link.
-                $userfullname = fullname($this->behalfuser, has_capability('moodle/site:viewfullnames', \context_system::instance()) ||
-                            has_capability('moodle/site:viewfullnames', \context_user::instance($this->behalfid)));
+                $userfullname = fullname($this->behalfuser, has_capability('moodle/site:viewfullnames', \context_system::instance())
+                    || has_capability('moodle/site:viewfullnames', \context_user::instance($this->behalfid)));
                 $data->behalfuser = html_writer::link(\context_user::instance($this->behalfid)->get_url(), $userfullname);
 
                 $messagetitle = get_string('nopermissiontoagreedocsbehalf', 'tool_policy');
@@ -163,7 +164,8 @@ class page_nopermission implements renderable, templatable {
         $policieslinks = array();
         foreach ($this->policies as $policyversion) {
             // Get a link to display the full policy document.
-            $policyurl = new moodle_url('/admin/tool/policy/view.php', array('policyid' => $policyversion->policyid, 'returnurl' => qualified_me()));
+            $policyurl = new moodle_url('/admin/tool/policy/view.php',
+                array('policyid' => $policyversion->policyid, 'returnurl' => qualified_me()));
             $policyattributes = array('data-action' => 'view',
                                       'data-versionid' => $policyversion->id,
                                       'data-behalfid' => $this->behalfid);

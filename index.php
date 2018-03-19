@@ -44,22 +44,22 @@ $PAGE->set_popup_notification_allowed(false);
 
 $haspermissionagreedocs = false;
 if (!empty($USER->id)) {
-	// Existing user.
-	if (empty($behalfid) || $behalfid == $USER->id) {
-	    $haspermissionagreedocs = has_capability('tool/policy:accept', context_system::instance());
-	} else {
-	    $usercontext = \context_user::instance($behalfid);
-	    $haspermissionagreedocs = has_capability('tool/policy:acceptbehalf', $usercontext);
-	}
+    // Existing user.
+    if (empty($behalfid) || $behalfid == $USER->id) {
+        $haspermissionagreedocs = has_capability('tool/policy:accept', context_system::instance());
+    } else {
+        $usercontext = \context_user::instance($behalfid);
+        $haspermissionagreedocs = has_capability('tool/policy:acceptbehalf', $usercontext);
+    }
 } else {
-	// New user.
-	$haspermissionagreedocs = true;
+    // New user.
+    $haspermissionagreedocs = true;
 }
 
 if (!$haspermissionagreedocs) {
-	$outputpage = new \tool_policy\output\page_nopermission($behalfid);
+    $outputpage = new \tool_policy\output\page_nopermission($behalfid);
 } else {
-	$outputpage = new \tool_policy\output\page_agreedocs($agreedocs, $behalfid);
+    $outputpage = new \tool_policy\output\page_agreedocs($agreedocs, $behalfid);
 }
 
 $output = $PAGE->get_renderer('tool_policy');

@@ -24,19 +24,24 @@
 
 namespace tool_policy\form;
 
-global $CFG;
 use tool_policy\policy_version;
+
+defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/lib/formslib.php');
 
 /**
- * Provides {@link tool_policy\form\accept_policy} class.
+ * Represents the form for accepting a policy.
  *
  * @package     tool_policy
  * @copyright   2018 Marina Glancy
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class accept_policy extends \moodleform {
+
+    /**
+     * Defines the form fields.
+     */
     public function definition() {
         $mform = $this->_form;
 

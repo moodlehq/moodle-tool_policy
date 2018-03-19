@@ -41,6 +41,7 @@ use templatable;
  */
 class user_agreement implements \templatable, \renderable {
 
+    /** @var array */
     protected $data;
 
     /**
@@ -62,6 +63,12 @@ class user_agreement implements \templatable, \renderable {
         ];
     }
 
+    /**
+     * Export data to be rendered.
+     *
+     * @param renderer_base $output
+     * @return stdClass
+     */
     public function export_for_template(\renderer_base $output) {
         $data = [
             'status' => $this->data['status'],

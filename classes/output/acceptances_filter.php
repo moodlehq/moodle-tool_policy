@@ -25,10 +25,17 @@
 
 namespace tool_policy\output;
 
-
 use tool_policy\api;
 use tool_policy\policy_version;
 
+defined('MOODLE_INTERNAL') || die();
+
+/**
+ * Implements the widget allowing to filter the acceptance records.
+ *
+ * @copyright 2018 Marina Glancy
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class acceptances_filter implements \templatable, \renderable {
 
     /** @var array $filtersapplied The list of selected filter options. */
@@ -46,11 +53,22 @@ class acceptances_filter implements \templatable, \renderable {
     /** @var array cached list of all available policies, to retrieve use {@link self::get_avaliable_policies()} */
     protected $policies;
 
+    /** @var int */
     const FILTER_SEARCH_STRING = 0;
+
+    /** @var int */
     const FILTER_POLICYID = 1;
+
+    /** @var int */
     const FILTER_VERSIONID = 2;
+
+    /** @var int */
     const FILTER_CAPABILITY_ACCEPT = 3;
+
+    /** @var int */
     const FILTER_STATUS = 4;
+
+    /** @var int */
     const FILTER_ROLE = 5;
 
     /**
@@ -189,6 +207,7 @@ class acceptances_filter implements \templatable, \renderable {
      * Get one value of the applied filter
      *
      * @param string $filtername
+     * @param string $default
      * @return mixed
      */
     protected function get_filter_value($filtername, $default = null) {
@@ -326,7 +345,10 @@ class acceptances_filter implements \templatable, \renderable {
      */
     protected function get_version_option_for_filter($version) {
         if ($version->status == policy_version::STATUS_ACTIVE) {
-            $a = (object)['name' => format_string($version->revision), 'status' => get_string('status'.policy_version::STATUS_ACTIVE, 'tool_policy')];
+            $a = (object)[
+                'name' => format_string($version->revision),
+                'status' => get_string('status'.policy_version::STATUS_ACTIVE, 'tool_policy'),
+            ];
             return get_string('filterrevisionstatus', 'tool_policy', $a);
         } else {
             return get_string('filterrevision', 'tool_policy', $version->revision);

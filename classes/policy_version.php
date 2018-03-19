@@ -36,19 +36,37 @@ use core\persistent;
  */
 class policy_version extends persistent {
 
+    /** @var string Table name this persistent is mapped to. */
     const TABLE = 'tool_policy_versions';
 
+    /** @var int Site policy document. */
     const TYPE_SITE = 0;
+
+    /** @var int Privacy policy document. */
     const TYPE_PRIVACY = 1;
+
+    /** @var int Third party policy document. */
     const TYPE_THIRD_PARTY = 2;
+
+    /** @var int Other policy document. */
     const TYPE_OTHER = 99;
 
+    /** @var int Policy applies to all users. */
     const AUDIENCE_ALL = 0;
+
+    /** @var int Policy applies to logged in users only. */
     const AUDIENCE_LOGGEDIN = 1;
+
+    /** @var int Policy applies to guests only. */
     const AUDIENCE_GUESTS = 2;
 
+    /** @var int Policy version is a draft. */
     const STATUS_DRAFT = 0;
+
+    /** @var int Policy version is the active one. */
     const STATUS_ACTIVE = 1;
+
+    /** @var int Policy version has been archived. */
     const STATUS_ARCHIVED = 2;
 
     /**

@@ -516,13 +516,14 @@ class api {
 
     /**
      * Delete the given version (if it is a draft). Also delete policy if this is the only version.
-     * @param $versionid
+     *
+     * @param int $versionid
      */
     public static function delete($versionid) {
         global $DB;
 
-        $version = api::get_policy_version($versionid);
-        $policy = api::list_policies([$version->policyid])[0];
+        $version = static::get_policy_version($versionid);
+        $policy = static::list_policies([$version->policyid])[0];
         if ($version->archived || $policy->currentversionid == $version->id) {
             // Can not delete archived or current version.
             // TODO we could delete guest only versions potentially or versions without acceptances.
@@ -700,7 +701,8 @@ class api {
     }
 
     /**
-     * Get the list of policies and versions that current user is able to see and the respective acceptance records for the selected user.
+     * Get the list of policies and versions that current user is able to see and the respective acceptance records for
+     * the selected user.
      *
      * @param int $userid
      * @return array array with the same structure that list_policies() returns with additional attribute acceptance for versions
@@ -714,12 +716,16 @@ class api {
         foreach ($policies as $i => $policy) {
             $versions = [];
             if ($policy->currentversion && $policy->currentversion->audience != policy_version::AUDIENCE_GUESTS) {
-                $policy->currentversion->acceptance = isset($acceptances[$policy->currentversion->id]) ?
-                    $acceptances[$policy->currentversion->id] : 0;
+                if (isset($acceptances[$policy->currentversion->id])) {
+                    $policy->currentversion->acceptance = $acceptances[$policy->currentversion->id];
+                } else {
+                    $policy->currentversion->acceptance = 0;
+                }
                 $versions[] = $policy->currentversion;
             }
             foreach ($policy->archivedversions as $j => $version) {
-                if ($version->audience != policy_version::AUDIENCE_GUESTS && self::can_user_view_policy_version($version, $userid)) {
+                if ($version->audience != policy_version::AUDIENCE_GUESTS
+                        && static::can_user_view_policy_version($version, $userid)) {
                     $version->acceptance = isset($acceptances[$version->id]) ? $acceptances[$version->id] : 0;
                     $versions[] = $version;
                 }
@@ -784,7 +790,7 @@ class api {
             }
         }
 
-        self::update_policyagreed($userid);
+        static::update_policyagreed($userid);
     }
 
     /**
@@ -807,7 +813,11 @@ class api {
                   INNER JOIN {tool_policy_versions} v ON v.policyid = d.id AND v.id = d.currentversionid
                   LEFT JOIN {tool_policy_acceptances} a ON a.userid = :userid AND a.policyversionid = v.id
                   WHERE (v.audience = :audience OR v.audience = :audienceall)";
-        $params = ['audience' => policy_version::AUDIENCE_LOGGEDIN, 'audienceall' => policy_version::AUDIENCE_ALL, 'userid' => $user->id];
+        $params = [
+            'audience' => policy_version::AUDIENCE_LOGGEDIN,
+            'audienceall' => policy_version::AUDIENCE_ALL,
+            'userid' => $user->id
+        ];
         $policies = $DB->get_records_sql_menu($sql, $params);
         $acceptedpolicies = array_filter($policies);
         $policyagreed = (count($policies) == count($acceptedpolicies)) ? 1 : 0;
@@ -848,7 +858,7 @@ class api {
             acceptance_updated::create_from_record((object)($updatedata + (array)$currentacceptance))->trigger();
         }
 
-        self::update_policyagreed($userid);
+        static::update_policyagreed($userid);
     }
 
     /**
@@ -872,11 +882,11 @@ class api {
             return;
         }
         // Get all active policies.
-        $currentpolicyversions = self::list_current_versions(policy_version::AUDIENCE_LOGGEDIN);
+        $currentpolicyversions = static::list_current_versions(policy_version::AUDIENCE_LOGGEDIN);
         // Save active policies as accepted by the user.
         if (!empty($currentpolicyversions)) {
             $acceptances = array();
-            foreach($currentpolicyversions as $policy) {
+            foreach ($currentpolicyversions as $policy) {
                 $acceptances[] = array(
                     'policyversionid' => $policy->id,
                     'userid' => $userid,

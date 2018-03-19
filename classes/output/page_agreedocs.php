@@ -126,7 +126,7 @@ class page_agreedocs implements renderable, templatable {
                 // Accept all policy docs saved in $acceptversionids.
                 api::accept_policies($acceptversionids, $this->behalfid, null, $lang);
                 // Show a message to let know the user he/she must agree all the policies.
-                if (sizeof($acceptversionids) != sizeof($this->policies)) {
+                if (count($acceptversionids) != count($this->policies)) {
                     $message = (object) [
                         'type' => 'error',
                         'text' => get_string('mustagreetocontinue', 'tool_policy')
@@ -164,7 +164,7 @@ class page_agreedocs implements renderable, templatable {
             }
         }
 
-        // During signup process, show a message to let know the user he/she must agree all the policies before accessing to the signup form.
+        // During the signup process, inform users that they must agree to all policies before accessing the signup form.
         if (!empty($this->policies) && empty($USER->id) && !$this->signupuserpolicyagreed) {
             $message = (object) [
                 'type' => 'error',
@@ -188,7 +188,7 @@ class page_agreedocs implements renderable, templatable {
         $acceptances = api::get_user_acceptances($userid);
         $allpolicies = $this->policies;
         if (!empty($userid)) {
-            foreach($allpolicies as $policy) {
+            foreach ($allpolicies as $policy) {
                 if (api::is_user_version_accepted($userid, $policy->id, $acceptances)) {
                     // If this version is accepted by the user, remove from the pending policies list.
                     unset($allpolicies[array_search($policy, $allpolicies)]);
@@ -219,7 +219,7 @@ class page_agreedocs implements renderable, templatable {
             } else {
                 $pendingpolicies = $currentpolicyversionids;
             }
-            if (sizeof($pendingpolicies) > 0) {
+            if (count($pendingpolicies) > 0) {
                 // Still is needed to show some policies docs. Save in the session and redirect.
                 $policyversionid = array_shift($pendingpolicies);
                 $viewedpolicies[] = $policyversionid;
@@ -229,8 +229,8 @@ class page_agreedocs implements renderable, templatable {
                 }
                 $urlparams = ['versionid' => $policyversionid,
                               'returnurl' => $returnurl,
-                              'numpolicy' => sizeof($currentpolicyversionids) - sizeof($pendingpolicies),
-                              'totalpolicies' => sizeof($currentpolicyversionids),
+                              'numpolicy' => count($currentpolicyversionids) - count($pendingpolicies),
+                              'totalpolicies' => count($currentpolicyversionids),
                 ];
                 redirect(new moodle_url('/admin/tool/policy/view.php', $urlparams));
             }
@@ -255,6 +255,8 @@ class page_agreedocs implements renderable, templatable {
 
     /**
      * Sets up the global $PAGE and performs the access checks.
+     *
+     * @param int $userid
      */
     protected function prepare_global_page_access($userid) {
         global $CFG, $PAGE, $SESSION, $SITE, $USER;
@@ -309,6 +311,8 @@ class page_agreedocs implements renderable, templatable {
 
     /**
      * Prepare user acceptances.
+     *
+     * @param int $userid
      */
     protected function prepare_user_acceptances($userid) {
         global $USER;
@@ -318,7 +322,8 @@ class page_agreedocs implements renderable, templatable {
         $lang = current_language();
         foreach ($this->policies as $policy) {
             // Get a link to display the full policy document.
-            $policy->url = new moodle_url('/admin/tool/policy/view.php', array('policyid' => $policy->policyid, 'returnurl' => qualified_me()));
+            $policy->url = new moodle_url('/admin/tool/policy/view.php',
+                array('policyid' => $policy->policyid, 'returnurl' => qualified_me()));
             $policyattributes = array('data-action' => 'view',
                                       'data-versionid' => $policy->id,
                                       'data-behalfid' => $this->behalfid);

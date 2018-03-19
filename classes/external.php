@@ -60,7 +60,8 @@ class external extends external_api {
     public static function get_policy_version_parameters() {
         return new external_function_parameters([
             'versionid' => new external_value(PARAM_INT, 'The policy version ID', VALUE_REQUIRED),
-            'behalfid' => new external_value(PARAM_INT, 'The id of user on whose behalf the user is viewing the policy', VALUE_DEFAULT, 0)
+            'behalfid' => new external_value(PARAM_INT, 'The id of user on whose behalf the user is viewing the policy',
+                VALUE_DEFAULT, 0)
         ]);
     }
 

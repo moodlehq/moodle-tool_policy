@@ -59,7 +59,7 @@ class guestconsent implements renderable, templatable {
         } else {
             // If current page is also a policy doc to view, get previous returnurl parameter to avoid error.
             $returnurl = $PAGE->url->get_param('returnurl');
-            if (isset($returnurl)){
+            if (isset($returnurl)) {
                 $data->returnurl = $returnurl;
             }
         }

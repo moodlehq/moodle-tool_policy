@@ -98,7 +98,8 @@ class page_managedocs_list implements renderable, templatable {
             return $data;
         }
 
-        // List all policies. Display current and all draft versions of each policy in this list (if none found, then only one archived version).
+        // List all policies. Display current and all draft versions of each policy in this list.
+        // If none found, then show only one archived version.
         $policies = api::list_policies(null, true);
         foreach ($policies as $i => $policy) {
 
@@ -200,7 +201,6 @@ class page_managedocs_list implements renderable, templatable {
             false
         ));
         if ($status != policy_version::STATUS_ARCHIVED) {
-            // "Edit".
             $actionmenu->add(new action_menu_link(
                 new moodle_url($editbaseurl, ['versionid' => $version->id]),
                 null,
@@ -209,7 +209,6 @@ class page_managedocs_list implements renderable, templatable {
             ));
         }
         if ($status == policy_version::STATUS_ACTIVE) {
-            // Set status to "Inactive".
             $actionmenu->add(new action_menu_link(
                 new moodle_url($editbaseurl, ['inactivate' => $policy->id]),
                 null,
@@ -218,7 +217,6 @@ class page_managedocs_list implements renderable, templatable {
             ));
         }
         if ($status == policy_version::STATUS_DRAFT) {
-            // "Make current".
             $actionmenu->add(new action_menu_link(
                 new moodle_url($editbaseurl, ['makecurrent' => $version->id]),
                 null,
@@ -228,7 +226,6 @@ class page_managedocs_list implements renderable, templatable {
         }
         if ($status == policy_version::STATUS_DRAFT) {
             // TODO can we also delete non-draft version that is guest only or has no acceptances?
-            // "Delete".
             $actionmenu->add(new action_menu_link(
                 new moodle_url($editbaseurl, ['delete' => $version->id]),
                 null,
@@ -238,7 +235,6 @@ class page_managedocs_list implements renderable, templatable {
         }
         if (!$this->policyid && !$isindented && $policy->archivedversions &&
                 ($status != policy_version::STATUS_ARCHIVED || count($policy->archivedversions) > 1)) {
-            // "View previous versions".
             $actionmenu->add(new action_menu_link(
                 new moodle_url('/admin/tool/policy/managedocs.php', ['archived' => $policy->id]),
                 null,

@@ -77,7 +77,10 @@ function tool_policy_before_standard_html_head() {
     global $CFG, $PAGE, $USER;
 
     $message = null;
-    if (!empty($CFG->sitepolicyhandler) && $CFG->sitepolicyhandler == 'tool_policy' && empty($USER->policyagreed) && isguestuser()) {
+    if (!empty($CFG->sitepolicyhandler)
+            && $CFG->sitepolicyhandler == 'tool_policy'
+            && empty($USER->policyagreed)
+            && isguestuser()) {
         $output = $PAGE->get_renderer('tool_policy');
         $page = new \tool_policy\output\guestconsent();
 

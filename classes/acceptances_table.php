@@ -56,11 +56,18 @@ class acceptances_table extends \table_sql {
      */
     protected $countries;
 
+    /**
+     * Constructor.
+     *
+     * @param string $uniqueid Table identifier.
+     * @param acceptances_filter $acceptancesfilter
+     * @param renderer $output
+     */
     public function __construct($uniqueid, acceptances_filter $acceptancesfilter, renderer $output) {
         global $CFG;
         parent::__construct($uniqueid);
         $this->acceptancesfilter = $acceptancesfilter;
-        $this->is_downloading(optional_param('download', 0, PARAM_ALPHA), 'user_acceptances'); // TODO add policy name and/or timestamp to the filename?
+        $this->is_downloading(optional_param('download', 0, PARAM_ALPHA), 'user_acceptances');
         $this->baseurl = $acceptancesfilter->get_url();
         $this->output = $output;
 
@@ -74,7 +81,8 @@ class acceptances_table extends \table_sql {
             $version = reset($versions);
             $this->versionids[$version->id] = format_string($version->name);
             if ($version->status != policy_version::STATUS_ACTIVE) {
-                $this->versionids[$version->id] .= '<br>' . format_string($version->revision); // TODO think about it
+                // TODO think about this.
+                $this->versionids[$version->id] .= '<br>' . format_string($version->revision);
             }
         }
 
@@ -105,6 +113,7 @@ class acceptances_table extends \table_sql {
 
     /**
      * Remove randomness from the list by always sorting by user id in the end
+     *
      * @return array
      */
     public function get_sort_columns() {
@@ -119,6 +128,7 @@ class acceptances_table extends \table_sql {
      * @param string $key
      * @param string $label
      * @param bool $sortable
+     * @param string $columnclass
      */
     protected function add_column_header($key, $label, $sortable = true, $columnclass = '') {
         if (empty($this->columns)) {
@@ -139,10 +149,14 @@ class acceptances_table extends \table_sql {
         }
     }
 
+    /**
+     * Helper configuration method.
+     */
     protected function configure_for_single_version() {
         $userfieldsmod = get_all_user_name_fields(true, 'm', null, 'mod');
         $v = key($this->versionids);
-        $this->sql->fields .= ", $userfieldsmod, a{$v}.status AS status{$v}, a{$v}.note, a{$v}.timemodified, a{$v}.usermodified AS usermodified{$v}";
+        $this->sql->fields .= ", $userfieldsmod, a{$v}.status AS status{$v}, a{$v}.note, ".
+           "a{$v}.timemodified, a{$v}.usermodified AS usermodified{$v}";
 
         $join = "JOIN {tool_policy_acceptances} a{$v} ON a{$v}.userid = u.id AND a{$v}.policyversionid=:versionid{$v}";
         $filterstatus = $this->acceptancesfilter->get_status_filter();
@@ -166,6 +180,9 @@ class acceptances_table extends \table_sql {
         $this->add_column_header('note', get_string('acceptancenote', 'tool_policy'), false);
     }
 
+    /**
+     * Helper configuration method.
+     */
     protected function configure_for_multiple_versions() {
         $this->add_column_header('statusall', get_string('acceptancestatusoverall', 'tool_policy'));
         $filterstatus = $this->acceptancesfilter->get_status_filter();
@@ -203,7 +220,9 @@ class acceptances_table extends \table_sql {
     }
 
     /**
-     * @return string sql to add to where statement.
+     * Get sql to add to where statement.
+     *
+     * @return string
      */
     public function get_sql_where() {
         list($where, $params) = parent::get_sql_where();
@@ -212,6 +231,11 @@ class acceptances_table extends \table_sql {
         return [$where, $params];
     }
 
+    /**
+     * Helper SQL query builder.
+     *
+     * @param array $userfields
+     */
     protected function build_sql_for_search_string($userfields) {
         global $DB, $USER;
 
@@ -313,26 +337,26 @@ class acceptances_table extends \table_sql {
 
         if (empty($forbiddenroles)) {
             // There are no roles that prohibit to accept agreement on one own's behalf.
-            $this->sql->where .=  ' AND ' . $this->sql_has_role($neededroles, $hascapability);
+            $this->sql->where .= ' AND ' . $this->sql_has_role($neededroles, $hascapability);
             return;
         }
 
         $defaultuserroleid = isset($CFG->defaultuserroleid) ? $CFG->defaultuserroleid : 0;
         if (!empty($neededroles[$defaultuserroleid])) {
             // Default role allows to accept agreement. Make sure user has/does not have one of the roles prohibiting it.
-            $this->sql->where .=  ' AND ' . $this->sql_has_role($forbiddenroles, !$hascapability);
+            $this->sql->where .= ' AND ' . $this->sql_has_role($forbiddenroles, !$hascapability);
             return;
         }
 
         if ($hascapability) {
             // User has at least one role allowing to accept and no roles prohibiting.
-            $this->sql->where .=  ' AND ' . $this->sql_has_role($neededroles);
-            $this->sql->where .=  ' AND ' . $this->sql_has_role($forbiddenroles, false);
+            $this->sql->where .= ' AND ' . $this->sql_has_role($neededroles);
+            $this->sql->where .= ' AND ' . $this->sql_has_role($forbiddenroles, false);
         } else {
             // Option 1: User has one of the roles prohibiting to accept.
-            $this->sql->where .=  ' AND (' . $this->sql_has_role($forbiddenroles);
+            $this->sql->where .= ' AND (' . $this->sql_has_role($forbiddenroles);
             // Option 2: User has none of the roles allowing to accept.
-            $this->sql->where .=  ' OR ' . $this->sql_has_role($neededroles, false) . ")";
+            $this->sql->where .= ' OR ' . $this->sql_has_role($neededroles, false) . ")";
         }
     }
 
@@ -369,18 +393,38 @@ class acceptances_table extends \table_sql {
         }
     }
 
+    /**
+     * Render the table.
+     */
     public function display() {
         $this->out(100, true);
     }
 
+    /**
+     * Get the column fullname value.
+     *
+     * @param stdClass $row
+     * @return string
+     */
     public function col_fullname($row) {
         global $OUTPUT;
+
         $user = \user_picture::unalias($row, [], $this->useridfield);
         $userpic = $this->is_downloading() ? '' : $OUTPUT->user_picture($user);
+
         return $userpic . $this->username($user);
     }
 
+    /**
+     * Helper content rendering method.
+     *
+     * @param stdClass $row
+     * @param string $fieldsprefix
+     * @param string $useridfield
+     * @return string
+     */
     protected function username($row, $fieldsprefix = '', $useridfield = 'id') {
+
         if (!empty($row->$useridfield)) {
             $user = (object)['id' => $row->$useridfield];
             username_load_fields_from_object($user, $row, $fieldsprefix);
@@ -389,11 +433,16 @@ class acceptances_table extends \table_sql {
                 return $name;
             }
             $profileurl = new \moodle_url('/user/profile.php', array('id' => $user->id));
-            return \html_writer::link($profileurl, $name); // TODO cap view full names, cap to see profile
+            // TODO cap view full names, cap to see profile.
+            return \html_writer::link($profileurl, $name);
         }
+
         return null;
     }
 
+    /**
+     * Helper.
+     */
     protected function get_return_url() {
         $pageurl = $this->baseurl;
         if ($this->currpage) {
@@ -402,6 +451,13 @@ class acceptances_table extends \table_sql {
         return $pageurl;
     }
 
+    /**
+     * Helper.
+     *
+     * @param int $versionid
+     * @param stdClass $row
+     * @return string
+     */
     protected function status($versionid, $row) {
         $status = $row->{'status' . $versionid};
         if ($this->is_downloading()) {
@@ -411,6 +467,12 @@ class acceptances_table extends \table_sql {
         return $this->output->render(new user_agreement($row->id, $status, $this->get_return_url(), $versionid, $onbehalf));
     }
 
+    /**
+     * Get the column timemodified value.
+     *
+     * @param stdClass $row
+     * @return string
+     */
     public function col_timemodified($row) {
         if ($row->timemodified) {
             if ($this->is_downloading()) {
@@ -425,6 +487,12 @@ class acceptances_table extends \table_sql {
         }
     }
 
+    /**
+     * Get the column note value.
+     *
+     * @param stdClass $row
+     * @return string
+     */
     public function col_note($row) {
         if ($this->is_downloading()) {
             return $row->note;
@@ -433,6 +501,12 @@ class acceptances_table extends \table_sql {
         }
     }
 
+    /**
+     * Get the column statusall value.
+     *
+     * @param stdClass $row
+     * @return string
+     */
     public function col_statusall($row) {
         $totalcnt = count($this->versionids);
         $cnt = 0;
@@ -478,8 +552,12 @@ class acceptances_table extends \table_sql {
     /**
      * You can override this method in a child class. See the description of
      * build_table which calls this method.
+     *
+     * @param string $column
+     * @param stdClass $row
+     * @return string
      */
-    function other_cols($column, $row) {
+    public function other_cols($column, $row) {
         if (preg_match('/^status([\d]+)$/', $column, $matches)) {
             $versionid = $matches[1];
             return $this->status($versionid, $row);

@@ -37,12 +37,21 @@ defined('MOODLE_INTERNAL') || die();
  */
 class acceptance_updated extends base {
 
+    /**
+     * Initialise the event.
+     */
     protected function init() {
         $this->data['objecttable'] = 'tool_policy_acceptances';
         $this->data['crud'] = 'u';
         $this->data['edulevel'] = self::LEVEL_OTHER;
     }
 
+    /**
+     * Create event from record.
+     *
+     * @param stdClass $record
+     * @return tool_policy\event\acceptance_updated
+     */
     public static function create_from_record($record) {
         $event = static::create([
             'objectid' => $record->id,
@@ -58,10 +67,20 @@ class acceptance_updated extends base {
         return $event;
     }
 
+    /**
+     * Returns event name.
+     *
+     * @return string
+     */
     public static function get_name() {
         return get_string('event_acceptance_updated', 'tool_policy');
     }
 
+    /**
+     * Get the event description.
+     *
+     * @return string
+     */
     public function get_description() {
         if ($this->other['status'] == 1) {
             $action = 'added consent to';
@@ -70,7 +89,8 @@ class acceptance_updated extends base {
         } else {
             $action = 'updated consent to';
         }
-        return "The user with id '{$this->userid}' $action the policy with revision {$this->other['policyversionid']} for the user with id '{$this->relateduserid}'";
+        return "The user with id '{$this->userid}' $action the policy with revision {$this->other['policyversionid']} ".
+            "for the user with id '{$this->relateduserid}'";
     }
 
     /**
@@ -83,6 +103,11 @@ class acceptance_updated extends base {
             'versionid' => $this->other['policyversionid']));
     }
 
+    /**
+     * Get the object ID mapping.
+     *
+     * @return array
+     */
     public static function get_objectid_mapping() {
         return array('db' => 'tool_policy', 'restore' => \core\event\base::NOT_MAPPED);
     }
@@ -108,6 +133,11 @@ class acceptance_updated extends base {
         }
     }
 
+    /**
+     * No mapping required for this event because this event is not backed up.
+     *
+     * @return bool
+     */
     public static function get_other_mapping() {
         // No mapping required for this event because this event is not backed up.
         return false;

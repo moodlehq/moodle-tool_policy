@@ -117,7 +117,7 @@ class policydoc extends moodleform {
             $mform->addGroup($statusgrp, null, get_string('status', 'tool_policy'), ['<br>'], false);
         }
 
-        // "Save" button and, optionally, "Save as draft".
+        // Add "Save" button and, optionally, "Save as draft".
         $buttonarray = [];
         $buttonarray[] = $mform->createElement('submit', 'save', get_string('save', 'tool_policy'));
         if ($formdata->id && $formdata->status == policy_version::STATUS_ACTIVE) {

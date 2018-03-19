@@ -21,7 +21,6 @@
  * - archived=<int> Show only archived versions of the given policy document
  *
  * @package     tool_policy
- * @category    admin
  * @copyright   2018 David Mudrák <david@moodle.com>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
