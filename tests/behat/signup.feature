@@ -39,7 +39,7 @@ Feature: User must accept policy when logging in and signing up
       | registerauth    | email |
       | passwordpolicy  | 0     |
       | sitepolicyhandler | tool_policy |
-    Given the following policies exists:
+    Given the following policies exist:
       | Policy | Name             | Revision | Content    | Summary     | Status   |
       | P1     | This site policy |          | full text1 | short text1 | archived |
       | P1     | This site policy |          | full text2 | short text2 | active   |

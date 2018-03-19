@@ -40,11 +40,11 @@ class behat_tool_policy extends behat_base {
     /**
      * Click on an entry in the edit menu.
      *
-     * @Given /^the following policies exists:$/
+     * @Given /^the following policies exist:$/
      *
      * @param TableNode $data
      */
-    public function the_following_policies_exists(TableNode $data) {
+    public function the_following_policies_exist(TableNode $data) {
         global $CFG;
         if (empty($CFG->sitepolicyhandler) || $CFG->sitepolicyhandler !== 'tool_policy') {
             throw new Exception('Site policy handler is not set to "tool_policy"');
