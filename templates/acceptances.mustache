@@ -15,6 +15,8 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
+    @template tool_policy/acceptances
+
     Template for the user acceptances page.
 
     Classes required for JS:
@@ -25,18 +27,41 @@
 
     Context variables required for this template:
     * policies
+
+    Example context (json):
+	{
+	  "policies": [
+			{
+			  "versions": [
+					{
+					  "isfirst": true,
+					  "policyid": 1,
+					  "viewurl": "/",
+					  "name": "Terms &amp; conditions",
+					  "revision": "1.0-beta",
+					  "hasonbehalfagreements": true,
+					  "acceptedby": "<a href=\"#\">John Smith</a>",
+					  "note": "Based on parent's agreement via email",
+					  "hasarchived": false
+					}
+			  ]
+			}
+	  ]
+	}
 }}
 <table class="generaltable fullwidth">
     <thead>
-    <th>{{#str}} policydocname, tool_policy {{/str}}</th>
-    <th>{{#str}} policydocrevision, tool_policy {{/str}}</th>
-    <th>{{#str}} agreed, tool_policy {{/str}}</th>
-    <th>{{#str}} agreedon, tool_policy {{/str}}</th>
-    {{#hasonbehalfagreements}}
-    <th>{{#str}} agreedby, tool_policy {{/str}}</th>
-    <th>{{#str}} acceptancenote, tool_policy {{/str}}</th>
-    {{/hasonbehalfagreements}}
-    <th></th>
+    <tr>
+		<th>{{#str}} policydocname, tool_policy {{/str}}</th>
+		<th>{{#str}} policydocrevision, tool_policy {{/str}}</th>
+		<th>{{#str}} agreed, tool_policy {{/str}}</th>
+		<th>{{#str}} agreedon, tool_policy {{/str}}</th>
+		{{#hasonbehalfagreements}}
+		<th>{{#str}} agreedby, tool_policy {{/str}}</th>
+		<th>{{#str}} acceptancenote, tool_policy {{/str}}</th>
+		{{/hasonbehalfagreements}}
+		<th></th>
+	</tr>
     </thead>
     <tbody>
         {{#policies}}

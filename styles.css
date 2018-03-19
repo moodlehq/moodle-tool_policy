@@ -1,15 +1,14 @@
 /* eupopup styles */
-.eupopup-body li
-{
+.eupopup-body li {
     display: inline;
 }
-.eupopup-body li:before
-{
-    content: ", "
+
+.eupopup-body li:before {
+    content: ", ";
 }
-.eupopup-body li:first-child:before
-{
-    content: ""
+
+.eupopup-body li:first-child:before {
+    content: "";
 }
 
 .eupopup-container {
@@ -25,7 +24,9 @@
 
 .eupopup-container-bottom {
     position: fixed;
-    bottom: 0; left: 0; right: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
 }
 
 .eupopup-closebutton {
@@ -36,9 +37,11 @@
     filter: alpha(opacity=20);
     position: absolute;
     font-family: helvetica, arial, verdana, sans-serif;
-    top: 0; right: 0;
+    top: 0;
+    right: 0;
     padding: 5px 10px;
 }
+
 .eupopup-closebutton:hover,
 .eupopup-closebutton:active {
     text-decoration: none;

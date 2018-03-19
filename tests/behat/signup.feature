@@ -1,5 +1,5 @@
 @tool @tool_policy
-Feature: User must accept policy when logging in and signing up
+Feature: User must accept policy managed by this plugin when logging in and signing up
   In order to record user agreement to use the site
   As a user
   I need to be able to accept site policy during sign up

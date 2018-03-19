@@ -150,8 +150,12 @@ if ($policyversion->get('archived')) {
 }
 
 $formdata = api::form_policydoc_data($policyversion);
-$formdata->status = ($policy && $formdata->id && $policy->currentversionid == $formdata->id) ?
-    policy_version::STATUS_ACTIVE : policy_version::STATUS_DRAFT;
+
+if ($policy && $formdata->id && $policy->currentversionid == $formdata->id) {
+    $formdata->status = policy_version::STATUS_ACTIVE;
+} else {
+    $formdata->status = policy_version::STATUS_DRAFT;
+}
 
 $form = new \tool_policy\form\policydoc($PAGE->url, ['formdata' => $formdata]);
 

@@ -48,7 +48,7 @@ class api {
      * Return current (active) policies versions.
      *
      * @param array $audience If defined, filter against the given audience (AUDIENCE_ALL always included)
-     * @return array of stdClass - exported {@link tool_policy\policy_version_exporter} instanes
+     * @return array of stdClass - exported {@link tool_policy\policy_version_exporter} instances
      */
     public static function list_current_versions($audience = null) {
 
