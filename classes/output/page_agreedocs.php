@@ -59,6 +59,9 @@ class page_agreedocs implements renderable, templatable {
     /** @var object User who wants to accept this page. */
     protected $behalfuser = null;
 
+    /** @var boolean True if signup user has agreed to all the policies; false otherwise. */
+    protected $signupuserpolicyagreed = false;
+
     /** @var array Info or error messages to show. */
     protected $messages = [];
 
@@ -142,11 +145,11 @@ class page_agreedocs implements renderable, templatable {
                 foreach ($this->policies as $policy) {
                     $currentpolicyversionids[] = $policy->id;
                 }
-                $userpolicyagreed = empty(array_diff($currentpolicyversionids, $this->agreedocs));
+                $this->signupuserpolicyagreed = empty(array_diff($currentpolicyversionids, $this->agreedocs));
                 \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed',
                     $this->agreedocs);
 
-                if (!$userpolicyagreed) {
+                if (!$this->signupuserpolicyagreed) {
                     // Show a message to let know the user he/she must agree all the policies if he/she wants to create a user.
                     $message = (object) [
                         'type' => 'error',
@@ -280,8 +283,7 @@ class page_agreedocs implements renderable, templatable {
 
         // If the current user has the $USER->policyagreed = 1 or $userpolicyagreed = 1
         // and $SESSION->wantsurl is defined, redirect to the return page.
-        $userpolicyagreed = \cache::make('core', 'presignup')->get('tool_policy_userpolicyagreed');
-        $hasagreedsignupuser = empty($USER->id) && $userpolicyagreed;
+        $hasagreedsignupuser = empty($USER->id) && $this->signupuserpolicyagreed;
         $hasagreedloggeduser = $USER->id == $userid && !empty($USER->policyagreed);
         if (!is_siteadmin() && ($hasagreedsignupuser || ($hasagreedloggeduser && !empty($SESSION->wantsurl)))) {
             $this->redirect_to_previous_url();
