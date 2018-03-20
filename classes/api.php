@@ -204,8 +204,6 @@ class api {
      * @return stdClass - exported {@link tool_policy\policy_exporter} instance
      */
     public static function get_policy_version($versionid) {
-        global $DB;
-
         foreach (static::list_policies() as $policy) {
             if ($policy->currentversionid == $versionid) {
                 return $policy->currentversion;
@@ -398,7 +396,7 @@ class api {
      * @return \tool_policy\policy_version persistent
      */
     public static function form_policydoc_add(stdClass $form) {
-        global $DB, $USER;
+        global $DB;
 
         $form = clone($form);
 
@@ -418,7 +416,7 @@ class api {
      * @return \tool_policy\policy_version persistent
      */
     public static function form_policydoc_update_new(stdClass $form) {
-        global $DB, $USER;
+        global $DB;
 
         if (empty($form->policyid)) {
             throw new coding_exception('Invalid policy document ID');
@@ -713,7 +711,7 @@ class api {
         $policies = static::list_policies();
         $acceptances = static::get_user_acceptances($userid);
         $ret = [];
-        foreach ($policies as $i => $policy) {
+        foreach ($policies as $policy) {
             $versions = [];
             if ($policy->currentversion && $policy->currentversion->audience != policy_version::AUDIENCE_GUESTS) {
                 if (isset($acceptances[$policy->currentversion->id])) {
@@ -723,7 +721,7 @@ class api {
                 }
                 $versions[] = $policy->currentversion;
             }
-            foreach ($policy->archivedversions as $j => $version) {
+            foreach ($policy->archivedversions as $version) {
                 if ($version->audience != policy_version::AUDIENCE_GUESTS
                         && static::can_user_view_policy_version($version, $userid)) {
                     $version->acceptance = isset($acceptances[$version->id]) ? $acceptances[$version->id] : 0;
