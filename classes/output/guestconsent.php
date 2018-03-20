@@ -67,6 +67,7 @@ class guestconsent implements renderable, templatable {
 
         $policies = api::list_current_versions(policy_version::AUDIENCE_GUESTS);
         $data->policies = array_values($policies);
+        $data->haspolicies = !empty($policies);
 
         return $data;
     }

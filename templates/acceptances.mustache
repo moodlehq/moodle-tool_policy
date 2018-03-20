@@ -30,7 +30,8 @@
 
     Example context (json):
 	{
-	  "policies": [
+        "hasonbehalfagreements": true,
+        "policies": [
 			{
 			  "versions": [
 					{
@@ -38,11 +39,31 @@
 					  "policyid": 1,
 					  "viewurl": "/",
 					  "name": "Terms &amp; conditions",
+					  "revision": "2.0",
+					  "hasarchived": true,
+					  "timeaccepted": "1 Mar 2018",
+					  "agreement": {
+					    "onbehalf": false,
+					    "status": false,
+					    "canaccept": true,
+					    "acceptlink": "#"
+					  }
+					},
+					{
+					  "isfirst": false,
+					  "policyid": 1,
+					  "viewurl": "/",
+					  "name": "Terms &amp; conditions",
 					  "revision": "1.0-beta",
-					  "hasonbehalfagreements": true,
-					  "acceptedby": "<a href=\"#\">John Smith</a>",
+					  "acceptedby": "<a href=\"#\">Mary Smith</a>",
 					  "note": "Based on parent's agreement via email",
-					  "hasarchived": false
+					  "hasarchived": false,
+					  "timeaccepted": "15 Feb 2018",
+					  "agreement": {
+					    "onbehalf": true,
+					    "status": true,
+					    "canaccept": false
+					  }
 					}
 			  ]
 			}
@@ -111,7 +132,7 @@
                 status = $(this).attr('data-status');
             if (status === 'hidden') {
                 $(target).show();
-                $(this).attr('data-status', 'shown')
+                $(this).attr('data-status', 'shown');
                 $(this).find('.toggleoff').show();
                 $(this).find('.toggleon').hide();
             } else {

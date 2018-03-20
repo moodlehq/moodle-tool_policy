@@ -15,6 +15,8 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
+    @template tool_policy/page_agreedocs
+
     Template for showing to the user the policy docs to agree.
 
     Classes required for JS:
@@ -30,6 +32,26 @@
     * policies - policy array
     * privacyofficer - string with the privacy officer information
     * behalfuser - If behalfid is defined and valid, full name of the behalf user with a link to his/her profile; null otherwise
+
+
+    Example context (json):
+    {
+        "myurl": "/admin/tool/policy/index.php",
+        "sesskey": "123456",
+        "behalfuser": "Sam Student",
+        "policies": [
+            {
+                "id": 1,
+                "name": "Terms &amp; conditions",
+                "policymodal": "<a href=\"#\">Terms &amp; conditions</a>",
+                "summary": "Policy <u>summary</u>",
+                "versionagreed": false,
+                "versionlangsagreed": "Agreed",
+                "versionbehalfsagreed": ""
+            }
+        ]
+    }
+
 }}
 
 {{#messages}}{{{.}}}{{/messages}}
@@ -76,18 +98,17 @@
                     <i class="icon fa fa-exclamation-circle text-danger fa-fw" title="{{# str }} required {{/ str }}" ></i>
                 </label>
             </div>
-            <small>
             <ul class="agreedoc-msg list-unstyled">
                     {{#versionlangsagreed}}
-                        <li>{{{.}}}</li>
+                        <li><small>{{{.}}}</small></li>
                     {{/versionlangsagreed}}
                     {{#versionbehalfsagreed}}
-                        <li>{{{.}}}</li>
+                        <li><small>{{{.}}}</small></li>
                     {{/versionbehalfsagreed}}
             </ul>
-            </small>
         </div>
     </div>
+</div>
 
 {{/policies}}
 
@@ -108,6 +129,6 @@
 {{#js}}
 // Initialise the JS for the modal window which displays the policy versions.
 require(['tool_policy/policyactions'], function(ActionsMod) {
-    var policyActions = new ActionsMod();
+    new ActionsMod();
 });
 {{/js}}
