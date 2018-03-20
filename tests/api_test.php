@@ -256,7 +256,6 @@ class tool_policy_api_testcase extends advanced_testcase {
      * @return array Array with all the policy versions created.
      */
     protected function create_versions($numversions = 2) {
-        $policyversions = [];
         // Prepare a policy document with some versions.
         $policy = self::add_policy([
             'name' => 'Test policy',
@@ -284,7 +283,7 @@ class tool_policy_api_testcase extends advanced_testcase {
 
         $child = $this->getDataGenerator()->create_user();
         $parent = $this->getDataGenerator()->create_user();
-        $adult = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->create_user();
         $officer = $this->getDataGenerator()->create_user();
         $manager = $this->getDataGenerator()->create_user();
 

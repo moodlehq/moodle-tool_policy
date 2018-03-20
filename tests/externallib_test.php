@@ -47,7 +47,6 @@ class tool_policy_external_testcase extends externallib_advanced_testcase {
      * Setup function- we will create some policy docs.
      */
     public function setUp() {
-        global $DB;
         $this->resetAfterTest(true);
         $this->setAdminUser();
 

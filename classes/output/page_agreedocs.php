@@ -153,7 +153,7 @@ class page_agreedocs implements renderable, templatable {
             // There are no policies to agree to. Update the policyagreed value to avoid show empty consent page.
             if (!empty($USER->id)) {
                 // Existing user.
-                $currentuser = (!empty($this->behalfuser)) ? $behalfuser : $USER;
+                $currentuser = (!empty($this->behalfuser)) ? $this->behalfuser : $USER;
                 // Check for updating when the user policyagreed is false.
                 if (!$currentuser->policyagreed) {
                     api::update_policyagreed($currentuser);
@@ -184,7 +184,6 @@ class page_agreedocs implements renderable, templatable {
     protected function redirect_to_policies($userid, $returnurl = null) {
         global $USER;
 
-        $lang = current_language();
         $acceptances = api::get_user_acceptances($userid);
         $allpolicies = $this->policies;
         if (!empty($userid)) {
@@ -259,7 +258,7 @@ class page_agreedocs implements renderable, templatable {
      * @param int $userid
      */
     protected function prepare_global_page_access($userid) {
-        global $CFG, $PAGE, $SESSION, $SITE, $USER;
+        global $PAGE, $SESSION, $SITE, $USER;
 
         // Guest users or not logged users (but the users during the signup process) are not allowed to access to this page.
         $newsignupuser = !empty($SESSION->wantsurl) && strpos($SESSION->wantsurl, 'login/signup.php') !== false;
@@ -365,7 +364,7 @@ class page_agreedocs implements renderable, templatable {
      * @return stdClass
      */
     public function export_for_template(renderer_base $output) {
-        global $CFG, $USER;
+        global $USER;
 
         $myparams = [];
         if (!empty($USER->id) && !empty($this->behalfid) && $this->behalfid != $USER->id) {
