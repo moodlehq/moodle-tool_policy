@@ -29,7 +29,7 @@ use core\event\base;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Base class for acceptance_created and acceptance_updated events
+ * Base class for acceptance_created and acceptance_updated events.
  *
  * @package     tool_policy
  * @copyright   2018 Marina Glancy
@@ -67,7 +67,7 @@ abstract class acceptance_base extends base {
     }
 
     /**
-     * Get URL related to the action
+     * Get URL related to the action.
      *
      * @return \moodle_url
      */
