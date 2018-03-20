@@ -15,6 +15,8 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
+    @template tool_policy/page_managedocs_list
+
     Template for the policy documents management page.
 
     Classes required for JS:
@@ -26,12 +28,44 @@
     Context variables required for this template:
     * haspolicies
     * policies
+
+    Example context (json):
+    {
+        "title": "Manage policies",
+        "backurl": "/",
+        "pluginbaseurl": "/admin/tool/policy/",
+        "canviewacceptances": true,
+        "canmanage": true,
+        "versions": [
+            {
+                "id": 1,
+                "name": "Terms &amp; conditions",
+                "typetext": "Site policy",
+                "audiencetext": "All users",
+                "statustext": "Active",
+                "revision": "1.0",
+                "timemodified": 1521531208,
+                "acceptancescounturl": "#",
+                "acceptancescounttext": "10 out of 1000 (1%)"
+            },
+            {
+                "indented": true,
+                "name": "Terms &amp; conditions",
+                "typetext": "Site policy",
+                "audiencetext": "All users",
+                "statustext": "Draft",
+                "revision": "2.0",
+                "timemodified": 1521531208,
+                "acceptancescounttext": "N/A"
+            }
+        ]
+    }
 }}
 <h2>{{{title}}}</h2>
 {{#backurl}}
     <div>
         <div class="btn-group">
-            <a href="{{backurl}}" type="button" class="btn btn-secondary">{{#str}} back {{/str}}</a>
+            <a href="{{backurl}}" class="btn btn-secondary">{{#str}} back {{/str}}</a>
         </div>
     </div>
 {{/backurl}}

@@ -15,6 +15,8 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
+    @template tool_policy/page_nopermission
+
     Template for showing to the user the policy docs to agree.
 
     Classes required for JS:
@@ -32,6 +34,19 @@
     * supportemail - email of the support contact; displayed when the user does not have permission to accept policy documents
     * behalfuser - If behalfid is defined and valid, full name of the behalf user with a link to his/her profile; null otherwise
     * policies - Array with all the links to current policies (for showing them if needed).
+
+    Example context (json):
+    {
+        "haspermissionagreedocs": false,
+        "messagetitle": "You don't have permission",
+        "messagedesc": "Sorry you don't have permission to accept",
+        "policies": [
+            "Policy 1",
+            "Policy 2"
+        ],
+        "supportname": "Admin",
+        "supportemail": "admin@yoursite.com"
+    }
 }}
 
 {{^haspermissionagreedocs}}
@@ -58,6 +73,6 @@
 {{#js}}
 // Initialise the JS for the modal window which displays the policy versions.
 require(['tool_policy/policyactions'], function(ActionsMod) {
-    var policyActions = new ActionsMod();
+    new ActionsMod();
 });
 {{/js}}

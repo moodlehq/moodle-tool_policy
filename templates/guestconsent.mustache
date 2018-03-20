@@ -35,6 +35,7 @@
     {
         "pluginbaseurl": "https://example.com",
         "returnurl": "/",
+        "haspolicies": true,
         "policies": [
             {
                 "id": 1,
@@ -50,14 +51,14 @@ require(['jquery', 'tool_policy/jquery-eu-cookie-law-popup', 'tool_policy/policy
         // Initialise the guest popup.
         $(document).ready(function() {
             // Only show message if there is some policy related to guests.
-            {{#policies.0}}
+            {{#haspolicies}}
                 // Get localised messages.
                 var textmessage = "{{# str }} guestconsentmessage, tool_policy {{/ str }}" +
                    "<ul>{{#policies}}" +
                    "<li>" +
-                   "<a href=\"{{pluginbaseurl}}/view.php?policyid={{id}}{{#returnurl}}&amp;returnurl={{.}}{{/returnurl}}\" "+
+                   "<a href=\"{{pluginbaseurl}}/view.php?policyid={{id}}{{#returnurl}}&amp;returnurl={{.}}{{/returnurl}}\" " +
                    "   data-action=\"view\" data-versionid=\"{{id}}\" data-behalfid=\"1\" >" +
-                   "{{name}}" +
+                   "{{{name}}}" +
                    "</a>" +
                    "</li>" +
                    "{{/policies}}" +
@@ -68,18 +69,18 @@ require(['jquery', 'tool_policy/jquery-eu-cookie-law-popup', 'tool_policy/policy
                 $(document.body).addClass('eupopup');
                 if ($(".eupopup").length > 0) {
                     $(document).euCookieLawPopup().init({
-                        popupPosition : 'bottom',
-                        popupTitle : '',
-                        popupText : textmessage,
-                        buttonContinueTitle : continuemessage,
-                        buttonLearnmoreTitle : '',
-                        compactStyle : true,
+                        popupPosition: 'bottom',
+                        popupTitle: '',
+                        popupText: textmessage,
+                        buttonContinueTitle: continuemessage,
+                        buttonLearnmoreTitle: '',
+                        compactStyle: true,
                     });
                 }
-            {{/policies.0}}
+            {{/haspolicies}}
 
             // Initialise the JS for the modal window which displays the policy versions.
-            var policyActions = new ActionsMod();
+            new ActionsMod();
         });
 });
 
