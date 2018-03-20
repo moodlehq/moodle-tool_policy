@@ -882,13 +882,13 @@ class api {
             return;
         }
         // Get all active policies.
-        $currentpolicyversions = static::list_current_versions(policy_version::AUDIENCE_LOGGEDIN);
+        $currentpolicyversions = static::get_current_versions_ids(policy_version::AUDIENCE_LOGGEDIN);
         // Save active policies as accepted by the user.
         if (!empty($currentpolicyversions)) {
             $acceptances = array();
             foreach ($currentpolicyversions as $policy) {
                 $acceptances[] = array(
-                    'policyversionid' => $policy->id,
+                    'policyversionid' => $policy,
                     'userid' => $userid,
                     'status' => 1,
                     'lang' => $lang,
