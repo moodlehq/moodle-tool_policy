@@ -53,6 +53,9 @@ class page_agreedocs implements renderable, templatable {
     /** @var array $agreedocs List of policy identifiers which the user has agreed using the form. */
     protected $agreedocs = null;
 
+    /** @var string $action Form action to identify when user agreeds policies. */
+    protected $action = null;
+
     /** @var int User id who wants to accept this page. */
     protected $behalfid = null;
 
@@ -70,8 +73,9 @@ class page_agreedocs implements renderable, templatable {
      *
      * @param array $agreedocs Array with the policy identifiers which the user has agreed using the form.
      * @param int $behalfid The userid to accept the policy versions as (such as child's id).
+     * @param string $action Form action to identify when user agreeds policies.
      */
-    public function __construct($agreedocs = null, $behalfid = 0) {
+    public function __construct($agreedocs = null, $behalfid = 0, $action = null) {
         global $USER;
 
         $this->agreedocs = $agreedocs;
@@ -80,6 +84,7 @@ class page_agreedocs implements renderable, templatable {
         }
 
         $this->behalfid = $behalfid;
+        $this->action = $action;
 
         if (!empty($this->behalfid) && $USER->id != $this->behalfid) {
             $this->behalfuser = core_user::get_user($this->behalfid, '*');
@@ -108,9 +113,10 @@ class page_agreedocs implements renderable, templatable {
     protected function accept_and_revoke_policies() {
         global $USER;
 
-        if (!empty($this->agreedocs) && confirm_sesskey()) {
-            if (!empty($USER->id)) {
-                // Existing user.
+        if (!empty($USER->id)) {
+            // Existing user.
+            if (!empty($this->action) && confirm_sesskey()) {
+                // The form has been sent. Update policies acceptances according to $this->agreedocs.
                 $lang = current_language();
                 // Accept / revoke policies.
                 $acceptversionids = array();
@@ -138,39 +144,45 @@ class page_agreedocs implements renderable, templatable {
                     ];
                 }
                 $this->messages[] = $message;
-            } else {
-                // New user.
-                // If the user has accepted all the policies, add this to the SESSION to let continue with the signup process.
-                $currentpolicyversionids = [];
-                foreach ($this->policies as $policy) {
-                    $currentpolicyversionids[] = $policy->id;
-                }
-                $this->signupuserpolicyagreed = empty(array_diff($currentpolicyversionids, $this->agreedocs));
-                \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed',
-                    $this->agreedocs);
-            }
-        } else if (empty($this->policies)) {
-            // There are no policies to agree to. Update the policyagreed value to avoid show empty consent page.
-            if (!empty($USER->id)) {
-                // Existing user.
+            } else if (empty($this->policies)) {
+                // There are no policies to agree to. Update the policyagreed value to avoid display empty consent page.
                 $currentuser = (!empty($this->behalfuser)) ? $this->behalfuser : $USER;
                 // Check for updating when the user policyagreed is false.
                 if (!$currentuser->policyagreed) {
                     api::update_policyagreed($currentuser);
                 }
-            } else {
-                // New user.
+            } else if (empty($USER->policyagreed)) {
+                // Inform users they must agree to all policies before continuing.
+                $message = (object) [
+                    'type' => 'error',
+                    'text' => get_string('mustagreetocontinue', 'tool_policy')
+                ];
+                $this->messages[] = $message;
+            }
+        } else {
+            // New user.
+            if (!empty($this->action) && confirm_sesskey()) {
+                // The form has been sent.
+                $currentpolicyversionids = [];
+                foreach ($this->policies as $policy) {
+                    $currentpolicyversionids[] = $policy->id;
+                }
+                // If the user has accepted all the policies, add it to the session to let continue with the signup process.
+                $this->signupuserpolicyagreed = empty(array_diff($currentpolicyversionids, $this->agreedocs));
+                \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed',
+                    $this->agreedocs);
+            } else if (empty($this->policies)) {
+                // There are no policies to agree to. Update the policyagreed value to avoid show empty consent page.
                 \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed', []);
             }
-        }
-
-        // During the signup process, inform users that they must agree to all policies before accessing the signup form.
-        if (!empty($this->policies) && empty($USER->id) && !$this->signupuserpolicyagreed) {
-            $message = (object) [
-                'type' => 'error',
-                'text' => get_string('mustagreetocontinue', 'tool_policy')
-            ];
-            $this->messages[] = $message;
+            if (!empty($this->policies) && !$this->signupuserpolicyagreed) {
+                // During the signup process, inform users they must agree to all policies before continuing.
+                $message = (object) [
+                    'type' => 'error',
+                    'text' => get_string('mustagreetocontinue', 'tool_policy')
+                ];
+                $this->messages[] = $message;
+            }
         }
     }
 

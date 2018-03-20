@@ -35,6 +35,7 @@ define('NO_SITEPOLICY_CHECK', true);
 // @codingStandardsIgnoreLine See the {@link page_agreedocs} for the access control checks.
 require(__DIR__.'/../../../config.php');
 
+$action = optional_param('action', null, PARAM_ALPHA);
 $agreedocs = optional_param_array('agreedoc', null, PARAM_INT);
 $behalfid = optional_param('userid', null, PARAM_INT);
 
@@ -59,7 +60,7 @@ if (!empty($USER->id)) {
 if (!$haspermissionagreedocs) {
     $outputpage = new \tool_policy\output\page_nopermission($behalfid);
 } else {
-    $outputpage = new \tool_policy\output\page_agreedocs($agreedocs, $behalfid);
+    $outputpage = new \tool_policy\output\page_agreedocs($agreedocs, $behalfid, $action);
 }
 
 $output = $PAGE->get_renderer('tool_policy');
