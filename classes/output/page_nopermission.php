@@ -92,7 +92,7 @@ class page_nopermission implements renderable, templatable {
 
         if (empty($this->policies) && !empty($USER->id)) {
             // Existing user without policies to agree to.
-            $currentuser = (!empty($this->behalfuser)) ? $behalfuser : $USER;
+            $currentuser = (!empty($this->behalfuser)) ? $this->behalfuser : $USER;
             if (!$currentuser->policyagreed) {
                 // If there are no policies to agreed, change $user->policyagreed to true.
                 api::update_policyagreed($currentuser);
@@ -106,7 +106,7 @@ class page_nopermission implements renderable, templatable {
      * Sets up the global $PAGE and performs the access checks.
      */
     protected function prepare_global_page_access() {
-        global $CFG, $PAGE, $SITE, $USER;
+        global $PAGE, $SITE, $USER;
 
         $myurl = new moodle_url('/admin/tool/policy/index.php', [
             'behalfid' => $this->behalfid,
@@ -131,7 +131,7 @@ class page_nopermission implements renderable, templatable {
      * @return stdClass
      */
     public function export_for_template(renderer_base $output) {
-        global $CFG, $PAGE;
+        global $CFG;
 
         $data = (object) [
             'pluginbaseurl' => (new moodle_url('/admin/tool/policy'))->out(false),

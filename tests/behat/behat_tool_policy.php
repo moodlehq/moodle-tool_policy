@@ -70,7 +70,6 @@ class behat_tool_policy extends behat_base {
                 'archived' => 0,
                 'type' => 0
             ];
-            $policyidentifier = null;
             $elementdata = array_change_key_case($elementdata, CASE_LOWER);
             foreach ($elementdata as $key => $value) {
                 if ($key === 'policy') {
