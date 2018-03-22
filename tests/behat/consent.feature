@@ -393,6 +393,61 @@ Feature: User must accept policy managed by this plugin when logging in and sign
     When I open my profile in edit mode
     Then the field "First name" matches value "User"
 
+  Scenario: Accept policy on login, accept new policy version
+    Given the following config values are set as admin:
+      | registerauth    | email |
+      | passwordpolicy  | 0     |
+      | sitepolicyhandler | tool_policy |
+    And the following policies exist:
+      | Name                | Type | Revision | Content    | Summary     | Status   | Audience |
+      | This site policy    | 0    |          | full text2 | short text2 | active   | all      |
+    And the following "users" exist:
+      | username | firstname | lastname | email            |
+      | user1    | User      | 1        | user1@example.com    |
+    And I log in as "user1"
+    And I should see "This site policy"
+    And I press "Next"
+    And I should see "Please agree to the following policies"
+    And I should see "This site policy"
+    # User accepts policy.
+    When I set the field "I agree to the This site policy" to "1"
+    And I press "Next"
+    Then I should not see "Please agree to the following policies"
+    # Confirm that user can login and browse the site (edit their profile).
+    When I open my profile in edit mode
+    Then the field "First name" matches value "User"
+    And I log out
+    # Create new version of the policy document.
+    And I log in as "admin"
+    And I navigate to "Manage policies" node in "Site administration > Privacy and policies"
+    When I follow "Actions"
+    Then I should see "View"
+    And I should see "Edit"
+    And I should see "Set status to \"Inactive\""
+    When I follow "Edit"
+    Then I should see "Editing policy"
+    And I set the field "Name" to "This site policy new version"
+    And I set the field "Summary" to "short text2 new version"
+    And I set the field "Full policy" to "full text2 new version"
+    And I press "Save"
+    And I log out
+    # Confirm that the user has to agree to the new version of the policy.
+    When I log in as "user1"
+    Then I should see "This site policy new version"
+    And I should see "short text2 new version"
+    And I should see "full text2 new version"
+    When I press "Next"
+    Then I should see "Please agree to the following policies"
+    And I should see "This site policy new version"
+    And I should see "short text2 new version"
+    # User accepts policy.
+    And I set the field "I agree to the This site policy new version" to "1"
+    When I press "Next"
+    Then I should not see "Please agree to the following policies"
+    # Confirm that user can login and browse the site (edit their profile).
+    When I open my profile in edit mode
+    Then the field "First name" matches value "User"
+
   @javascript
   Scenario: Accept policy on login as guest
     Given the following config values are set as admin:
@@ -426,3 +481,73 @@ Feature: User must accept policy managed by this plugin when logging in and sign
     # Confirm when agreeing to policies the pop-up is no longer displayed.
     When I follow "Continue"
     Then I should not see "If you continue browsing this website, you agree to our policies"
+
+  Scenario: Accept policy on sign up, after completing sign up attempt to create another account
+    Given the following config values are set as admin:
+      | registerauth    | email |
+      | passwordpolicy  | 0     |
+      | sitepolicyhandler | tool_policy |
+    Given the following policies exist:
+      | Name                | Type | Revision | Content    | Summary     | Status   | Audience |
+      | This site policy    | 0    |          | full text2 | short text2 | active   | all      |
+      | This privacy policy | 1    |          | full text3 | short text3 | active   | loggedin |
+      | This guests policy  | 0    |          | full text4 | short text4 | active   | guest    |
+    And I am on site homepage
+    And I follow "Log in"
+    When I press "Create new account"
+    Then I should see "This site policy"
+    And I should see "short text2"
+    And I should see "full text2"
+    When I press "Next"
+    Then I should see "This privacy policy"
+    And I should see "short text3"
+    And I should see "full text3"
+    When I press "Next"
+    Then I should see "Please agree to the following policies"
+    And I should see "This site policy"
+    And I should see "short text2"
+    And I should see "This privacy policy"
+    And I should see "short text3"
+    And I should not see "This guests policy"
+    And I should not see "short text4"
+    And I set the field "I agree to the This site policy" to "1"
+    And I set the field "I agree to the This privacy policy" to "1"
+    When I press "Next"
+    Then I should not see "I understand and agree"
+    And I should see "New account"
+    And I set the following fields to these values:
+      | Username      | user1                 |
+      | Password      | user1                 |
+      | Email address | user1@address.invalid |
+      | Email (again) | user1@address.invalid |
+      | First name    | User1                 |
+      | Surname       | L1                    |
+    When I press "Create my new account"
+    Then I should see "Confirm your account"
+    And I should see "An email should have been sent to your address at user1@address.invalid"
+    And I follow "Log in"
+    When I press "Create new account"
+    # Confirm that the user can view and accept policies when attempting to create another account.
+    Then I should see "This site policy"
+    And I should see "short text2"
+    And I should see "full text2"
+    When I press "Next"
+    Then I should see "This privacy policy"
+    And I should see "short text3"
+    And I should see "full text3"
+    When I press "Next"
+    Then I should see "Please agree to the following policies"
+    And I should see "This site policy"
+    And I should see "short text2"
+    And I should not see "full text2"
+    And I should see "This privacy policy"
+    And I should see "short text3"
+    And I should not see "full text3"
+    And I should not see "This guests policy"
+    And I should not see "short text4"
+    And I should not see "full text4"
+    And I set the field "I agree to the This site policy" to "1"
+    And I set the field "I agree to the This privacy policy" to "1"
+    When I press "Next"
+    Then I should not see "I understand and agree"
+    And I should see "New account"
