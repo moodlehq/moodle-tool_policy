@@ -879,6 +879,11 @@ class api {
         if (!$user->policyagreed) {
             return;
         }
+        // Remove the presignup cache after the user account is created.
+        $cache = \cache::make('core', 'presignup');
+        $cache->delete('tool_policy_userpolicyagreed');
+        $cache->delete('tool_policy_viewedpolicies');
+
         // Get all active policies.
         $currentpolicyversions = static::get_current_versions_ids(policy_version::AUDIENCE_LOGGEDIN);
         // Save active policies as accepted by the user.
