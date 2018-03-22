@@ -75,11 +75,11 @@ class acceptances_table extends \table_sql {
         $versions = $acceptancesfilter->get_versions();
         if (count($versions) > 1) {
             foreach ($versions as $version) {
-                $this->versionids[$version->id] = format_string($version->name);
+                $this->versionids[$version->id] = $version->name;
             }
         } else {
             $version = reset($versions);
-            $this->versionids[$version->id] = format_string($version->name);
+            $this->versionids[$version->id] = $version->name;
             if ($version->status != policy_version::STATUS_ACTIVE) {
                 // TODO think about this.
                 $this->versionids[$version->id] .= '<br>' . format_string($version->revision);
@@ -464,7 +464,9 @@ class acceptances_table extends \table_sql {
             return empty($status) ? get_string('no') : get_string('yes');
         }
         $onbehalf = $status && ($row->{'usermodified' . $versionid} != $row->id);
-        return $this->output->render(new user_agreement($row->id, $status, $this->get_return_url(), $versionid, $onbehalf));
+        $versions = $this->acceptancesfilter->get_versions();
+        return $this->output->render(new user_agreement($row->id, $status, $this->get_return_url(),
+            $versionid ? $versions[$versionid] : null, $onbehalf));
     }
 
     /**
@@ -527,7 +529,7 @@ class acceptances_table extends \table_sql {
         if ($this->is_downloading()) {
             return $str;
         } else {
-            $s = $this->output->render(new user_agreement($row->id, $cnt == $totalcnt, $this->get_return_url(), 0, $onbehalf));
+            $s = $this->output->render(new user_agreement($row->id, $cnt == $totalcnt, $this->get_return_url(), null, $onbehalf));
             $str = \html_writer::link(new \moodle_url('/admin/tool/policy/user.php', ['userid' => $row->id]), $str);
             return $s . "<br>" . $str;
         }
