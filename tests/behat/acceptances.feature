@@ -19,6 +19,13 @@ Feature: Viewing acceptances reports and accepting on behalf of other users
     And the following "role assigns" exist:
       | user    | role           | contextlevel | reference |
       | manager | manager        | System       |           |
+    And the following "courses" exist:
+      | fullname | shortname |
+      | Course1  | C1        |
+    And the following "course enrolments" exist:
+      | user     | course | role    |
+      | user1    | C1     | student |
+      | user2    | C1     | student |
 
   Scenario: View acceptances made by users on their own, single policy
     When I log in as "user1"
@@ -130,3 +137,35 @@ Feature: Viewing acceptances reports and accepting on behalf of other users
     And "Max Manager" "link" should exist in the "This site policy" "table_row"
     And "Consent received from a parent" "text" should exist in the "This site policy" "table_row"
     And "Not agreed" "icon" should exist in the "This privacy policy" "table_row"
+
+  Scenario: Policies and agreements profile link visible for current user
+    Given I log in as "user1"
+    And I press "Next"
+    And I set the field "I agree to the This site policy" to "1"
+    And I press "Next"
+    When I follow "Profile" in the user menu
+    # User can see his own agreements link in the profile.
+    Then I should see "Policies and agreements"
+    And I follow "Policies and agreements"
+    And "Agreed" "icon" should exist in the "This site policy" "table_row"
+    # User can't see agreements link in other user profiles.
+    And I am on "Course1" course homepage
+    When I navigate to course participants
+    And I follow "User Two"
+    And I should not see "Policies and agreements"
+
+  Scenario: Policies and agreements profile link visible also for users who can access on behaf of others
+    Given I log in as "admin"
+    And I set the following system permissions of "Manager" role:
+      | capability | permission |
+      | tool/policy:acceptbehalf | Allow |
+    And I log out
+    And I log in as "manager"
+    And I press "Next"
+    And I set the field "I agree to the This site policy" to "1"
+    And I press "Next"
+    # User can see agreements link in other user profiles because has the capability for accepting on behalf of them.
+    When I am on "Course1" course homepage
+    When I navigate to course participants
+    And I follow "User Two"
+    And I should see "Policies and agreements"
