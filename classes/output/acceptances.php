@@ -78,8 +78,8 @@ class acceptances implements renderable, templatable {
                 unset($version->summary);
                 unset($version->content);
                 $version->iscurrent = ($version->status == policy_version::STATUS_ACTIVE);
-                $version->name = format_string($version->name);
-                $version->revision = format_string($version->revision);
+                $version->name = $version->name;
+                $version->revision = $version->revision;
                 $returnurl = new moodle_url('/admin/tool/policy/user.php', ['userid' => $this->userid]);
                 $version->viewurl = (new moodle_url('/admin/tool/policy/view.php', [
                     'policyid' => $policy->id,
@@ -91,7 +91,7 @@ class acceptances implements renderable, templatable {
                     $acceptance = $version->acceptance;
                     $version->timeaccepted = userdate($acceptance->timemodified, get_string('strftimedatetime'));
                     $onbehalf = $acceptance->usermodified && $acceptance->usermodified != $this->userid;
-                    $version->agreement = new user_agreement($this->userid, 1, $returnurl, $version->id, $onbehalf);
+                    $version->agreement = new user_agreement($this->userid, 1, $returnurl, $version, $onbehalf);
                     if ($onbehalf) {
                         $usermodified = (object)['id' => $acceptance->usermodified];
                         username_load_fields_from_object($usermodified, $acceptance, 'mod');
@@ -102,7 +102,7 @@ class acceptances implements renderable, templatable {
                     }
                     $version->note = format_text($acceptance->note);
                 } else if ($version->iscurrent) {
-                    $version->agreement = new user_agreement($this->userid, 0, $returnurl, $version->id);
+                    $version->agreement = new user_agreement($this->userid, 0, $returnurl, $version);
                 }
                 if (isset($version->agreement)) {
                     $version->agreement = $version->agreement->export_for_template($output);

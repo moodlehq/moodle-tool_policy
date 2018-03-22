@@ -250,7 +250,7 @@ class acceptances_filter implements \templatable, \renderable {
     /**
      * List of policies that match current filters
      *
-     * @return array|null|\stdClass
+     * @return array of versions to display indexed by versionid
      */
     public function get_versions() {
         if ($this->versions === null) {
@@ -263,11 +263,11 @@ class acceptances_filter implements \templatable, \renderable {
                 }
                 if ($versionid) {
                     if (array_key_exists($versionid, $policy->versions)) {
-                        $this->versions[] = $policy->versions[$versionid];
+                        $this->versions[$versionid] = $policy->versions[$versionid];
                         break; // No need to keep searching.
                     }
                 } else if ($policy->currentversion) {
-                    $this->versions[] = $policy->currentversion;
+                    $this->versions[$policy->currentversion->id] = $policy->currentversion;
                 }
             }
         }
