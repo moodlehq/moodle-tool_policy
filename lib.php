@@ -59,11 +59,14 @@ function tool_policy_myprofile_navigation(tree $tree, $user, $iscurrentuser, $co
         $category = $tree->__get('categories')['privacyandpolicies'];
     }
 
-    // Add Policies and agreements node.
-    $url = new moodle_url('/admin/tool/policy/user.php', ['userid' => $user->id]);
-    $node = new core_user\output\myprofile\node('privacyandpolicies', 'tool_policy',
-        get_string('policiesagreements', 'tool_policy'), null, $url);
-    $category->add_node($node);
+    // Add "Policies and agreements" node only for current user or users who can accept on behalf of current user.
+    $usercontext = \context_user::instance($user->id);
+    if ($iscurrentuser || has_capability('tool/policy:acceptbehalf', $usercontext)) {
+        $url = new moodle_url('/admin/tool/policy/user.php', ['userid' => $user->id]);
+        $node = new core_user\output\myprofile\node('privacyandpolicies', 'tool_policy',
+            get_string('policiesagreements', 'tool_policy'), null, $url);
+        $category->add_node($node);
+    }
 
     return true;
 }
