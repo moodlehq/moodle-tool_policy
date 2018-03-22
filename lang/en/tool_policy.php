@@ -135,5 +135,7 @@ $string['usersaccepted'] = 'Agreements';
 $string['viewarchived'] = 'View previous versions';
 $string['viewconsentpageforuser'] = 'Viewing this page on behalf of {$a}';
 $string['agreedno'] = 'Not agreed';
+$string['agreednowithlink'] = 'Not agreed, click to agree to "{$a}"';
+$string['agreednowithlinkall'] = 'Not agreed, click to agree to all policies';
 $string['agreedyes'] = 'Agreed';
 $string['agreedyesonbehalf'] = 'Agreed on behalf of';

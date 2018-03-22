@@ -50,14 +50,15 @@ class user_agreement implements \templatable, \renderable {
      * @param int $userid
      * @param bool $status
      * @param moodle_url $pageurl
-     * @param int $versionid
+     * @param \stdClass|null $version object with fields 'id' and 'name' or null if this is an "overall" status
      * @param bool $onbehalf whether accepted on behalf of the user
      */
-    public function __construct($userid, $status, moodle_url $pageurl, $versionid, $onbehalf = false) {
+    public function __construct($userid, $status, moodle_url $pageurl, $version, $onbehalf = false) {
         $this->data = [
             'userid' => $userid,
             'status' => (int)(bool)$status,
-            'versionid' => $versionid,
+            'versionid' => $version ? $version->id : 0,
+            'versionname' => $version ? $version->name : 0,
             'onbehalf' => $onbehalf,
             'pageurl' => $pageurl
         ];
@@ -73,6 +74,7 @@ class user_agreement implements \templatable, \renderable {
         $data = [
             'status' => $this->data['status'],
             'onbehalf' => $this->data['onbehalf'],
+            'versionname' => $this->data['versionname'],
         ];
         if ($this->data['versionid'] && !$this->data['status'] &&
                 has_capability('tool/policy:acceptbehalf', \context_user::instance($this->data['userid']))) {

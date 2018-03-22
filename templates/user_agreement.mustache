@@ -36,7 +36,8 @@
         "status": false,
         "onbehalf": false,
         "canaccept": true,
-        "acceptlink": "/"
+        "acceptlink": "/",
+        "versionname": ""
     }
 }}
 {{#status}}
@@ -50,7 +51,12 @@
 {{/status}}
 {{^status}}
     {{#canaccept}}
-        <a href="{{acceptlink}}">{{#pix}}agreedno, tool_policy, {{#str}} agreedno, tool_policy {{/str}}{{/pix}}</a>
+        {{#versionname}}
+            <a href="{{acceptlink}}">{{#pix}}agreedno, tool_policy, {{#str}} agreednowithlink, tool_policy, {{{versionname}}} {{/str}}{{/pix}}</a>
+        {{/versionname}}
+        {{^versionname}}
+            <a href="{{acceptlink}}">{{#pix}}agreedno, tool_policy, {{#str}} agreednowithlinkall, tool_policy {{/str}}{{/pix}}</a>
+        {{/versionname}}
     {{/canaccept}}
     {{^canaccept}}
         <span>{{#pix}}agreedno, tool_policy, {{#str}} agreedno, tool_policy {{/str}}{{/pix}}</span>
