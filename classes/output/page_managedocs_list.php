@@ -233,6 +233,14 @@ class page_managedocs_list implements renderable, templatable {
                 false
             ));
         }
+        if ($status == policy_version::STATUS_ARCHIVED) {
+            $actionmenu->add(new action_menu_link(
+                new moodle_url($editbaseurl, ['todraft' => $version->id]),
+                null,
+                get_string('settodraft', 'tool_policy'),
+                false
+            ));
+        }
         if (!$this->policyid && !$isindented && $policy->archivedversions &&
                 ($status != policy_version::STATUS_ARCHIVED || count($policy->archivedversions) > 1)) {
             $actionmenu->add(new action_menu_link(

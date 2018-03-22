@@ -513,6 +513,24 @@ class api {
     }
 
     /**
+     * Create a new draft policy document from an archived version.
+     *
+     * @param int $versionid
+     * @return \tool_policy\policy_version persistent
+     */
+    public static function revert_to_draft($versionid) {
+        $policyversion = new policy_version($versionid);
+        if (!$policyversion->get('id') || !$policyversion->get('archived')) {
+            throw new coding_exception('Version not found or is not archived');
+        }
+
+        $formdata = static::form_policydoc_data($policyversion);
+        // Unarchived the new version.
+        $formdata->archived = 0;
+        return static::form_policydoc_update_new($formdata);
+    }
+
+    /**
      * Delete the given version (if it is a draft). Also delete policy if this is the only version.
      *
      * @param int $versionid
