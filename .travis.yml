@@ -1,6 +1,10 @@
 language: php
 
-sudo: false
+# Workaround for fixing that Selenium server is not running and therefore javascript Behat tests are not working:
+# https://github.com/moodlerooms/moodle-plugin-ci/issues/70
+sudo: required
+# ORIGINAL:
+# sudo: false
 
 addons:
   firefox: "47.0.1"
