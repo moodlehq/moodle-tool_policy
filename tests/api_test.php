@@ -122,6 +122,23 @@ class tool_policy_api_testcase extends advanced_testcase {
         // Inactivate the policy.
         api::inactivate($new->get('policyid'));
         $this->assertEmpty(api::list_current_versions());
+        $archived = api::get_policy_version($new->get('id'));
+        $this->assertEquals(policy_version::STATUS_ARCHIVED, $archived->status);
+
+        // Create a new draft from an archived version.
+        $draft = api::revert_to_draft($archived->id);
+        $draft = api::get_policy_version($draft->get('id'));
+        $archived = api::get_policy_version($archived->id);
+        $this->assertEmpty(api::list_current_versions());
+        $this->assertNotEquals($draft->id, $archived->id);
+        $this->assertEquals(policy_version::STATUS_DRAFT, $draft->status);
+        $this->assertEquals(policy_version::STATUS_ARCHIVED, $archived->status);
+
+        // An active policy can't be set to draft.
+        api::make_current($draft->id);
+        $this->expectException('coding_exception');
+        $this->expectExceptionMessage('Version not found or is not archived');
+        api::revert_to_draft($draft->id);
     }
 
     /**
@@ -450,6 +467,10 @@ class tool_policy_api_testcase extends advanced_testcase {
 
         // Do not touch the flag if inactivating a policy.
         api::inactivate($policy1v2->policyid);
+        $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
+
+        // Do not touch the flag if setting to draft a policy.
+        api::revert_to_draft($policy1v2->id);
         $this->assertEquals(1, $DB->get_field('user', 'policyagreed', ['id' => $user1->id]));
     }
 
