@@ -170,10 +170,10 @@ class page_agreedocs implements renderable, templatable {
                 // If the user has accepted all the policies, add it to the session to let continue with the signup process.
                 $this->signupuserpolicyagreed = empty(array_diff($currentpolicyversionids, $this->agreedocs));
                 \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed',
-                    $this->agreedocs);
+                    $this->signupuserpolicyagreed);
             } else if (empty($this->policies)) {
                 // There are no policies to agree to. Update the policyagreed value to avoid show empty consent page.
-                \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed', []);
+                \cache::make('core', 'presignup')->set('tool_policy_userpolicyagreed', 1);
             }
             if (!empty($this->policies) && !$this->signupuserpolicyagreed) {
                 // During the signup process, inform users they must agree to all policies before continuing.
