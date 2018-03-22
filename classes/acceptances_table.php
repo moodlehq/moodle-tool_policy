@@ -93,7 +93,7 @@ class acceptances_table extends \table_sql {
             "{user} u",
             'u.id <> :siteguestid AND u.deleted = 0',
             ['siteguestid' => $CFG->siteguest]);
-        $this->add_column_header('fullname', '');
+        $this->add_column_header('fullname', get_string('fullnameuser', 'core'));
         foreach ($extrafields as $field) {
             $this->add_column_header($field, get_user_field_name($field));
         }
