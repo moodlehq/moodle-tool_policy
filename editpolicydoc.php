@@ -32,6 +32,7 @@ $policyid = optional_param('policyid', null, PARAM_INT);
 $versionid = optional_param('versionid', null, PARAM_INT);
 $makecurrent = optional_param('makecurrent', null, PARAM_INT);
 $inactivate = optional_param('inactivate', null, PARAM_INT);
+$todraft = optional_param('todraft', null, PARAM_INT);
 $delete = optional_param('delete', null, PARAM_INT);
 $confirm = optional_param('confirm', false, PARAM_BOOL);
 $moveup = optional_param('moveup', null, PARAM_INT);
@@ -88,6 +89,29 @@ if ($inactivate) {
             'revision' => format_string($policies[0]->currentversion->revision),
         ]),
         new moodle_url($PAGE->url, ['inactivate' => $inactivate, 'confirm' => 1]),
+        new moodle_url('/admin/tool/policy/managedocs.php')
+    );
+    echo $output->footer();
+    die();
+}
+
+if ($todraft) {
+    $version = api::get_policy_version($todraft);
+
+    if ($confirm) {
+        require_sesskey();
+        api::revert_to_draft($todraft);
+        redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
+    }
+
+    echo $output->header();
+    echo $output->heading(get_string('settingtodraft', 'tool_policy'));
+    echo $output->confirm(
+        get_string('settingtodraftconfirm', 'tool_policy', [
+            'name' => format_string($version->name),
+            'revision' => format_string($version->revision),
+        ]),
+        new moodle_url($PAGE->url, ['todraft' => $todraft, 'confirm' => 1]),
         new moodle_url('/admin/tool/policy/managedocs.php')
     );
     echo $output->footer();
