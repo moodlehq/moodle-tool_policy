@@ -50,21 +50,26 @@ if ($hassiteconfig || has_any_capability($managecaps, context_system::instance()
         ['tool/policy:viewacceptances']
     ));
 
-    if ($ADMIN->fulltree && has_capability('tool/policy:manageprivacy', context_system::instance())) {
-        // TODO: Decide whether to maintain or not this field for displaying information about the officer in the consent page.
+    if (has_capability('tool/policy:manageprivacy', context_system::instance())) {
         $temp = $ADMIN->locate('privacysettings');
-        if (!$temp || !$temp->check_access()) {
+        if (!$temp) {
             // If 'privacysettings' category does not exist, create a new category just for "privacy officer" setting.
+            // For compatibility with core before MDL-61706 .
             $temp = new admin_settingpage('tool_policy_privacy', new lang_string('privacyofficer', 'tool_policy'),
                 ['tool/policy:manageprivacy']);
             $ADMIN->add('privacy', $temp);
+        } else if (!$temp->check_access()) {
+            $temp->req_capability[] = 'tool/policy:manageprivacy';
         }
-        $temp->add(new admin_setting_configtextarea(
-            'tool_policy/privacyofficer',
-            new lang_string('privacyofficer', 'tool_policy'),
-            new lang_string('privacyofficer_desc', 'tool_policy'),
-            '',
-            PARAM_RAW
-        ));
+        if ($ADMIN->fulltree) {
+            // TODO: Decide whether to maintain or not this field for displaying information about the officer in the consent page.
+            $temp->add(new admin_setting_configtextarea(
+                'tool_policy/privacyofficer',
+                new lang_string('privacyofficer', 'tool_policy'),
+                new lang_string('privacyofficer_desc', 'tool_policy'),
+                '',
+                PARAM_RAW
+            ));
+        }
     }
 }
