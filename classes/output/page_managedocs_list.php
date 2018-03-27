@@ -213,7 +213,8 @@ class page_managedocs_list implements renderable, templatable {
                 new moodle_url($editbaseurl, ['inactivate' => $policy->id]),
                 null,
                 get_string('inactivate', 'tool_policy'),
-                false
+                false,
+                ['data-action' => 'inactivate']
             ));
         }
         if ($status == policy_version::STATUS_DRAFT) {
@@ -221,7 +222,8 @@ class page_managedocs_list implements renderable, templatable {
                 new moodle_url($editbaseurl, ['makecurrent' => $version->id]),
                 null,
                 get_string('activate', 'tool_policy'),
-                false
+                false,
+                ['data-action' => 'makecurrent']
             ));
         }
         if ($status == policy_version::STATUS_DRAFT) {
@@ -230,7 +232,8 @@ class page_managedocs_list implements renderable, templatable {
                 new moodle_url($editbaseurl, ['delete' => $version->id]),
                 null,
                 get_string('delete'),
-                false
+                false,
+                ['data-action' => 'delete']
             ));
         }
         if ($status == policy_version::STATUS_ARCHIVED) {
@@ -238,7 +241,8 @@ class page_managedocs_list implements renderable, templatable {
                 new moodle_url($editbaseurl, ['todraft' => $version->id]),
                 null,
                 get_string('settodraft', 'tool_policy'),
-                false
+                false,
+                ['data-action' => 'todraft']
             ));
         }
         if (!$this->policyid && !$isindented && $policy->archivedversions &&
