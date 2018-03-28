@@ -27,6 +27,7 @@ namespace tool_policy;
 use tool_policy\output\acceptances_filter;
 use tool_policy\output\renderer;
 use tool_policy\output\user_agreement;
+use core_user;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -82,7 +83,7 @@ class acceptances_table extends \table_sql {
             $this->versionids[$version->id] = $version->name;
             if ($version->status != policy_version::STATUS_ACTIVE) {
                 // TODO think about this.
-                $this->versionids[$version->id] .= '<br>' . format_string($version->revision);
+                $this->versionids[$version->id] .= '<br>' . $version->revision;
             }
         }
 
@@ -452,21 +453,45 @@ class acceptances_table extends \table_sql {
     }
 
     /**
-     * Helper.
+     * Return agreement status
      *
-     * @param int $versionid
+     * @param int $versionid either id of an individual version or empty for overall status
      * @param stdClass $row
      * @return string
      */
     protected function status($versionid, $row) {
-        $status = $row->{'status' . $versionid};
-        if ($this->is_downloading()) {
-            return empty($status) ? get_string('no') : get_string('yes');
+        $onbehalf = false;
+        $versions = $versionid ? [$versionid => $this->versionids[$versionid]] : $this->versionids; // List of versions.
+        $accepted = []; // List of versionids that user has accepted.
+
+        foreach ($versions as $v => $name) {
+            if (!empty($row->{'status' . $v})) {
+                $accepted[] = $v;
+                $agreedby = $row->{'usermodified' . $v};
+                if ($agreedby && $agreedby != $row->id) {
+                    $onbehalf = true;
+                }
+            }
         }
-        $onbehalf = $status && ($row->{'usermodified' . $versionid} != $row->id);
-        $versions = $this->acceptancesfilter->get_versions();
-        return $this->output->render(new user_agreement($row->id, $status, $this->get_return_url(),
-            $versionid ? $versions[$versionid] : null, $onbehalf));
+
+        if ($versionid) {
+            $str = new \lang_string($accepted ? 'yes' :  'no');
+        } else {
+            $str = new \lang_string('acceptancecount', 'tool_policy', (object)[
+                'agreedcount' => count($accepted),
+                'policiescount' => count($versions)
+            ]);
+        }
+
+        if ($this->is_downloading()) {
+            return $str->out();
+        } else {
+            $s = $this->output->render(new user_agreement($row->id, $accepted, $this->get_return_url(), $versions, $onbehalf));
+            if (!$versionid) {
+                $s .= '<br>' . \html_writer::link(new \moodle_url('/admin/tool/policy/user.php', ['userid' => $row->id]), $str);
+            }
+            return $s;
+        }
     }
 
     /**
@@ -510,29 +535,7 @@ class acceptances_table extends \table_sql {
      * @return string
      */
     public function col_statusall($row) {
-        $totalcnt = count($this->versionids);
-        $cnt = 0;
-        $onbehalf = false;
-        foreach ($this->versionids as $v => $unused) {
-            if (!empty($row->{'status' . $v})) {
-                $cnt++;
-                $agreedby = $row->{'usermodified' . $v};
-                if ($agreedby && $agreedby != $row->id) {
-                    $onbehalf = true;
-                }
-            }
-        }
-        $str = get_string('acceptancecount', 'tool_policy', (object)[
-            'agreedcount' => $cnt,
-            'policiescount' => $totalcnt
-        ]);
-        if ($this->is_downloading()) {
-            return $str;
-        } else {
-            $s = $this->output->render(new user_agreement($row->id, $cnt == $totalcnt, $this->get_return_url(), null, $onbehalf));
-            $str = \html_writer::link(new \moodle_url('/admin/tool/policy/user.php', ['userid' => $row->id]), $str);
-            return $s . "<br>" . $str;
-        }
+        return $this->status(0, $row);
     }
 
     /**

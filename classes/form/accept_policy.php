@@ -24,6 +24,7 @@
 
 namespace tool_policy\form;
 
+use tool_policy\api;
 use tool_policy\policy_version;
 
 defined('MOODLE_INTERNAL') || die();
@@ -52,11 +53,13 @@ class accept_policy extends \moodleform {
             $usernames[] = fullname($user);
         }
         $policiesnames = [];
-        foreach ($versions as $version) {
+        $policies = api::list_policies();
+        foreach ($versions as $versionid) {
+            $version = api::get_policy_version($versionid, $policies);
             $url = new \moodle_url('/admin/tool/policy/view.php', ['versionid' => $version->id]);
-            $policyname = format_string($version->name);
+            $policyname = $version->name;
             if ($version->status != policy_version::STATUS_ACTIVE) {
-                $policyname .= ' ' . format_string($version->revision);
+                $policyname .= ' ' . $version->revision;
             }
             $policiesnames[] = \html_writer::link($url, $policyname);
         }
@@ -64,8 +67,8 @@ class accept_policy extends \moodleform {
         $mform->addElement('hidden', 'userid');
         $mform->setType('userid', PARAM_INT);
 
-        $mform->addElement('hidden', 'acceptforversion');
-        $mform->setType('acceptforversion', PARAM_INT);
+        $mform->addElement('hidden', 'acceptforversions');
+        $mform->setType('acceptforversions', PARAM_RAW);
 
         $mform->addElement('hidden', 'returnurl');
         $mform->setType('returnurl', PARAM_LOCALURL);
@@ -81,6 +84,6 @@ class accept_policy extends \moodleform {
 
         $this->add_action_buttons(true, get_string('iagreetothepolicy', 'tool_policy'));
 
-        $this->set_data(['userid' => $user->id, 'acceptforversion' => $version->id]);
+        $this->set_data(['userid' => $user->id, 'acceptforversions' => join(',', $versions)]);
     }
 }
