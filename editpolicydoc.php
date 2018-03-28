@@ -100,8 +100,8 @@ if ($todraft) {
 
     if ($confirm) {
         require_sesskey();
-        api::revert_to_draft($todraft);
-        redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
+        $draft = api::revert_to_draft($todraft);
+        redirect(new moodle_url($PAGE->url, ['versionid' => $draft->get('id')]));
     }
 
     echo $output->header();
