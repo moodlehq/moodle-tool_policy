@@ -23,7 +23,9 @@
     -
 
     Data attributes required for JS:
-    -
+    * data-policy-name
+    * data-policy-revision
+    * data-action
 
     Context variables required for this template:
     * haspolicies
@@ -77,7 +79,7 @@
     </div>
 {{/canaddnew}}
 
-<table class="generaltable fullwidth listpolicydocuments">
+<table id="tool-policy-managedocs-wrapper" class="generaltable fullwidth listpolicydocuments">
     <thead>
         <tr>
             <th scope="col">{{#str}} policydocname, tool_policy {{/str}}</th>
@@ -94,7 +96,7 @@
     </thead>
     <tbody>
         {{#versions}}
-        <tr>
+        <tr data-policy-name="{{{name}}}" data-policy-revision="{{revision}}">
             <td>
                 {{#indented}}
                 <div style="float:left">
@@ -136,3 +138,9 @@
         {{/versions}}
     </tbody>
 </table>
+
+{{#js}}
+require(['tool_policy/managedocsactions'], function(ManageDocsActions) {
+    ManageDocsActions.init('tool-policy-managedocs-wrapper');
+});
+{{/js}}
