@@ -201,10 +201,14 @@ class api {
      * Load a particular policy document version.
      *
      * @param int $versionid ID of the policy document version.
+     * @param array $policies cached result of self::list_policies() in case this function needs to be called in a loop
      * @return stdClass - exported {@link tool_policy\policy_exporter} instance
      */
-    public static function get_policy_version($versionid) {
-        foreach (static::list_policies() as $policy) {
+    public static function get_policy_version($versionid, $policies = null) {
+        if ($policies === null) {
+            $policies = self::list_policies();
+        }
+        foreach ($policies as $policy) {
             if ($policy->currentversionid == $versionid) {
                 return $policy->currentversion;
 
