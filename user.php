@@ -26,6 +26,7 @@ require(__DIR__.'/../../../config.php');
 require_once($CFG->dirroot.'/user/editlib.php');
 
 $userid = optional_param('userid', null, PARAM_INT);
+$userids = optional_param_array('userids', null, PARAM_INT);
 $acceptforversions = optional_param('acceptforversions', null, PARAM_RAW);
 $returnurl = optional_param('returnurl', null, PARAM_LOCALURL);
 
@@ -37,6 +38,7 @@ if (isguestuser() || isguestuser($userid)) {
 $context = context_user::instance($userid);
 $acceptforversions = $acceptforversions ? clean_param_array(preg_split('/,/', $acceptforversions), PARAM_INT) : null;
 if ($acceptforversions) {
+    $userids = $userids ?: [$userid];
     // Check capability to accept the policy for oneself or on behalf of another user.
     if ($userid == $USER->id) {
         require_capability('tool/policy:accept', context_system::instance());
@@ -54,15 +56,16 @@ $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/admin/tool/policy/user.php', ['userid' => $userid]));
 
 if ($acceptforversions) {
-    $user = $DB->get_record('user', ['id' => $userid], 'id,'.get_all_user_name_fields(true), MUST_EXIST);
-    $returnurl = $returnurl ? new moodle_url($returnurl) : new moodle_url('/admin/tool/policy/user.php', ['userid' => $user->id]);
-    $form = new \tool_policy\form\accept_policy(null, ['versions' => $acceptforversions, 'users' => [$user]]);
+    $returnurl = $returnurl ? new moodle_url($returnurl) : new moodle_url('/admin/tool/policy/user.php', ['userid' => reset($userids)]);
+    $form = new \tool_policy\form\accept_policy(null, ['versions' => $acceptforversions, 'users' => $userids]);
     $form->set_data(['returnurl' => $returnurl]);
 
     if ($form->is_cancelled()) {
         redirect($returnurl);
     } else if ($data = $form->get_data()) {
-        \tool_policy\api::accept_policies($acceptforversions, $user->id, $data->note);
+        foreach ($data->userids as $userid) {
+            \tool_policy\api::accept_policies($acceptforversions, $userid, $data->note);
+        }
         redirect($returnurl);
     }
 }

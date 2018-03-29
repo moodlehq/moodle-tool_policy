@@ -88,4 +88,7 @@
     margin: 15px;
 }
 
+#page-admin-tool-policy-acceptances .colselect {
+    max-width: 15px;
+}
 /* TODO https://github.com/moodle/moodle/commit/bd6f87ed82519fb0d2e0c6877fbbe7c7fa155376 */
