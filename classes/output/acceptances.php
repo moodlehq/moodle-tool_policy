@@ -91,7 +91,7 @@ class acceptances implements renderable, templatable {
                     $acceptance = $version->acceptance;
                     $version->timeaccepted = userdate($acceptance->timemodified, get_string('strftimedatetime'));
                     $onbehalf = $acceptance->usermodified && $acceptance->usermodified != $this->userid;
-                    $version->agreement = new user_agreement($this->userid, 1, $returnurl, [$version], $onbehalf);
+                    $version->agreement = new user_agreement($this->userid, [$version->id], $returnurl, [$version->id => $version->name], $onbehalf);
                     if ($onbehalf) {
                         $usermodified = (object)['id' => $acceptance->usermodified];
                         username_load_fields_from_object($usermodified, $acceptance, 'mod');
@@ -102,7 +102,7 @@ class acceptances implements renderable, templatable {
                     }
                     $version->note = format_text($acceptance->note);
                 } else if ($version->iscurrent) {
-                    $version->agreement = new user_agreement($this->userid, 0, $returnurl, [$version]);
+                    $version->agreement = new user_agreement($this->userid, [], $returnurl, [$version->id => $version->name]);
                 }
                 if (isset($version->agreement)) {
                     $version->agreement = $version->agreement->export_for_template($output);
