@@ -40,6 +40,7 @@ $string['activateconfirmyes'] = 'Activate';
 $string['agreed'] = 'Agreed';
 $string['agreedby'] = 'Agreed by';
 $string['agreedon'] = 'Agreed on';
+$string['agreetoselected'] = 'Agreed to selected';
 $string['agreepolicies'] = 'Please agree to the following policies';
 $string['backtotop'] = 'Back to top';
 $string['consentdetails'] = 'Consent details';

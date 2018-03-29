@@ -54,6 +54,8 @@ class user_agreement implements \templatable, \renderable {
 
     protected $accepted;
 
+    protected $canaccept;
+
     /**
      * user_agreement constructor
      *
@@ -63,12 +65,17 @@ class user_agreement implements \templatable, \renderable {
      * @param array $versions list of versions (id=>name)
      * @param bool $onbehalf whether at least one version was accepted by somebody else on behalf of the user
      */
-    public function __construct($userid, $accepted, moodle_url $pageurl, $versions, $onbehalf = false) {
+    public function __construct($userid, $accepted, moodle_url $pageurl, $versions, $onbehalf = false, $canaccept = null) {
         $this->userid = $userid;
         $this->onbehalf = $onbehalf;
         $this->pageurl = $pageurl;
         $this->versions = $versions;
         $this->accepted = $accepted;
+        $this->canaccept = $canaccept;
+        if (count($this->accepted) < count($this->versions) && $canaccept === null) {
+            $this->canaccept = (has_capability('tool/policy:acceptbehalf', \context_system::instance()) ||
+                has_capability('tool/policy:acceptbehalf', \context_user::instance($this->userid)));
+        }
     }
 
     /**
@@ -81,14 +88,13 @@ class user_agreement implements \templatable, \renderable {
         $data = [
             'status' => count($this->accepted) == count($this->versions),
             'onbehalf' => $this->onbehalf,
+            'canaccept' => $this->canaccept,
         ];
-        if (!$data['status'] &&
-                has_capability('tool/policy:acceptbehalf', \context_user::instance($this->userid))) {
+        if (!$data['status'] && $this->canaccept) {
             $acceptforversions = array_diff(array_keys($this->versions), $this->accepted);
             $link = new \moodle_url('/admin/tool/policy/user.php',
                 ['acceptforversions' => join(',', $acceptforversions), 'userid' => $this->userid,
                     'returnurl' => $this->pageurl->out_as_local_url(false)]);
-            $data['canaccept'] = 1;
             $data['acceptlink'] = $link->out(false);
         }
         $data['singleversion'] = count($this->versions) == 1;

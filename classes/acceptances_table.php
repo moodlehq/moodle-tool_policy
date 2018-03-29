@@ -57,6 +57,9 @@ class acceptances_table extends \table_sql {
      */
     protected $countries;
 
+    /** @var bool are there any users that this user can agree on behalf of */
+    protected $canagreeany = false;
+
     /**
      * Constructor.
      *
@@ -67,6 +70,7 @@ class acceptances_table extends \table_sql {
     public function __construct($uniqueid, acceptances_filter $acceptancesfilter, renderer $output) {
         global $CFG;
         parent::__construct($uniqueid);
+        $this->set_attribute('id', 'acceptancetable');
         $this->acceptancesfilter = $acceptancesfilter;
         $this->is_downloading(optional_param('download', 0, PARAM_ALPHA), 'user_acceptances');
         $this->baseurl = $acceptancesfilter->get_url();
@@ -82,7 +86,6 @@ class acceptances_table extends \table_sql {
             $version = reset($versions);
             $this->versionids[$version->id] = $version->name;
             if ($version->status != policy_version::STATUS_ACTIVE) {
-                // TODO think about this.
                 $this->versionids[$version->id] .= '<br>' . $version->revision;
             }
         }
@@ -94,12 +97,22 @@ class acceptances_table extends \table_sql {
             "{user} u",
             'u.id <> :siteguestid AND u.deleted = 0',
             ['siteguestid' => $CFG->siteguest]);
+        if (!$this->is_downloading()) {
+            $this->add_column_header('select', get_string('select'), false, 'colselect');
+        }
         $this->add_column_header('fullname', get_string('fullnameuser', 'core'));
         foreach ($extrafields as $field) {
             $this->add_column_header($field, get_user_field_name($field));
         }
 
-        if (count($this->versionids) == 1) {
+        if (!$this->is_downloading() && !has_capability('tool/policy:acceptbehalf', \context_system::instance())) {
+            // We will need to check capability to accept on behalf in each user's context, preload users contexts.
+            $this->sql->fields .= ',' . \context_helper::get_preload_record_columns_sql('ctx');
+            $this->sql->from .= ' JOIN {context} ctx ON ctx.contextlevel = :usercontextlevel AND ctx.instanceid = u.id';
+            $this->sql->params['usercontextlevel'] = CONTEXT_USER;
+        }
+
+        if ($this->acceptancesfilter->get_single_version()) {
             $this->configure_for_single_version();
         } else {
             $this->configure_for_multiple_versions();
@@ -395,10 +408,63 @@ class acceptances_table extends \table_sql {
     }
 
     /**
+     * Hook that can be overridden in child classes to wrap a table in a form
+     * for example. Called only when there is data to display and not
+     * downloading.
+     */
+    function wrap_html_start() {
+        echo \html_writer::start_tag('form', ['action' => new \moodle_url('/admin/tool/policy/user.php')]);
+        echo \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+        echo \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'returnurl',
+            'value' => $this->get_return_url()]);
+        echo \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'acceptforversions',
+            'value' => join(',', array_keys($this->versionids))]);
+    }
+
+    /**
+     * Hook that can be overridden in child classes to wrap a table in a form
+     * for example. Called only when there is data to display and not
+     * downloading.
+     */
+    function wrap_html_finish() {
+        if ($this->canagreeany) {
+            echo \html_writer::empty_tag('input', ['type' => 'submit',
+                'value' => get_string('agreetoselected', 'tool_policy'), 'class' => 'btn btn-primary']);
+        }
+        echo "</form>\n";
+    }
+
+    /**
      * Render the table.
      */
     public function display() {
         $this->out(100, true);
+    }
+
+    /**
+     * Call appropriate methods on this table class to perform any processing on values before displaying in table.
+     * Takes raw data from the database and process it into human readable format, perhaps also adding html linking when
+     * displaying table as html, adding a div wrap, etc.
+     *
+     * See for example col_fullname below which will be called for a column whose name is 'fullname'.
+     *
+     * @param array|object $row row of data from db used to make one row of the table.
+     * @return array one row for the table, added using add_data_keyed method.
+     */
+    public function format_row($row) {
+        $row->canaccept = false;
+        $row->select = null;
+        if (!$this->is_downloading()) {
+            \context_helper::preload_from_record($row);
+            if (has_capability('tool/policy:acceptbehalf', \context_system::instance()) ||
+                has_capability('tool/policy:acceptbehalf', \context_user::instance($row->id))) {
+                $row->canaccept = true;
+                $row->select = \html_writer::empty_tag('input',
+                    ['type' => 'checkbox', 'name' => 'userids[]', 'value' => $row->id, 'class' => 'usercheckbox']);
+                $this->canagreeany = true;
+            }
+        }
+        return parent::format_row($row);
     }
 
     /**
@@ -486,7 +552,7 @@ class acceptances_table extends \table_sql {
         if ($this->is_downloading()) {
             return $str->out();
         } else {
-            $s = $this->output->render(new user_agreement($row->id, $accepted, $this->get_return_url(), $versions, $onbehalf));
+            $s = $this->output->render(new user_agreement($row->id, $accepted, $this->get_return_url(), $versions, $onbehalf, $row->canaccept));
             if (!$versionid) {
                 $s .= '<br>' . \html_writer::link(new \moodle_url('/admin/tool/policy/user.php', ['userid' => $row->id]), $str);
             }
