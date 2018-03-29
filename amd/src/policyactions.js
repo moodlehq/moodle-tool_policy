@@ -105,5 +105,17 @@ function($, Ajax, Notification, ModalFactory, ModalEvents) {
 
     };
 
-    return PolicyActions;
+    return /** @alias module:tool_policy/policyactions */ {
+        // Public variables and functions.
+
+        /**
+         * Initialise the actions helper.
+         *
+         * @method init
+         * @return {PolicyActions}
+         */
+        'init': function() {
+            return new PolicyActions();
+        }
+    };
 });

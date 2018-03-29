@@ -44,6 +44,7 @@ class accept_policy extends \moodleform {
      * Defines the form fields.
      */
     public function definition() {
+        global $PAGE;
         $mform = $this->_form;
 
         $userids = $this->_customdata['users'];
@@ -58,7 +59,8 @@ class accept_policy extends \moodleform {
             if ($version->status != policy_version::STATUS_ACTIVE) {
                 $policyname .= ' ' . $version->revision;
             }
-            $policiesnames[] = \html_writer::link($url, $policyname);
+            $policiesnames[] = \html_writer::link($url, $policyname,
+                ['data-action' => 'view', 'data-versionid' => $version->id]);
         }
 
         $mform->addElement('hidden', 'acceptforversions');
@@ -84,6 +86,7 @@ class accept_policy extends \moodleform {
         }
 
         $this->set_data(['acceptforversions' => join(',', $versions)]);
+        $PAGE->requires->js_call_amd('tool_policy/policyactions', 'init');
     }
 
     /**
