@@ -54,7 +54,7 @@ class accept_policy extends \moodleform {
             throw new \moodle_exception('missingparam', '', '', 'versionids');
         }
         $userids = clean_param_array($this->_customdata['userids'], PARAM_INT);
-        $versionids = !empty($this->_customdata['versionids']) ? clean_param_array($this->_customdata['versionids'], PARAM_INT) : [0];
+        $versionids = clean_param_array($this->_customdata['versionids'], PARAM_INT);
         $usernames = $this->validate_and_get_users($userids);
         $versionnames = $this->validate_and_get_versions($versionids);
 

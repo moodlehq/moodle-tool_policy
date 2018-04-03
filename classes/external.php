@@ -116,7 +116,7 @@ class external extends external_api {
                 );
                 $result['policy'] = $policy;
             }
-        } catch (coding_exception $e) {
+        } catch (moodle_exception $e) {
             $warnings[] = [
                 'item' => $versionid,
                 'warningcode' => 'errorpolicyversionnotfound',
