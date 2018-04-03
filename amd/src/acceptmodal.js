@@ -21,6 +21,19 @@ define(['jquery', 'core/str', 'core/modal_factory', 'core/modal_events', 'core/f
          */
         var AcceptOnBehalf = function(contextid) {
             this.contextid = contextid;
+
+            var stringKeys = [
+                {
+                    key: 'consentdetails',
+                    component: 'tool_policy'
+                },
+                {
+                    key: 'iagreetothepolicy',
+                    component: 'tool_policy'
+                }
+            ];
+            this.strings = Str.get_strings(stringKeys);
+
             this.init();
         };
 
@@ -35,6 +48,12 @@ define(['jquery', 'core/str', 'core/modal_factory', 'core/modal_events', 'core/f
          * @private
          */
         AcceptOnBehalf.prototype.contextid = -1;
+
+        /**
+         * @var {Promise}
+         * @private
+         */
+        AcceptOnBehalf.prototype.strings = 0;
 
         /**
          * Initialise the class.
@@ -71,15 +90,15 @@ define(['jquery', 'core/str', 'core/modal_factory', 'core/modal_events', 'core/f
          */
         AcceptOnBehalf.prototype.showFormModal = function(formData, triggerElement) {
             // Fetch the title string.
-            Str.get_string('consentdetails', 'tool_policy').then(function(title) {
+            this.strings.then(function(strings) {
                 // Create the modal.
                 ModalFactory.create({
                     type: ModalFactory.types.SAVE_CANCEL,
-                    title: title,
+                    title: strings[0],
                     body: ''
                 }, triggerElement).done(function(modal) {
                     this.modal = modal;
-                    this.setupFormModal(formData);
+                    this.setupFormModal(formData, strings[1]);
                 }.bind(this));
             }.bind(this))
                 .fail(Notification.exception);
@@ -89,13 +108,14 @@ define(['jquery', 'core/str', 'core/modal_factory', 'core/modal_events', 'core/f
          * Setup form inside a modal
          *
          * @param {String} formData
+         * @param {String} saveText
          */
-        AcceptOnBehalf.prototype.setupFormModal = function(formData) {
+        AcceptOnBehalf.prototype.setupFormModal = function(formData, saveText) {
             var modal = this.modal;
 
             modal.setLarge();
 
-            //modal.setSaveButtonText(saveText);
+            modal.setSaveButtonText(saveText);
 
             // We want to reset the form every time it is opened.
             modal.getRoot().on(ModalEvents.hidden, this.destroy.bind(this));

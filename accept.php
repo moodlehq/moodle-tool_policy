@@ -46,7 +46,8 @@ if ($returnurl) {
 } else {
     $returnurl = new moodle_url('/admin/tool/policy/acceptances.php');
 }
-$form = new \tool_policy\form\accept_policy(null, ['versionids' => $versionids, 'userids' => $userids]);
+$form = new \tool_policy\form\accept_policy(null,
+    ['versionids' => $versionids, 'userids' => $userids, 'showbuttons' => true]);
 $form->set_data(['returnurl' => $returnurl]);
 
 if ($form->is_cancelled()) {
