@@ -413,12 +413,14 @@ class acceptances_table extends \table_sql {
      * downloading.
      */
     function wrap_html_start() {
-        echo \html_writer::start_tag('form', ['action' => new \moodle_url('/admin/tool/policy/user.php')]);
+        echo \html_writer::start_tag('form', ['action' => new \moodle_url('/admin/tool/policy/accept.php'), 'data-action' => 'acceptmodal']);
         echo \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
         echo \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'returnurl',
             'value' => $this->get_return_url()]);
-        echo \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'acceptforversions',
-            'value' => join(',', array_keys($this->versionids))]);
+        foreach (array_keys($this->versionids) as $versionid) {
+            echo \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => "versionids[{$versionid}]",
+                'value' => $versionid]);
+        }
     }
 
     /**
@@ -427,9 +429,11 @@ class acceptances_table extends \table_sql {
      * downloading.
      */
     function wrap_html_finish() {
+        global $PAGE;
         if ($this->canagreeany) {
             echo \html_writer::empty_tag('input', ['type' => 'submit',
                 'value' => get_string('agreetoselected', 'tool_policy'), 'class' => 'btn btn-primary']);
+            $PAGE->requires->js_call_amd('tool_policy/acceptmodal', 'getInstance', [\context_system::instance()->id]);
         }
         echo "</form>\n";
     }

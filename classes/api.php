@@ -227,7 +227,7 @@ class api {
             }
         }
 
-        throw new coding_exception('No such policy version found!');
+        throw new \moodle_exception('errorpolicyversionnotfound', 'tool_policy');
     }
 
     /**

@@ -47,31 +47,33 @@ class accept_policy extends \moodleform {
         global $PAGE;
         $mform = $this->_form;
 
-        $userids = $this->_customdata['users'];
-        $versions = $this->_customdata['versions'];
-        $usernames = $this->get_users($userids);
-        $policiesnames = [];
-        $policies = api::list_policies();
-        foreach ($versions as $versionid) {
-            $version = api::get_policy_version($versionid, $policies);
-            $url = new \moodle_url('/admin/tool/policy/view.php', ['versionid' => $version->id]);
-            $policyname = $version->name;
-            if ($version->status != policy_version::STATUS_ACTIVE) {
-                $policyname .= ' ' . $version->revision;
-            }
-            $policiesnames[] = \html_writer::link($url, $policyname,
-                ['data-action' => 'view', 'data-versionid' => $version->id]);
+        if (empty($this->_customdata['userids']) || !is_array($this->_customdata['userids'])) {
+            throw new \moodle_exception('missingparam', 'error', '', 'userids');
+        }
+        if (empty($this->_customdata['versionids']) || !is_array($this->_customdata['versionids'])) {
+            throw new \moodle_exception('missingparam', '', '', 'versionids');
+        }
+        $userids = clean_param_array($this->_customdata['userids'], PARAM_INT);
+        $versionids = !empty($this->_customdata['versionids']) ? clean_param_array($this->_customdata['versionids'], PARAM_INT) : [0];
+        $usernames = $this->validate_and_get_users($userids);
+        $versionnames = $this->validate_and_get_versions($versionids);
+
+        foreach ($usernames as $userid => $name) {
+            $mform->addElement('hidden', 'userids['.$userid.']', $userid);
+            $mform->setType('userids['.$userid.']', PARAM_INT);
         }
 
-        $mform->addElement('hidden', 'acceptforversions');
-        $mform->setType('acceptforversions', PARAM_RAW);
+        foreach ($versionnames as $versionid => $name) {
+            $mform->addElement('hidden', 'versionids['.$versionid.']', $versionid);
+            $mform->setType('versionids['.$versionid.']', PARAM_INT);
+        }
 
         $mform->addElement('hidden', 'returnurl');
         $mform->setType('returnurl', PARAM_LOCALURL);
 
         $mform->addElement('static', 'user', get_string('acceptanceusers', 'tool_policy'), join(', ', $usernames));
         $mform->addElement('static', 'policy', get_string('acceptancepolicies', 'tool_policy'),
-            join(', ', $policiesnames));
+            join(', ', $versionnames));
 
         $mform->addElement('static', 'ack', '', get_string('acceptanceacknowledgement', 'tool_policy'));
 
@@ -80,12 +82,6 @@ class accept_policy extends \moodleform {
 
         $this->add_action_buttons(true, get_string('iagreetothepolicy', 'tool_policy'));
 
-        foreach ($usernames as $userid => $name) {
-            $mform->addElement('hidden', 'userids['.$userid.']', $userid);
-            $mform->setType('userids['.$userid.']', PARAM_INT);
-        }
-
-        $this->set_data(['acceptforversions' => join(',', $versions)]);
         $PAGE->requires->js_call_amd('tool_policy/policyactions', 'init');
     }
 
@@ -95,7 +91,7 @@ class accept_policy extends \moodleform {
      * @param array $userids
      * @return array (userid=>username)
      */
-    protected function get_users($userids) {
+    protected function validate_and_get_users($userids) {
         global $DB, $USER;
         $usernames = [];
         list($sql, $params) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
@@ -108,7 +104,7 @@ class accept_policy extends \moodleform {
         $acceptany = has_capability('tool/policy:acceptbehalf', \context_system::instance());
         foreach ($userids as $userid) {
             if (!isset($users[$userid])) {
-                throw new dml_missing_record_exception('user', 'id=?', [$userid]);
+                throw new \dml_missing_record_exception('user', 'id=?', [$userid]);
             }
             $user = $users[$userid];
             if (isguestuser($user)) {
@@ -123,5 +119,41 @@ class accept_policy extends \moodleform {
             $usernames[$userid] = fullname($user);
         }
         return $usernames;
+    }
+
+    /**
+     * Validate versionids and return their names
+     *
+     * @param array $versionids
+     * @return array (versionid=>name)
+     */
+    protected function validate_and_get_versions($versionids) {
+        $versionnames = [];
+        $policies = api::list_policies();
+        foreach ($versionids as $versionid) {
+            $version = api::get_policy_version($versionid, $policies);
+            if ($version->audience == policy_version::AUDIENCE_GUESTS) {
+                throw new \moodle_exception('errorpolicyversionnotfound', 'tool_policy');
+            }
+            $url = new \moodle_url('/admin/tool/policy/view.php', ['versionid' => $version->id]);
+            $policyname = $version->name;
+            if ($version->status != policy_version::STATUS_ACTIVE) {
+                $policyname .= ' ' . $version->revision;
+            }
+            $versionnames[$version->id] = \html_writer::link($url, $policyname,
+                ['data-action' => 'view', 'data-versionid' => $version->id]);
+        }
+        return $versionnames;
+    }
+
+    /**
+     * Process form submission
+     */
+    public function process() {
+        if ($data = $this->get_data()) {
+            foreach ($data->userids as $userid) {
+                \tool_policy\api::accept_policies($data->versionids, $userid, $data->note);
+            }
+        }
     }
 }

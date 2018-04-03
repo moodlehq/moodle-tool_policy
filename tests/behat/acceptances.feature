@@ -45,7 +45,7 @@ Feature: Viewing acceptances reports and accepting on behalf of other users
     And "Agreed" "icon" should exist in the "Max Manager" "table_row"
     And "Not agreed" "icon" should exist in the "User Two" "table_row"
 
-  Scenario: Agree on behalf of another user as a manager, single policy
+  Scenario: Agree on behalf of another user as a manager, single policy, javascript off
     Given I log in as "admin"
     And I set the following system permissions of "Manager" role:
       | capability | permission |
@@ -55,7 +55,33 @@ Feature: Viewing acceptances reports and accepting on behalf of other users
     And I press "Next"
     And I set the field "I agree to the This site policy" to "1"
     And I press "Next"
-    And I navigate to "Privacy and policies > User agreements" in site administration
+    And I navigate to "Privacy and policies > Manage policies" in site administration
+    And I click on "1 of 4 (25%)" "link" in the "This site policy" "table_row"
+    And I click on "Not agreed" "link" in the "User One" "table_row"
+    Then I should see "Consent details"
+    And I should see "User One"
+    And I should see "This site policy"
+    And I should see "I acknowledge that consents to these policies have been acquired"
+    And I set the field "Remarks" to "Consent received from a parent"
+    And I press "I agree to the policy"
+    And "Agreed on behalf of" "icon" should exist in the "User One" "table_row"
+    And "Max Manager" "link" should exist in the "User One" "table_row"
+    And "Consent received from a parent" "text" should exist in the "User One" "table_row"
+    And "Not agreed" "icon" should exist in the "User Two" "table_row"
+
+  @javascript
+  Scenario: Agree on behalf of another user as a manager, single policy, javascript on
+    Given I log in as "admin"
+    And I set the following system permissions of "Manager" role:
+      | capability | permission |
+      | tool/policy:acceptbehalf | Allow |
+    And I log out
+    When I log in as "manager"
+    And I press "Next"
+    And I set the field "I agree to the This site policy" to "1"
+    And I press "Next"
+    And I navigate to "Privacy and policies > Manage policies" in site administration
+    And I click on "1 of 4 (25%)" "link" in the "This site policy" "table_row"
     And I click on "Not agreed" "link" in the "User One" "table_row"
     Then I should see "Consent details"
     And I should see "User One"
@@ -106,12 +132,45 @@ Feature: Viewing acceptances reports and accepting on behalf of other users
     And "Not agreed" "icon" should exist in the "This site policy" "table_row"
     And "Not agreed" "icon" should exist in the "This privacy policy" "table_row"
 
-  Scenario: Agree on behalf of another user as a manager, multiple policies
+  Scenario: Agree on behalf of another user as a manager, multiple policies, javascript off
     Given I log in as "admin"
     And I navigate to "Privacy and policies > Manage policies" in site administration
     And I open the action menu in "This privacy policy" "table_row"
     And I click on "Set status to \"Active\"" "link" in the "This privacy policy" "table_row"
     And I press "Continue"
+    And I set the following system permissions of "Manager" role:
+      | capability | permission |
+      | tool/policy:acceptbehalf | Allow |
+    And I log out
+    When I log in as "manager"
+    And I press "Next"
+    And I press "Next"
+    And I set the field "I agree to the This site policy" to "1"
+    And I set the field "I agree to the This privacy policy" to "1"
+    And I press "Next"
+    And I navigate to "Privacy and policies > User agreements" in site administration
+    And I click on "Not agreed, click to agree to \"This site policy\"" "link" in the "User One" "table_row"
+    Then I should see "Consent details"
+    And I should see "User One"
+    And I should see "This site policy"
+    And I should see "I acknowledge that consents to these policies have been acquired"
+    And I set the field "Remarks" to "Consent received from a parent"
+    And I press "I agree to the policy"
+    And "Agreed on behalf of" "icon" should exist in the "User One" "table_row"
+    And "Not agreed, click to agree to \"This privacy policy\"" "icon" should exist in the "User One" "table_row"
+    And I click on "1 of 2" "link" in the "User One" "table_row"
+    And "Agreed on behalf of" "icon" should exist in the "This site policy" "table_row"
+    And "Max Manager" "link" should exist in the "This site policy" "table_row"
+    And "Consent received from a parent" "text" should exist in the "This site policy" "table_row"
+    And "Not agreed" "icon" should exist in the "This privacy policy" "table_row"
+
+  @javascript
+  Scenario: Agree on behalf of another user as a manager, multiple policies, javascript on
+    Given I log in as "admin"
+    And I navigate to "Privacy and policies > Manage policies" in site administration
+    And I open the action menu in "This privacy policy" "table_row"
+    And I click on "Set status to \"Active\"" "link" in the "This privacy policy" "table_row"
+    And I press "Activate"
     And I set the following system permissions of "Manager" role:
       | capability | permission |
       | tool/policy:acceptbehalf | Allow |

@@ -36,4 +36,13 @@ $functions = [
         'ajax'          => true,
         'loginrequired' => false,
     ],
+
+    'tool_policy_submit_accept_on_behalf' => [
+        'classname'     => 'tool_policy\external',
+        'methodname' => 'submit_accept_on_behalf',
+        'classpath' => '',
+        'description' => 'Accept policies on behalf of other users',
+        'ajax' => true,
+        'type' => 'write',
+    ],
 ];

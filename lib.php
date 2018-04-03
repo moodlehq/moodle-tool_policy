@@ -184,3 +184,34 @@ function tool_policy_get_fontawesome_icon_map() {
         'tool_policy:level' => 'fa-level-up fa-rotate-90 text-muted',
     ];
 }
+
+/**
+ * Serve the new group form as a fragment.
+ *
+ * @param array $args List of named arguments for the fragment loader.
+ * @return string
+ */
+function tool_policy_output_fragment_accept_on_behalf($args) {
+    $args = (object) $args;
+    $o = '';
+
+    $data = [];
+    if (!empty($args->jsonformdata)) {
+        $serialiseddata = json_decode($args->jsonformdata);
+        parse_str($serialiseddata, $data);
+    }
+
+    $mform = new \tool_policy\form\accept_policy(null, $data);
+
+    if (!empty($args->jsonformdata)) {
+        // If we were passed non-empty form data we want the mform to call validation functions and show errors.
+        $mform->is_validated();
+    }
+
+    ob_start();
+    $mform->display();
+    $o .= ob_get_contents();
+    ob_end_clean();
+
+    return $o;
+}
