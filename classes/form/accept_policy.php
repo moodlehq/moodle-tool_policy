@@ -80,7 +80,9 @@ class accept_policy extends \moodleform {
         $mform->addElement('textarea', 'note', get_string('acceptancenote', 'tool_policy'));
         $mform->setType('note', PARAM_NOTAGS);
 
-        $this->add_action_buttons(true, get_string('iagreetothepolicy', 'tool_policy'));
+        if (!empty($this->_customdata['showbuttons'])) {
+            $this->add_action_buttons(true, get_string('iagreetothepolicy', 'tool_policy'));
+        }
 
         $PAGE->requires->js_call_amd('tool_policy/policyactions', 'init');
     }
