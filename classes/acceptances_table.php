@@ -412,8 +412,9 @@ class acceptances_table extends \table_sql {
      * for example. Called only when there is data to display and not
      * downloading.
      */
-    function wrap_html_start() {
-        echo \html_writer::start_tag('form', ['action' => new \moodle_url('/admin/tool/policy/accept.php'), 'data-action' => 'acceptmodal']);
+    public function wrap_html_start() {
+        echo \html_writer::start_tag('form',
+            ['action' => new \moodle_url('/admin/tool/policy/accept.php'), 'data-action' => 'acceptmodal']);
         echo \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
         echo \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'returnurl',
             'value' => $this->get_return_url()]);
@@ -428,7 +429,7 @@ class acceptances_table extends \table_sql {
      * for example. Called only when there is data to display and not
      * downloading.
      */
-    function wrap_html_finish() {
+    public function wrap_html_finish() {
         global $PAGE;
         if ($this->canagreeany) {
             echo \html_writer::empty_tag('input', ['type' => 'submit',
@@ -545,7 +546,7 @@ class acceptances_table extends \table_sql {
         }
 
         if ($versionid) {
-            $str = new \lang_string($accepted ? 'yes' :  'no');
+            $str = new \lang_string($accepted ? 'yes' : 'no');
         } else {
             $str = new \lang_string('acceptancecount', 'tool_policy', (object)[
                 'agreedcount' => count($accepted),
@@ -556,7 +557,8 @@ class acceptances_table extends \table_sql {
         if ($this->is_downloading()) {
             return $str->out();
         } else {
-            $s = $this->output->render(new user_agreement($row->id, $accepted, $this->get_return_url(), $versions, $onbehalf, $row->canaccept));
+            $s = $this->output->render(new user_agreement($row->id, $accepted, $this->get_return_url(),
+                $versions, $onbehalf, $row->canaccept));
             if (!$versionid) {
                 $s .= '<br>' . \html_writer::link(new \moodle_url('/admin/tool/policy/user.php', ['userid' => $row->id]), $str);
             }

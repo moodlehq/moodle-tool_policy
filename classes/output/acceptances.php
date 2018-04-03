@@ -91,7 +91,8 @@ class acceptances implements renderable, templatable {
                     $acceptance = $version->acceptance;
                     $version->timeaccepted = userdate($acceptance->timemodified, get_string('strftimedatetime'));
                     $onbehalf = $acceptance->usermodified && $acceptance->usermodified != $this->userid;
-                    $version->agreement = new user_agreement($this->userid, [$version->id], $returnurl, [$version->id => $version->name], $onbehalf);
+                    $version->agreement = new user_agreement($this->userid, [$version->id], $returnurl,
+                        [$version->id => $version->name], $onbehalf);
                     if ($onbehalf) {
                         $usermodified = (object)['id' => $acceptance->usermodified];
                         username_load_fields_from_object($usermodified, $acceptance, 'mod');
