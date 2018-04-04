@@ -49,22 +49,4 @@ if ($hassiteconfig || has_any_capability($managecaps, context_system::instance()
         new moodle_url('/admin/tool/policy/acceptances.php'),
         ['tool/policy:viewacceptances']
     ));
-
-    if ($ADMIN->fulltree && has_capability('tool/policy:manageprivacy', context_system::instance())) {
-        // TODO: Decide whether to maintain or not this field for displaying information about the officer in the consent page.
-        $temp = $ADMIN->locate('privacysettings');
-        if (!$temp || !$temp->check_access()) {
-            // If 'privacysettings' category does not exist, create a new category just for "privacy officer" setting.
-            $temp = new admin_settingpage('tool_policy_privacy', new lang_string('privacyofficer', 'tool_policy'),
-                ['tool/policy:manageprivacy']);
-            $ADMIN->add('privacy', $temp);
-        }
-        $temp->add(new admin_setting_configtextarea(
-            'tool_policy/privacyofficer',
-            new lang_string('privacyofficer', 'tool_policy'),
-            new lang_string('privacyofficer_desc', 'tool_policy'),
-            '',
-            PARAM_RAW
-        ));
-    }
 }

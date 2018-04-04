@@ -400,7 +400,6 @@ class page_agreedocs implements renderable, templatable {
         }
 
         $data->policies = array_values($this->policies);
-        $data->privacyofficer = get_config('tool_policy', 'privacyofficer');
 
         // If viewing docs in behalf of other user, get his/her full name and profile link.
         if (!empty($this->behalfuser)) {

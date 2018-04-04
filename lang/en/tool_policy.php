@@ -95,7 +95,6 @@ $string['policiesagreements'] = 'Policies and agreements';
 $string['policy:accept'] = 'Agree to the policies';
 $string['policy:acceptbehalf'] = 'Agree to the policies on someone else\'s behalf';
 $string['policy:managedocs'] = 'Manage policies';
-$string['policy:manageprivacy'] = 'Manage privacy settings';
 $string['policy:viewacceptances'] = 'View user agreement reports';
 $string['policydocaudience'] = 'User consent';
 $string['policydocaudience0'] = 'All users';
@@ -116,9 +115,6 @@ $string['policydoctype99'] = 'Other policy';
 $string['policyversionacceptedinbehalf'] = 'This policy version has been agreed to by another user on behalf of you.';
 $string['policyversionacceptedinotherlang'] = 'This policy version has been agreed to in a different language.';
 $string['previousversions'] = '{$a} previous versions';
-$string['privacyofficer'] = 'Privacy officer';
-// TODO: Review the list of places where the privacyofficer will be shown.
-$string['privacyofficer_desc'] = 'Information and contact details of the privacy officer, such as the address, email and  phone number. This information will be shown to the users on the consent page.';
 $string['privacysettings'] = 'Privacy settings';
 $string['readpolicy'] = 'Please read our {$a}';
 $string['refertofullpolicytext'] = 'Please refer to the full {$a} text if you would like to review.';
