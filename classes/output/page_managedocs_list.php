@@ -238,11 +238,10 @@ class page_managedocs_list implements renderable, templatable {
         }
         if ($status == policy_version::STATUS_ARCHIVED) {
             $actionmenu->add(new action_menu_link(
-                new moodle_url($editbaseurl, ['todraft' => $version->id]),
+                new moodle_url($editbaseurl, ['versionid' => $version->id]),
                 null,
                 get_string('settodraft', 'tool_policy'),
-                false,
-                ['data-action' => 'todraft']
+                false
             ));
         }
         if (!$this->policyid && !$isindented && $policy->archivedversions &&

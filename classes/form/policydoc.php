@@ -90,8 +90,8 @@ class policydoc extends moodleform {
         $mform->addRule('content_editor', null, 'required', null, 'client');
 
         if (!$formdata->id || $formdata->status == policy_version::STATUS_DRAFT) {
-            // Creating a new version or editing a draft.
-            $mform->addElement('hidden', 'minorchange', 1);
+            // Creating a new version or editing a draft/archived version.
+            $mform->addElement('hidden', 'minorchange');
             $mform->setType('minorchange', PARAM_INT);
 
             $statusgrp = [
