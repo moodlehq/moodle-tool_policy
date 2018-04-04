@@ -47,13 +47,17 @@ class acceptances implements renderable, templatable {
     /** @var id */
     protected $userid;
 
+    /** @var moodle_url */
+    protected $returnurl;
+
     /**
      * Contructor.
      *
      * @param int $userid
      */
-    public function __construct($userid) {
+    public function __construct($userid, $returnurl = null) {
         $this->userid = $userid;
+        $this->returnurl = $returnurl ? (new moodle_url($returnurl))->out(false) : null;
     }
 
     /**
@@ -66,6 +70,7 @@ class acceptances implements renderable, templatable {
         $data = (object)[];
         $data->hasonbehalfagreements = false;
         $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(false);
+        $data->returnurl = $this->returnurl;
 
         // Get the list of policies and versions that current user is able to see
         // and the respective acceptance records for the selected user.
@@ -91,7 +96,8 @@ class acceptances implements renderable, templatable {
                     $acceptance = $version->acceptance;
                     $version->timeaccepted = userdate($acceptance->timemodified, get_string('strftimedatetime'));
                     $onbehalf = $acceptance->usermodified && $acceptance->usermodified != $this->userid;
-                    $version->agreement = new user_agreement($this->userid, 1, $returnurl, $version, $onbehalf);
+                    $version->agreement = new user_agreement($this->userid, [$version->id], $returnurl,
+                        [$version->id => $version->name], $onbehalf);
                     if ($onbehalf) {
                         $usermodified = (object)['id' => $acceptance->usermodified];
                         username_load_fields_from_object($usermodified, $acceptance, 'mod');
@@ -102,7 +108,7 @@ class acceptances implements renderable, templatable {
                     }
                     $version->note = format_text($acceptance->note);
                 } else if ($version->iscurrent) {
-                    $version->agreement = new user_agreement($this->userid, 0, $returnurl, $version);
+                    $version->agreement = new user_agreement($this->userid, [], $returnurl, [$version->id => $version->name]);
                 }
                 if (isset($version->agreement)) {
                     $version->agreement = $version->agreement->export_for_template($output);

@@ -27,6 +27,8 @@ namespace tool_policy;
 use tool_policy\output\acceptances_filter;
 use tool_policy\output\renderer;
 use tool_policy\output\user_agreement;
+use core_user;
+use stdClass;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -56,6 +58,9 @@ class acceptances_table extends \table_sql {
      */
     protected $countries;
 
+    /** @var bool are there any users that this user can agree on behalf of */
+    protected $canagreeany = false;
+
     /**
      * Constructor.
      *
@@ -66,6 +71,7 @@ class acceptances_table extends \table_sql {
     public function __construct($uniqueid, acceptances_filter $acceptancesfilter, renderer $output) {
         global $CFG;
         parent::__construct($uniqueid);
+        $this->set_attribute('id', 'acceptancetable');
         $this->acceptancesfilter = $acceptancesfilter;
         $this->is_downloading(optional_param('download', 0, PARAM_ALPHA), 'user_acceptances');
         $this->baseurl = $acceptancesfilter->get_url();
@@ -81,8 +87,7 @@ class acceptances_table extends \table_sql {
             $version = reset($versions);
             $this->versionids[$version->id] = $version->name;
             if ($version->status != policy_version::STATUS_ACTIVE) {
-                // TODO think about this.
-                $this->versionids[$version->id] .= '<br>' . format_string($version->revision);
+                $this->versionids[$version->id] .= '<br>' . $version->revision;
             }
         }
 
@@ -93,12 +98,22 @@ class acceptances_table extends \table_sql {
             "{user} u",
             'u.id <> :siteguestid AND u.deleted = 0',
             ['siteguestid' => $CFG->siteguest]);
+        if (!$this->is_downloading()) {
+            $this->add_column_header('select', get_string('select'), false, 'colselect');
+        }
         $this->add_column_header('fullname', get_string('fullnameuser', 'core'));
         foreach ($extrafields as $field) {
             $this->add_column_header($field, get_user_field_name($field));
         }
 
-        if (count($this->versionids) == 1) {
+        if (!$this->is_downloading() && !has_capability('tool/policy:acceptbehalf', \context_system::instance())) {
+            // We will need to check capability to accept on behalf in each user's context, preload users contexts.
+            $this->sql->fields .= ',' . \context_helper::get_preload_record_columns_sql('ctx');
+            $this->sql->from .= ' JOIN {context} ctx ON ctx.contextlevel = :usercontextlevel AND ctx.instanceid = u.id';
+            $this->sql->params['usercontextlevel'] = CONTEXT_USER;
+        }
+
+        if ($this->acceptancesfilter->get_single_version()) {
             $this->configure_for_single_version();
         } else {
             $this->configure_for_multiple_versions();
@@ -394,10 +409,72 @@ class acceptances_table extends \table_sql {
     }
 
     /**
+     * Hook that can be overridden in child classes to wrap a table in a form
+     * for example. Called only when there is data to display and not
+     * downloading.
+     */
+    public function wrap_html_start() {
+        echo \html_writer::start_tag('form',
+            ['action' => new \moodle_url('/admin/tool/policy/accept.php'), 'data-action' => 'acceptmodal']);
+        echo \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+        echo \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'returnurl',
+            'value' => $this->get_return_url()]);
+        foreach (array_keys($this->versionids) as $versionid) {
+            echo \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => "versionids[{$versionid}]",
+                'value' => $versionid]);
+        }
+    }
+
+    /**
+     * Hook that can be overridden in child classes to wrap a table in a form
+     * for example. Called only when there is data to display and not
+     * downloading.
+     */
+    public function wrap_html_finish() {
+        global $PAGE;
+        if ($this->canagreeany) {
+            echo \html_writer::empty_tag('input', ['type' => 'submit',
+                'value' => get_string('consentbulk', 'tool_policy'), 'class' => 'btn btn-primary']);
+            $PAGE->requires->js_call_amd('tool_policy/acceptmodal', 'getInstance', [\context_system::instance()->id]);
+        }
+        echo "</form>\n";
+    }
+
+    /**
      * Render the table.
      */
     public function display() {
         $this->out(100, true);
+    }
+
+    /**
+     * Call appropriate methods on this table class to perform any processing on values before displaying in table.
+     * Takes raw data from the database and process it into human readable format, perhaps also adding html linking when
+     * displaying table as html, adding a div wrap, etc.
+     *
+     * See for example col_fullname below which will be called for a column whose name is 'fullname'.
+     *
+     * @param array|object $row row of data from db used to make one row of the table.
+     * @return array one row for the table, added using add_data_keyed method.
+     */
+    public function format_row($row) {
+        \context_helper::preload_from_record($row);
+        $row->canaccept = false;
+        $row->user = \user_picture::unalias($row, [], $this->useridfield);
+        $row->select = null;
+        if (!$this->is_downloading()) {
+            if (has_capability('tool/policy:acceptbehalf', \context_system::instance()) ||
+                has_capability('tool/policy:acceptbehalf', \context_user::instance($row->id))) {
+                $row->canaccept = true;
+                $row->select = \html_writer::empty_tag('input',
+                    ['type' => 'checkbox', 'name' => 'userids[]', 'value' => $row->id, 'class' => 'usercheckbox',
+                    'id' => 'selectuser' . $row->id]) .
+                \html_writer::tag('label', get_string('selectuser', 'tool_policy', $this->username($row->user, false)),
+                    ['for' => 'selectuser' . $row->id, 'class' => 'accesshide']);
+                $this->canagreeany = true;
+            }
+        }
+        return parent::format_row($row);
     }
 
     /**
@@ -408,36 +485,26 @@ class acceptances_table extends \table_sql {
      */
     public function col_fullname($row) {
         global $OUTPUT;
-
-        $user = \user_picture::unalias($row, [], $this->useridfield);
-        $userpic = $this->is_downloading() ? '' : $OUTPUT->user_picture($user);
-
-        return $userpic . $this->username($user);
+        $userpic = $this->is_downloading() ? '' : $OUTPUT->user_picture($row->user);
+        return $userpic . $this->username($row->user, true);
     }
 
     /**
-     * Helper content rendering method.
+     * User name with a link to profile
      *
-     * @param stdClass $row
-     * @param string $fieldsprefix
-     * @param string $useridfield
+     * @param stdClass $user
+     * @param bool $profilelink show link to profile (when we are downloading never show links)
      * @return string
      */
-    protected function username($row, $fieldsprefix = '', $useridfield = 'id') {
-
-        if (!empty($row->$useridfield)) {
-            $user = (object)['id' => $row->$useridfield];
-            username_load_fields_from_object($user, $row, $fieldsprefix);
-            $name = fullname($user);
-            if ($this->is_downloading()) {
-                return $name;
-            }
+    protected function username($user, $profilelink = true) {
+        $canviewfullnames = has_capability('moodle/site:viewfullnames', \context_system::instance()) ||
+            has_capability('moodle/site:viewfullnames', \context_user::instance($user->id));
+        $name = fullname($user, $canviewfullnames);
+        if (!$this->is_downloading() && $profilelink) {
             $profileurl = new \moodle_url('/user/profile.php', array('id' => $user->id));
-            // TODO cap view full names, cap to see profile.
             return \html_writer::link($profileurl, $name);
         }
-
-        return null;
+        return $name;
     }
 
     /**
@@ -452,21 +519,47 @@ class acceptances_table extends \table_sql {
     }
 
     /**
-     * Helper.
+     * Return agreement status
      *
-     * @param int $versionid
+     * @param int $versionid either id of an individual version or empty for overall status
      * @param stdClass $row
      * @return string
      */
     protected function status($versionid, $row) {
-        $status = $row->{'status' . $versionid};
-        if ($this->is_downloading()) {
-            return empty($status) ? get_string('no') : get_string('yes');
+        $onbehalf = false;
+        $versions = $versionid ? [$versionid => $this->versionids[$versionid]] : $this->versionids; // List of versions.
+        $accepted = []; // List of versionids that user has accepted.
+
+        foreach ($versions as $v => $name) {
+            if (!empty($row->{'status' . $v})) {
+                $accepted[] = $v;
+                $agreedby = $row->{'usermodified' . $v};
+                if ($agreedby && $agreedby != $row->id) {
+                    $onbehalf = true;
+                }
+            }
         }
-        $onbehalf = $status && ($row->{'usermodified' . $versionid} != $row->id);
-        $versions = $this->acceptancesfilter->get_versions();
-        return $this->output->render(new user_agreement($row->id, $status, $this->get_return_url(),
-            $versionid ? $versions[$versionid] : null, $onbehalf));
+
+        if ($versionid) {
+            $str = new \lang_string($accepted ? 'yes' : 'no');
+        } else {
+            $str = new \lang_string('acceptancecount', 'tool_policy', (object)[
+                'agreedcount' => count($accepted),
+                'policiescount' => count($versions)
+            ]);
+        }
+
+        if ($this->is_downloading()) {
+            return $str->out();
+        } else {
+            $s = $this->output->render(new user_agreement($row->id, $accepted, $this->get_return_url(),
+                $versions, $onbehalf, $row->canaccept));
+            if (!$versionid) {
+                $s .= '<br>' . \html_writer::link(new \moodle_url('/admin/tool/policy/user.php',
+                        ['userid' => $row->id, 'returnurl' => $this->get_return_url()]), $str);
+            }
+            return $s;
+        }
     }
 
     /**
@@ -510,29 +603,7 @@ class acceptances_table extends \table_sql {
      * @return string
      */
     public function col_statusall($row) {
-        $totalcnt = count($this->versionids);
-        $cnt = 0;
-        $onbehalf = false;
-        foreach ($this->versionids as $v => $unused) {
-            if (!empty($row->{'status' . $v})) {
-                $cnt++;
-                $agreedby = $row->{'usermodified' . $v};
-                if ($agreedby && $agreedby != $row->id) {
-                    $onbehalf = true;
-                }
-            }
-        }
-        $str = get_string('acceptancecount', 'tool_policy', (object)[
-            'agreedcount' => $cnt,
-            'policiescount' => $totalcnt
-        ]);
-        if ($this->is_downloading()) {
-            return $str;
-        } else {
-            $s = $this->output->render(new user_agreement($row->id, $cnt == $totalcnt, $this->get_return_url(), null, $onbehalf));
-            $str = \html_writer::link(new \moodle_url('/admin/tool/policy/user.php', ['userid' => $row->id]), $str);
-            return $s . "<br>" . $str;
-        }
+        return $this->status(0, $row);
     }
 
     /**
@@ -566,7 +637,9 @@ class acceptances_table extends \table_sql {
         }
         if (preg_match('/^usermodified([\d]+)$/', $column, $matches)) {
             if ($row->$column && $row->$column != $row->id) {
-                return $this->username($row, 'mod', $column);
+                $user = (object)['id' => $row->$column];
+                username_load_fields_from_object($user, $row, 'mod');
+                return $this->username($user, true);
             }
             return ''; // User agreed by themselves.
         }
