@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * View user acceptances to the policies
+ * Accept policies on behalf of users (non-JS version)
  *
  * @package     tool_policy
  * @copyright   2018 Marina Glancy
@@ -25,29 +25,41 @@
 require(__DIR__.'/../../../config.php');
 require_once($CFG->dirroot.'/user/editlib.php');
 
-$userid = optional_param('userid', null, PARAM_INT);
+$userids = optional_param_array('userids', null, PARAM_INT);
+$versionids = optional_param_array('versionids', null, PARAM_INT);
 $returnurl = optional_param('returnurl', null, PARAM_LOCALURL);
 
 require_login();
-$userid = $userid ?: $USER->id;
-if (isguestuser() || isguestuser($userid)) {
+if (isguestuser()) {
     print_error('noguest');
 }
-$context = context_user::instance($userid);
-if ($userid != $USER->id) {
-    // Check capability to view acceptances. No capability is needed to view your own acceptances.
-    if (!has_capability('tool/policy:acceptbehalf', $context)) {
-        require_capability('tool/policy:viewacceptances', $context);
-    }
-}
+$context = context_system::instance();
 
 $PAGE->set_context($context);
-$PAGE->set_url(new moodle_url('/admin/tool/policy/user.php', ['userid' => $userid]));
+$PAGE->set_url(new moodle_url('/admin/tool/policy/accept.php'));
+
+if ($returnurl) {
+    $returnurl = new moodle_url($returnurl);
+} else if (count($userids) == 1) {
+    $userid = reset($userids);
+    $returnurl = new moodle_url('/admin/tool/policy/user.php', ['userid' => $userid]);
+} else {
+    $returnurl = new moodle_url('/admin/tool/policy/acceptances.php');
+}
+// Initialise the form, this will also validate users, versions and check permission to accept policies.
+$form = new \tool_policy\form\accept_policy(null,
+    ['versionids' => $versionids, 'userids' => $userids, 'showbuttons' => true]);
+$form->set_data(['returnurl' => $returnurl]);
+
+if ($form->is_cancelled()) {
+    redirect($returnurl);
+} else if ($form->get_data()) {
+    $form->process();
+    redirect($returnurl);
+}
 
 $output = $PAGE->get_renderer('tool_policy');
 echo $output->header();
-echo $output->heading(get_string('policiesagreements', 'tool_policy'));
-$acceptances = new \tool_policy\output\acceptances($userid, $returnurl);
-echo $output->render($acceptances);
-$PAGE->requires->js_call_amd('tool_policy/acceptmodal', 'getInstance', [context_system::instance()->id]);
+echo $output->heading(get_string('consentdetails', 'tool_policy'));
+$form->display();
 echo $output->footer();

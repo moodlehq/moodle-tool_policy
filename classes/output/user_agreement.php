@@ -41,27 +41,45 @@ use templatable;
  */
 class user_agreement implements \templatable, \renderable {
 
+    /** @var int */
+    protected $userid;
+
+    /** @var bool */
+    protected $onbehalf;
+
+    /** @var moodle_url */
+    protected $pageurl;
+
     /** @var array */
-    protected $data;
+    protected $versions;
+
+    /** @var array */
+    protected $accepted;
+
+    /** @var bool */
+    protected $canaccept;
 
     /**
      * user_agreement constructor
      *
      * @param int $userid
-     * @param bool $status
+     * @param array $accepted list of ids of accepted versions
      * @param moodle_url $pageurl
-     * @param \stdClass|null $version object with fields 'id' and 'name' or null if this is an "overall" status
-     * @param bool $onbehalf whether accepted on behalf of the user
+     * @param array $versions list of versions (id=>name)
+     * @param bool $onbehalf whether at least one version was accepted by somebody else on behalf of the user
+     * @param bool $canaccept does the current user have permission to accept the policy on behalf of user $userid
      */
-    public function __construct($userid, $status, moodle_url $pageurl, $version, $onbehalf = false) {
-        $this->data = [
-            'userid' => $userid,
-            'status' => (int)(bool)$status,
-            'versionid' => $version ? $version->id : 0,
-            'versionname' => $version ? $version->name : 0,
-            'onbehalf' => $onbehalf,
-            'pageurl' => $pageurl
-        ];
+    public function __construct($userid, $accepted, moodle_url $pageurl, $versions, $onbehalf = false, $canaccept = null) {
+        $this->userid = $userid;
+        $this->onbehalf = $onbehalf;
+        $this->pageurl = $pageurl;
+        $this->versions = $versions;
+        $this->accepted = $accepted;
+        $this->canaccept = $canaccept;
+        if (count($this->accepted) < count($this->versions) && $canaccept === null) {
+            $this->canaccept = (has_capability('tool/policy:acceptbehalf', \context_system::instance()) ||
+                has_capability('tool/policy:acceptbehalf', \context_user::instance($this->userid)));
+        }
     }
 
     /**
@@ -72,17 +90,24 @@ class user_agreement implements \templatable, \renderable {
      */
     public function export_for_template(\renderer_base $output) {
         $data = [
-            'status' => $this->data['status'],
-            'onbehalf' => $this->data['onbehalf'],
-            'versionname' => $this->data['versionname'],
+            'status' => count($this->accepted) == count($this->versions),
+            'onbehalf' => $this->onbehalf,
+            'canaccept' => $this->canaccept,
         ];
-        if ($this->data['versionid'] && !$this->data['status'] &&
-                has_capability('tool/policy:acceptbehalf', \context_user::instance($this->data['userid']))) {
-            $link = new \moodle_url('/admin/tool/policy/user.php',
-                ['acceptforversion' => $this->data['versionid'], 'userid' => $this->data['userid'],
-                    'returnurl' => $this->data['pageurl']->out_as_local_url(false)]);
-            $data['canaccept'] = 1;
+        if (!$data['status'] && $this->canaccept) {
+            $linkparams = ['userids[0]' => $this->userid];
+            foreach (array_diff(array_keys($this->versions), $this->accepted) as $versionid) {
+                $linkparams["versionids[{$versionid}]"] = $versionid;
+            }
+            $linkparams['returnurl'] = $this->pageurl->out_as_local_url(false);
+            $link = new \moodle_url('/admin/tool/policy/accept.php', $linkparams);
             $data['acceptlink'] = $link->out(false);
+            $data['acceptmodaldata'] = $link->get_query_string(false); // TODO not needed?
+        }
+        $data['singleversion'] = count($this->versions) == 1;
+        if ($data['singleversion']) {
+            $firstversion = reset($this->versions);
+            $data['versionname'] = $firstversion;
         }
         return $data;
     }

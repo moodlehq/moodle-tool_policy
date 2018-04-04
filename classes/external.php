@@ -41,6 +41,7 @@ use invalid_parameter_exception;
 use moodle_exception;
 use restricted_context_exception;
 use tool_policy\api;
+use tool_policy\form\accept_policy;
 
 /**
  * Class external.
@@ -115,7 +116,7 @@ class external extends external_api {
                 );
                 $result['policy'] = $policy;
             }
-        } catch (coding_exception $e) {
+        } catch (moodle_exception $e) {
             $warnings[] = [
                 'item' => $versionid,
                 'warningcode' => 'errorpolicyversionnotfound',
@@ -145,5 +146,54 @@ class external extends external_api {
                             ]),
             'warnings' => new external_warnings()
         ]);
+    }
+
+    /**
+     * Describes the parameters for submit_create_group_form webservice.
+     * @return external_function_parameters
+     */
+    public static function submit_accept_on_behalf_parameters() {
+        return new external_function_parameters(
+            array(
+                'jsonformdata' => new external_value(PARAM_RAW, 'The data from the create group form, encoded as a json array')
+            )
+        );
+    }
+
+    /**
+     * Submit the create group form.
+     *
+     * @param string $jsonformdata The data from the form, encoded as a json array.
+     * @return int new group id.
+     */
+    public static function submit_accept_on_behalf($jsonformdata) {
+        // We always must pass webservice params through validate_parameters.
+        $params = self::validate_parameters(self::submit_accept_on_behalf_parameters(),
+            ['jsonformdata' => $jsonformdata]);
+
+        self::validate_context(context_system::instance());
+
+        $serialiseddata = json_decode($params['jsonformdata']);
+
+        $data = array();
+        parse_str($serialiseddata, $data);
+
+        // The last param is the ajax submitted data.
+        $mform = new accept_policy(null, $data, 'post', '', null, true, $data);
+
+        // Do the action.
+        $mform->process();
+
+        return true;
+    }
+
+    /**
+     * Returns description of method result value.
+     *
+     * @return external_description
+     * @since Moodle 3.0
+     */
+    public static function submit_accept_on_behalf_returns() {
+        return new external_value(PARAM_BOOL, 'success');
     }
 }
