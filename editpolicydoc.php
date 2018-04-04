@@ -32,7 +32,6 @@ $policyid = optional_param('policyid', null, PARAM_INT);
 $versionid = optional_param('versionid', null, PARAM_INT);
 $makecurrent = optional_param('makecurrent', null, PARAM_INT);
 $inactivate = optional_param('inactivate', null, PARAM_INT);
-$todraft = optional_param('todraft', null, PARAM_INT);
 $delete = optional_param('delete', null, PARAM_INT);
 $confirm = optional_param('confirm', false, PARAM_BOOL);
 $moveup = optional_param('moveup', null, PARAM_INT);
@@ -95,29 +94,6 @@ if ($inactivate) {
     die();
 }
 
-if ($todraft) {
-    $version = api::get_policy_version($todraft);
-
-    if ($confirm) {
-        require_sesskey();
-        $draft = api::revert_to_draft($todraft);
-        redirect(new moodle_url($PAGE->url, ['versionid' => $draft->get('id')]));
-    }
-
-    echo $output->header();
-    echo $output->heading(get_string('settingtodraft', 'tool_policy'));
-    echo $output->confirm(
-        get_string('settingtodraftconfirm', 'tool_policy', [
-            'name' => format_string($version->name),
-            'revision' => format_string($version->revision),
-        ]),
-        new moodle_url($PAGE->url, ['todraft' => $todraft, 'confirm' => 1]),
-        new moodle_url('/admin/tool/policy/managedocs.php')
-    );
-    echo $output->footer();
-    die();
-}
-
 if ($delete) {
     $version = api::get_policy_version($delete);
 
@@ -168,17 +144,17 @@ if (!$versionid && $policyid) {
         $policy = null;
     }
 }
-if ($policyversion->get('archived')) {
-    // Can not edit archived version.
-    redirect(new moodle_url('/admin/tool/policy/managedocs.php'));
-}
 
 $formdata = api::form_policydoc_data($policyversion);
 
 if ($policy && $formdata->id && $policy->currentversionid == $formdata->id) {
+    // We are editing an active version.
     $formdata->status = policy_version::STATUS_ACTIVE;
 } else {
+    // We are editing a draft or archived version and the default next status is "draft".
     $formdata->status = policy_version::STATUS_DRAFT;
+    // Archived versions can not be edited without creating a new version.
+    $formdata->minorchange = $policyversion->get('archived') ? 0 : 1;
 }
 
 $form = new \tool_policy\form\policydoc($PAGE->url, ['formdata' => $formdata]);

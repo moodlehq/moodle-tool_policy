@@ -42,7 +42,6 @@ define([
         LINKS: '[data-action]',
         MAKE_CURRENT: '[data-action="makecurrent"]',
         INACTIVATE: '[data-action="inactivate"]',
-        TODRAFT: '[data-action="todraft"]',
         DELETE: '[data-action="delete"]',
     };
 
@@ -87,16 +86,6 @@ define([
                         revision: link.closest('[data-policy-revision]').attr('data-policy-revision')
                     }},
                     {key: 'inactivatingconfirmyes', component: 'tool_policy'},
-                ]);
-
-            } else if (link.is(ACTION.TODRAFT)) {
-                promise = Str.get_strings([
-                    {key: 'settingtodraft', component: 'tool_policy'},
-                    {key: 'settingtodraftconfirm', component: 'tool_policy', param: {
-                        name: link.closest('[data-policy-name]').attr('data-policy-name'),
-                        revision: link.closest('[data-policy-revision]').attr('data-policy-revision')
-                    }},
-                    {key: 'settingtodraftconfirmyes', component: 'tool_policy'},
                 ]);
 
             } else if (link.is(ACTION.DELETE)) {
