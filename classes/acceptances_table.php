@@ -28,6 +28,7 @@ use tool_policy\output\acceptances_filter;
 use tool_policy\output\renderer;
 use tool_policy\output\user_agreement;
 use core_user;
+use stdClass;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -457,19 +458,18 @@ class acceptances_table extends \table_sql {
      * @return array one row for the table, added using add_data_keyed method.
      */
     public function format_row($row) {
+        \context_helper::preload_from_record($row);
         $row->canaccept = false;
         $row->user = \user_picture::unalias($row, [], $this->useridfield);
         $row->select = null;
         if (!$this->is_downloading()) {
-            \context_helper::preload_from_record($row);
             if (has_capability('tool/policy:acceptbehalf', \context_system::instance()) ||
                 has_capability('tool/policy:acceptbehalf', \context_user::instance($row->id))) {
                 $row->canaccept = true;
-                $user = \user_picture::unalias($row, [], $this->useridfield);
                 $row->select = \html_writer::empty_tag('input',
                     ['type' => 'checkbox', 'name' => 'userids[]', 'value' => $row->id, 'class' => 'usercheckbox',
                     'id' => 'selectuser' . $row->id]) .
-                \html_writer::tag('label', get_string('selectuser', 'tool_policy', fullname($user)),
+                \html_writer::tag('label', get_string('selectuser', 'tool_policy', $this->username($row->user, false)),
                     ['for' => 'selectuser' . $row->id, 'class' => 'accesshide']);
                 $this->canagreeany = true;
             }
@@ -485,36 +485,26 @@ class acceptances_table extends \table_sql {
      */
     public function col_fullname($row) {
         global $OUTPUT;
-
-        $user = \user_picture::unalias($row, [], $this->useridfield);
         $userpic = $this->is_downloading() ? '' : $OUTPUT->user_picture($row->user);
-
-        return $userpic . $this->username($user);
+        return $userpic . $this->username($row->user, true);
     }
 
     /**
-     * Helper content rendering method.
+     * User name with a link to profile
      *
-     * @param stdClass $row
-     * @param string $fieldsprefix
-     * @param string $useridfield
+     * @param stdClass $user
+     * @param bool $profilelink show link to profile (when we are downloading never show links)
      * @return string
      */
-    protected function username($row, $fieldsprefix = '', $useridfield = 'id') {
-
-        if (!empty($row->$useridfield)) {
-            $user = (object)['id' => $row->$useridfield];
-            username_load_fields_from_object($user, $row, $fieldsprefix);
-            $name = fullname($user);
-            if ($this->is_downloading()) {
-                return $name;
-            }
+    protected function username($user, $profilelink = true) {
+        $canviewfullnames = has_capability('moodle/site:viewfullnames', \context_system::instance()) ||
+            has_capability('moodle/site:viewfullnames', \context_user::instance($user->id));
+        $name = fullname($user, $canviewfullnames);
+        if (!$this->is_downloading() && $profilelink) {
             $profileurl = new \moodle_url('/user/profile.php', array('id' => $user->id));
-            // TODO cap view full names, cap to see profile.
             return \html_writer::link($profileurl, $name);
         }
-
-        return null;
+        return $name;
     }
 
     /**
@@ -647,7 +637,9 @@ class acceptances_table extends \table_sql {
         }
         if (preg_match('/^usermodified([\d]+)$/', $column, $matches)) {
             if ($row->$column && $row->$column != $row->id) {
-                return $this->username($row, 'mod', $column);
+                $user = (object)['id' => $row->$column];
+                username_load_fields_from_object($user, $row, 'mod');
+                return $this->username($user, true);
             }
             return ''; // User agreed by themselves.
         }
