@@ -213,15 +213,8 @@ class page_agreedocs implements renderable, templatable {
                 $currentpolicyversionids[] = $policy->id;
             }
 
-            if (!empty($USER->id)) {
-                // Existing user.
-                $cache = \cache::make('tool_policy', 'toolpolicy');
-                $cachekey = 'viewedpolicies';
-            } else {
-                // New user.
-                $cache = \cache::make('core', 'presignup');
-                $cachekey = 'tool_policy_viewedpolicies';
-            }
+            $cache = \cache::make('core', 'presignup');
+            $cachekey = 'tool_policy_viewedpolicies';
 
             $viewedpolicies = $cache->get($cachekey);
             if (!empty($viewedpolicies)) {
