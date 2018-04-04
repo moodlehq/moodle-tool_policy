@@ -193,7 +193,6 @@ function tool_policy_get_fontawesome_icon_map() {
  */
 function tool_policy_output_fragment_accept_on_behalf($args) {
     $args = (object) $args;
-    $o = '';
 
     $data = [];
     if (!empty($args->jsonformdata)) {
@@ -208,10 +207,5 @@ function tool_policy_output_fragment_accept_on_behalf($args) {
         $mform->is_validated();
     }
 
-    ob_start();
-    $mform->display();
-    $o .= ob_get_contents();
-    ob_end_clean();
-
-    return $o;
+    return $mform->render();
 }

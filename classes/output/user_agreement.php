@@ -44,6 +44,7 @@ class user_agreement implements \templatable, \renderable {
     /** @var int */
     protected $userid;
 
+    /** @var bool */
     protected $onbehalf;
 
     /** @var moodle_url */
@@ -52,8 +53,10 @@ class user_agreement implements \templatable, \renderable {
     /** @var array */
     protected $versions;
 
+    /** @var array */
     protected $accepted;
 
+    /** @var bool */
     protected $canaccept;
 
     /**
@@ -64,6 +67,7 @@ class user_agreement implements \templatable, \renderable {
      * @param moodle_url $pageurl
      * @param array $versions list of versions (id=>name)
      * @param bool $onbehalf whether at least one version was accepted by somebody else on behalf of the user
+     * @param bool $canaccept does the current user have permission to accept the policy on behalf of user $userid
      */
     public function __construct($userid, $accepted, moodle_url $pageurl, $versions, $onbehalf = false, $canaccept = null) {
         $this->userid = $userid;

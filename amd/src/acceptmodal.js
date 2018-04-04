@@ -1,7 +1,20 @@
-
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Add a create new group modal to the page.
+ * Add policy consent modal to the page
  *
  * @module     tool_policy/acceptmodal
  * @class      AcceptOnBehalf
@@ -9,8 +22,11 @@
  * @copyright  2018 Marina Glancy
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-define(['jquery', 'core/str', 'core/modal_factory', 'core/modal_events', 'core/fragment', 'core/ajax', 'core/yui'],
-    function($, Str, ModalFactory, ModalEvents, Fragment, Ajax, Y) {
+define(['jquery', 'core/str', 'core/modal_factory', 'core/modal_events', 'core/notification', 'core/fragment',
+        'core/ajax', 'core/yui'],
+    function($, Str, ModalFactory, ModalEvents, Notification, Fragment, Ajax, Y) {
+
+        "use strict";
 
         /**
          * Constructor
@@ -21,19 +37,6 @@ define(['jquery', 'core/str', 'core/modal_factory', 'core/modal_events', 'core/f
          */
         var AcceptOnBehalf = function(contextid) {
             this.contextid = contextid;
-
-            var stringKeys = [
-                {
-                    key: 'consentdetails',
-                    component: 'tool_policy'
-                },
-                {
-                    key: 'iagreetothepolicy',
-                    component: 'tool_policy'
-                }
-            ];
-            this.strings = Str.get_strings(stringKeys);
-
             this.init();
         };
 
@@ -50,15 +53,30 @@ define(['jquery', 'core/str', 'core/modal_factory', 'core/modal_events', 'core/f
         AcceptOnBehalf.prototype.contextid = -1;
 
         /**
-         * @var {Promise}
+         * @var {Array} strings
          * @private
          */
-        AcceptOnBehalf.prototype.strings = 0;
+        AcceptOnBehalf.prototype.stringKeys = [
+            {
+                key: 'consentdetails',
+                component: 'tool_policy'
+            },
+            {
+                key: 'iagreetothepolicy',
+                component: 'tool_policy'
+            },
+            {
+                key: 'selectusersforconsent',
+                component: 'tool_policy'
+            },
+            {
+                key: 'ok'
+            }
+        ];
 
         /**
          * Initialise the class.
          *
-         * @param {String} selector used to find triggers for the new group modal.
          * @private
          */
         AcceptOnBehalf.prototype.init = function() {
@@ -78,6 +96,10 @@ define(['jquery', 'core/str', 'core/modal_factory', 'core/modal_events', 'core/f
                 if ($(e.currentTarget).find('input[type=checkbox][name="userids[]"]:checked').length) {
                     var formData = $(e.currentTarget).serialize();
                     this.showFormModal(formData, triggers);
+                } else {
+                    Str.get_strings(this.stringKeys).done(function (strings) {
+                        Notification.alert('', strings[2], strings[3]);
+                    });
                 }
             }.bind(this));
         };
@@ -90,7 +112,7 @@ define(['jquery', 'core/str', 'core/modal_factory', 'core/modal_events', 'core/f
          */
         AcceptOnBehalf.prototype.showFormModal = function(formData, triggerElement) {
             // Fetch the title string.
-            this.strings.then(function(strings) {
+            Str.get_strings(this.stringKeys).done(function(strings) {
                 // Create the modal.
                 ModalFactory.create({
                     type: ModalFactory.types.SAVE_CANCEL,
