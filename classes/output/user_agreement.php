@@ -91,11 +91,14 @@ class user_agreement implements \templatable, \renderable {
             'canaccept' => $this->canaccept,
         ];
         if (!$data['status'] && $this->canaccept) {
-            $acceptforversions = array_diff(array_keys($this->versions), $this->accepted);
-            $link = new \moodle_url('/admin/tool/policy/user.php',
-                ['acceptforversions' => join(',', $acceptforversions), 'userid' => $this->userid,
-                    'returnurl' => $this->pageurl->out_as_local_url(false)]);
+            $linkparams = ['userids[0]' => $this->userid];
+            foreach (array_diff(array_keys($this->versions), $this->accepted) as $versionid) {
+                $linkparams["versionids[{$versionid}]"] = $versionid;
+            }
+            $linkparams['returnurl'] = $this->pageurl->out_as_local_url(false);
+            $link = new \moodle_url('/admin/tool/policy/accept.php', $linkparams);
             $data['acceptlink'] = $link->out(false);
+            $data['acceptmodaldata'] = $link->get_query_string(false); // TODO not needed?
         }
         $data['singleversion'] = count($this->versions) == 1;
         if ($data['singleversion']) {
