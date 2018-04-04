@@ -30,7 +30,6 @@
     * myurl
     * sesskey
     * policies - policy array
-    * privacyofficer - string with the privacy officer information
     * behalfuser - If behalfid is defined and valid, full name of the behalf user with a link to his/her profile; null otherwise
 
 
@@ -112,12 +111,6 @@
 </div>
 
 {{/policies}}
-
-{{#privacyofficer}}
-  <div class="agreedoc-officer well">
-    {{{.}}}
-  </div>
-{{/privacyofficer}}
 
 {{# str }}somefieldsrequired, form, <i class="icon fa fa-exclamation-circle text-danger fa-fw" title="{{# str }} required {{/ str }}" ></i>{{/ str }}
 <hr>
