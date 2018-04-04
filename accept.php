@@ -46,6 +46,7 @@ if ($returnurl) {
 } else {
     $returnurl = new moodle_url('/admin/tool/policy/acceptances.php');
 }
+// Initialise the form, this will also validate users, versions and check permission to accept policies.
 $form = new \tool_policy\form\accept_policy(null,
     ['versionids' => $versionids, 'userids' => $userids, 'showbuttons' => true]);
 $form->set_data(['returnurl' => $returnurl]);

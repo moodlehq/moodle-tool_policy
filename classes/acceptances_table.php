@@ -433,7 +433,7 @@ class acceptances_table extends \table_sql {
         global $PAGE;
         if ($this->canagreeany) {
             echo \html_writer::empty_tag('input', ['type' => 'submit',
-                'value' => get_string('agreetoselected', 'tool_policy'), 'class' => 'btn btn-primary']);
+                'value' => get_string('consentbulk', 'tool_policy'), 'class' => 'btn btn-primary']);
             $PAGE->requires->js_call_amd('tool_policy/acceptmodal', 'getInstance', [\context_system::instance()->id]);
         }
         echo "</form>\n";
@@ -458,14 +458,19 @@ class acceptances_table extends \table_sql {
      */
     public function format_row($row) {
         $row->canaccept = false;
+        $row->user = \user_picture::unalias($row, [], $this->useridfield);
         $row->select = null;
         if (!$this->is_downloading()) {
             \context_helper::preload_from_record($row);
             if (has_capability('tool/policy:acceptbehalf', \context_system::instance()) ||
                 has_capability('tool/policy:acceptbehalf', \context_user::instance($row->id))) {
                 $row->canaccept = true;
+                $user = \user_picture::unalias($row, [], $this->useridfield);
                 $row->select = \html_writer::empty_tag('input',
-                    ['type' => 'checkbox', 'name' => 'userids[]', 'value' => $row->id, 'class' => 'usercheckbox']);
+                    ['type' => 'checkbox', 'name' => 'userids[]', 'value' => $row->id, 'class' => 'usercheckbox',
+                    'id' => 'selectuser' . $row->id]) .
+                \html_writer::tag('label', get_string('selectuser', 'tool_policy', fullname($user)),
+                    ['for' => 'selectuser' . $row->id, 'class' => 'accesshide']);
                 $this->canagreeany = true;
             }
         }
@@ -482,7 +487,7 @@ class acceptances_table extends \table_sql {
         global $OUTPUT;
 
         $user = \user_picture::unalias($row, [], $this->useridfield);
-        $userpic = $this->is_downloading() ? '' : $OUTPUT->user_picture($user);
+        $userpic = $this->is_downloading() ? '' : $OUTPUT->user_picture($row->user);
 
         return $userpic . $this->username($user);
     }
@@ -560,7 +565,8 @@ class acceptances_table extends \table_sql {
             $s = $this->output->render(new user_agreement($row->id, $accepted, $this->get_return_url(),
                 $versions, $onbehalf, $row->canaccept));
             if (!$versionid) {
-                $s .= '<br>' . \html_writer::link(new \moodle_url('/admin/tool/policy/user.php', ['userid' => $row->id]), $str);
+                $s .= '<br>' . \html_writer::link(new \moodle_url('/admin/tool/policy/user.php',
+                        ['userid' => $row->id, 'returnurl' => $this->get_return_url()]), $str);
             }
             return $s;
         }

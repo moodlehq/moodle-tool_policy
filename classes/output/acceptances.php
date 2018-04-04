@@ -47,13 +47,17 @@ class acceptances implements renderable, templatable {
     /** @var id */
     protected $userid;
 
+    /** @var moodle_url */
+    protected $returnurl;
+
     /**
      * Contructor.
      *
      * @param int $userid
      */
-    public function __construct($userid) {
+    public function __construct($userid, $returnurl = null) {
         $this->userid = $userid;
+        $this->returnurl = $returnurl ? (new moodle_url($returnurl))->out(false) : null;
     }
 
     /**
@@ -66,6 +70,7 @@ class acceptances implements renderable, templatable {
         $data = (object)[];
         $data->hasonbehalfagreements = false;
         $data->pluginbaseurl = (new moodle_url('/admin/tool/policy'))->out(false);
+        $data->returnurl = $this->returnurl;
 
         // Get the list of policies and versions that current user is able to see
         // and the respective acceptance records for the selected user.

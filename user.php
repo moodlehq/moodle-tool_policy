@@ -47,7 +47,7 @@ $PAGE->set_url(new moodle_url('/admin/tool/policy/user.php', ['userid' => $useri
 $output = $PAGE->get_renderer('tool_policy');
 echo $output->header();
 echo $output->heading(get_string('policiesagreements', 'tool_policy'));
-$acceptances = new \tool_policy\output\acceptances($userid);
+$acceptances = new \tool_policy\output\acceptances($userid, $returnurl);
 echo $output->render($acceptances);
 $PAGE->requires->js_call_amd('tool_policy/acceptmodal', 'getInstance', [context_system::instance()->id]);
 echo $output->footer();
