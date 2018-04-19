@@ -52,7 +52,7 @@ class provider implements
      * @param collection $items A reference to the collection to use to store the metadata.
      * @return collection The updated collection of metadata items.
      */
-    public static function get_metadata(collection $items) : collection {
+    public static function get_metadata(collection $items) {
         $items->add_database_table(
             'tool_policy_acceptances',
             [
@@ -77,7 +77,7 @@ class provider implements
      * @param int $userid The userid.
      * @return contextlist The list of contexts containing user info for the user.
      */
-    public static function get_contexts_for_userid(int $userid) : contextlist {
+    public static function get_contexts_for_userid($userid) {
         $contextlist = new contextlist();
         $contextlist->add_from_sql('SELECT DISTINCT c.id
             FROM {tool_policy_acceptances} a
