@@ -477,7 +477,7 @@ class api {
      * @param int $versionid
      */
     public static function make_current($versionid) {
-        global $DB;
+        global $DB, $USER;
 
         $policyversion = new policy_version($versionid);
         if (! $policyversion->get('id') || $policyversion->get('archived')) {
@@ -498,6 +498,11 @@ class api {
 
         // Reset the policyagreed flag to force everybody re-accept the policies.
         $DB->set_field('user', 'policyagreed', 0);
+
+        // Make sure that the current user is not immediately redirected to the policy acceptance page.
+        if (isloggedin() && !isguestuser()) {
+            $USER->policyagreed = 1;
+        }
     }
 
     /**
@@ -535,6 +540,17 @@ class api {
     }
 
     /**
+     * Can the current version be deleted
+     *
+     * @param stdClass $version object describing version, contains fields policyid, id, status, archived, audience, ...
+     */
+    public static function can_delete_version($version) {
+        // TODO MDL-61900 allow to delete not only draft versions.
+        return has_capability('tool/policy:managedocs', context_system::instance()) &&
+                $version->status == policy_version::STATUS_DRAFT;
+    }
+
+    /**
      * Delete the given version (if it is a draft). Also delete policy if this is the only version.
      *
      * @param int $versionid
@@ -543,16 +559,14 @@ class api {
         global $DB;
 
         $version = static::get_policy_version($versionid);
-        $policy = static::list_policies([$version->policyid])[0];
-        if ($version->archived || $policy->currentversionid == $version->id) {
-            // Can not delete archived or current version.
-            // TODO we could delete guest only versions potentially or versions without acceptances.
+        if (!self::can_delete_version($version)) {
+            // Current version can not be deleted.
             return;
         }
 
         $DB->delete_records('tool_policy_versions', ['id' => $versionid]);
 
-        if (!$policy->archivedversions && !$policy->currentversion && count($policy->draftversions) == 1) {
+        if (!$DB->record_exists('tool_policy_versions', ['policyid' => $version->policyid])) {
             // This is a single version in a policy. Delete the policy.
             $DB->delete_records('tool_policy', ['id' => $version->policyid]);
         }
