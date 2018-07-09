@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'tool_policy';
-$plugin->release = '34.6.0';
-$plugin->version = 2017111309;
+$plugin->release = '34.7.0';
+$plugin->version = 2017111310;
 $plugin->requires = 2017111302;
 $plugin->maturity = MATURITY_STABLE;
