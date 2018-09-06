@@ -36,6 +36,19 @@ $managecaps = [
 
 if ($hassiteconfig || has_any_capability($managecaps, context_system::instance())) {
 
+    $versioncheckpage = new admin_settingpage(
+        'tool_policy_versioncheck',
+        new lang_string('versioncheck', 'tool_policy')
+    );
+
+    $versioncheckpage->add(new admin_setting_heading(
+        'tool_policy_versionwarning',
+        '',
+        $OUTPUT->notification(new lang_string('versioncheckwarning', 'tool_policy'), 'warning')
+    ));
+
+    $ADMIN->add('privacy', $versioncheckpage);
+
     $ADMIN->add('privacy', new admin_externalpage(
         'tool_policy_managedocs',
         new lang_string('managepolicies', 'tool_policy'),
