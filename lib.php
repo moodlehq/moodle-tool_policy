@@ -231,3 +231,31 @@ function tool_policy_output_fragment_accept_on_behalf($args) {
 
     return $mform->render();
 }
+
+/**
+ * Custom environment check invoked from environment.xml.
+ *
+ * Make sure that the plugin is not present in Moodle that has it already merged into the core.
+ *
+ * @param environment_results $result
+ * @return environment_results|null
+ */
+function tool_policy_version_check(environment_results $result) {
+    global $CFG;
+
+    if (!empty($CFG->tool_policy_disable_version_check)) {
+        return null;
+    }
+
+    $version = null;
+    $branch = null;
+    require($CFG->dirroot.'/version.php');
+
+    if (($branch == 33 && $version >= 2017051507.02) || ($branch == 34 && $version >= 2017111304.05) || $branch >= 35) {
+        $result->setStatus(false);
+        return $result;
+
+    } else {
+        return null;
+    }
+}
