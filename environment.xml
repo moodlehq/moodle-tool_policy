@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<COMPATIBILITY_MATRIX>
+    <PLUGIN name="tool_policy">
+        <CUSTOM_CHECKS>
+            <CUSTOM_CHECK file="admin/tool/policy/lib.php" function="tool_policy_version_check" level="required">
+                <FEEDBACK>
+                    <ON_ERROR message="versioncheckerror" plugin="tool_policy" />
+                </FEEDBACK>
+            </CUSTOM_CHECK>
+        </CUSTOM_CHECKS>
+    </PLUGIN>
+</COMPATIBILITY_MATRIX>
